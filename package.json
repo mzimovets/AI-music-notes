@@ -52,14 +52,17 @@
     "@heroui/user": "2.2.21",
     "@react-aria/ssr": "3.9.10",
     "@react-aria/visually-hidden": "3.8.27",
+    "@react-pdf/renderer": "^4.3.1",
     "clsx": "2.1.1",
     "dropzone": "^6.0.0-beta.2",
     "framer-motion": "11.18.2",
     "intl-messageformat": "10.7.16",
     "next": "15.3.1",
     "next-themes": "0.4.6",
+    "pdfjs-dist": "^5.4.296",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "react-pdf": "^10.2.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.3.4",

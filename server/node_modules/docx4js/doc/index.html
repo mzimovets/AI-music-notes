@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <base data-ice="baseUrl">
+  <title data-ice="title">docx4js API Document</title>
+  <link type="text/css" rel="stylesheet" href="css/style.css">
+  <link type="text/css" rel="stylesheet" href="css/prettify-tomorrow.css">
+  <script src="script/prettify/prettify.js"></script>
+  
+  
+  <script src="script/manual.js"></script>
+</head>
+<body class="layout-container" data-ice="rootContainer">
+
+<header>
+  <a href="./">Home</a>
+  
+  <a href="identifiers.html">Reference</a>
+  <a href="source.html">Source</a>
+  
+  <a data-ice="repoURL" href="https://github.com/lalalic/docx4js.git" class="repo-url-github">Repository</a>
+  <div class="search-box">
+  <span>
+    <img src="./image/search.png">
+    <span class="search-input-edge"></span><input class="search-input"><span class="search-input-edge"></span>
+  </span>
+    <ul class="search-result"></ul>
+  </div>
+</header>
+
+<nav class="navigation" data-ice="nav"><div>
+  <ul>
+    
+  <li data-ice="doc"><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/document.js~Document.html">Document</a></span></span></li>
+<li data-ice="doc"><div data-ice="dirPath" class="nav-dir-path">openxml/docx/model</div><span data-ice="kind" class="kind-class">C</span><span data-ice="name"><span><a href="class/src/openxml/docx/model/list.js~list.html">list</a></span></span></li>
+</ul>
+</div>
+</nav>
+
+<div class="content" data-ice="content"><div data-ice="index" class="github-markdown"><p><img src="https://api.travis-ci.org/lalalic/docx4js.svg?branch=master" alt=""></p>
+<h1 id="docx4js">docx4js</h1>
+<p><strong>docx4js</strong> is a javascript docx parser.</p>
+<p>The original goal is to support docx, pptx, and xlsx, but it&apos;s a huge work, so I limited to docx so far.</p>
+<p>In sake of performance, the implementation doesn&apos;t keep parsed structure. It only traverse docx content, and identify docx model, then call passed visitors one by one. No matter content, and styles, are all with the same stratigy. This method makes it do more with less memory.  </p>
+<p>There are lots of information in docx, but the client application usually only cares about part of them, such as content only, structure only, some styles, or some attributes. The client application is able to handle special word model by TYPE.</p>
+<p>Attributes of word model usually affects styles, but I don&apos;t understand all of them, so I&apos;m lazy just to iterate every attribute, and some unknown child elements, so client application is possible to catch all information you know.</p>
+<h1 id="features">Features</h1>
+<h2 id="environment">environment</h2>
+<ul>
+<li>nodejs</li>
+<li>browser<ul>
+<li>IE9+</li>
+<li>firefox</li>
+<li>chrome</li>
+</ul>
+</li>
+</ul>
+<p><strong>identified models</strong></p>
+<ul>
+<li>section</li>
+<li>header</li>
+<li>footer</li>
+<li>paragraph</li>
+<li>inline</li>
+<li>numbering</li>
+<li>heading</li>
+<li>shape<ul>
+<li>group</li>
+<li>line</li>
+<li>roundRect</li>
+<li>rect</li>
+</ul>
+</li>
+<li>image</li>
+<li>hyperlink</li>
+<li>table<ul>
+<li>row</li>
+<li>cell</li>
+</ul>
+</li>
+<li>control<ul>
+<li>checkbox</li>
+<li>combobox</li>
+<li>date</li>
+<li>dropdown</li>
+<li>gallery</li>
+<li>picture</li>
+<li>richtext</li>
+<li>text</li>
+</ul>
+</li>
+<li>text<ul>
+<li>softHyphen</li>
+<li>noBreakHyphen</li>
+<li>tab</li>
+<li>symbol</li>
+</ul>
+</li>
+<li>field<ul>
+<li>date</li>
+<li>hyperlink</li>
+<li>ref</li>
+</ul>
+</li>
+<li>OLE</li>
+<li>diagram</li>
+<li>equation</li>
+<li>bookmark</li>
+<li>range</li>
+<li>br</li>
+<li>chart</li>
+</ul>
+<p><strong>style</strong></p>
+<ul>
+<li>document default style</li>
+<li>named style</li>
+<li>style inheritance</li>
+<li>paragraph</li>
+<li>character</li>
+<li>numbering</li>
+<li>section</li>
+<li>table</li>
+</ul>
+<h2 id="api">API</h2>
+<p><code>require(&quot;docx4js&quot;)</code> return a docx converter, which has following two functions.</p>
+<h3 id="load-file-return-promise-resolved-by-parsed-document">load(file): return Promise resolved by parsed document</h3>
+<p><strong>file</strong> is a file path string in nodejs, as for browser, it is a file from input[type=file].</p>
+<p><strong>Parsed Document interface</strong></p>
+<ul>
+<li>parse(visitorFactory1, visitorFactory2, ...)</li>
+</ul>
+<h3 id="createvisitorfactory-factory-option-">createVisitorFactory(factory, option)</h3>
+<p>It&apos;s to create a factory function that to create a visitor specific to word model types</p>
+<ul>
+<li>factory: it could be following type<ul>
+<li>function(wordModel, targetParent) : return <strong>Visitor</strong> class<ul>
+<li>wordModel: identified word model</li>
+<li>targetParent: the result created by visitor of srcModel&apos;s parent model</li>
+</ul>
+</li>
+<li>object: {&apos;word model type name&apos;: Visitor Class}</li>
+<li>undefined: a default factory just to info type of word model in console</li>
+</ul>
+</li>
+<li>option: a global option to all visitor instances created by the factory, refered by visitor.options</li>
+</ul>
+<h3 id="visitor">Visitor</h3>
+<ul>
+<li>constructor(wordModel, parentVisitor)</li>
+<li>visit() : calls when a specific word model found</li>
+</ul>
+<p><strong>example</strong></p>
+<pre><code><code class="source-code prettyprint">var docx4js=require(&quot;docx4js&quot;)
+docx4j.load(fileInput.files[0]) // a file path in nodejs
+    .then(function(doc){
+        var nothingFactory=DOCX.createVisitorFactory()
+
+        var textFactory=(function(){
+            var visitor=[]
+            visitor.visit=(function(){
+                switch(this.model.type){
+                case &apos;paragraph&apos;:
+                    return this.push(&quot;\n\r&quot;)
+                case &apos;text&apos;:
+                    return this.push(this.model.getText())
+                }
+            }
+            return DOCX.createVisitorFactory(function(wordModel){
+                visitor.model=wordModel
+            })
+        )();
+
+        var complexFactory=(function(){
+            class Visitor{}
+            class P extends Visitor{
+                visit(){}
+            }
+            class Image extends Visitor{
+                visit(){}
+            }
+            class Shape extends Visitor{
+                visit(){}
+            }
+            class Text extends Visitor{
+                visit(){}
+            }
+
+            return DOCX.createVisitorFactory({
+                    &apos;paragraph&apos;: P,
+                    &apos;image&apos;: Image,
+                    &apos;text&apos;: Text,
+                    &apos;shape&apos;: Shape
+                })
+        )();
+
+        doc.parse(nothingFactory, textFactory, complexFactory)
+    })</code>
+</code></pre><h1 id="license">License</h1>
+<p>GPL</p>
+</div>
+</div>
+
+<footer class="footer">
+  Generated by <a href="https://esdoc.org">ESDoc<span data-ice="esdocVersion">(0.4.7)</span></a>
+</footer>
+
+<script src="script/search_index.js"></script>
+<script src="script/search.js"></script>
+<script src="script/pretty-print.js"></script>
+<script src="script/inherited-summary.js"></script>
+<script src="script/test-summary.js"></script>
+<script src="script/inner-link.js"></script>
+<script src="script/patch-for-local.js"></script>
+</body>
+</html>
