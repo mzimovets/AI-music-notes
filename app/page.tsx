@@ -16,19 +16,25 @@ import {
   Form,
   Input,
   useDisclosure,
+  Card,
 } from "@heroui/react";
 
 import MyDropzone from "./dropzone";
 import ModalAddScore from "./modalAddScore";
+import ModalFilePreviewer from "./modalFilePreviewer";
 
 export default function Home() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const preview = useDisclosure();
 
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
       <div className="inline-block max-w-xl text-center justify-center">
         {/*  */}
-        <ModalAddScore />
+        <ModalAddScore onOpenPreview={preview.onOpen} />
+        <ModalFilePreviewer
+          isOpen={preview.isOpen}
+          onOpenChange={preview.onOpenChange}
+        />
         {/*  */}
         <span className={title()}>Make&nbsp;</span>
         <span className={title({ color: "violet" })}>beautiful&nbsp;</span>
@@ -69,6 +75,26 @@ export default function Home() {
             Get started by editing <Code color="primary">app/page.tsx</Code>
           </span>
         </Snippet>
+      </div>
+      <div className="flex gap-5">
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
+        <Card className=" z-50 w-30 h-30 flex items-center justify-center">
+          Тут песня
+        </Card>
       </div>
     </section>
   );

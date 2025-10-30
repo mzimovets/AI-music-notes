@@ -1,23 +1,37 @@
 "use client";
-import { useState } from "react";
-import { Document, Page, pdfjs } from "react-pdf";
-import type { PDFDocumentProxy } from "pdfjs-dist";
 
-// Настройка воркера (обязательно!)
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import { pdfjs } from "react-pdf";
+
+// Настройка воркера (только на клиенте)
+if (typeof window !== "undefined") {
+  pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
+}
+
+// Отключаем SSR для компонентов react-pdf
+const Document = dynamic(
+  () => import("react-pdf").then((mod) => mod.Document),
+  {
+    ssr: false,
+  }
+);
+const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
+  ssr: false,
+});
 
 export function PdfViewer() {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState<number>(1);
 
-  function onDocumentLoadSuccess(pdf: PDFDocumentProxy): void {
+  function onDocumentLoadSuccess(pdf: any) {
     setNumPages(pdf.numPages);
   }
 
   return (
     <div style={{ textAlign: "center" }}>
-      <Document file="/public/pdf.pdf" onLoadSuccess={onDocumentLoadSuccess}>
-        <Page pageNumber={pageNumber} />
+      <Document file="/pdf.pdf" onLoadSuccess={onDocumentLoadSuccess}>
+        <Page pageNumber={pageNumber} width={600} />
       </Document>
 
       <div style={{ marginTop: "10px" }}>
@@ -27,7 +41,6 @@ export function PdfViewer() {
         >
           Previous
         </button>
-
         <button
           disabled={!numPages || pageNumber >= numPages}
           onClick={() => setPageNumber(pageNumber + 1)}
