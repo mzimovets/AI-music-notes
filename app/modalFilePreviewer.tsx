@@ -168,11 +168,11 @@ export default function ModalFilePreviewer({
                 <div className="text-center">Файл не выбран</div>
               )}
             </ModalBody>
-            <ModalFooter>
+            {/* <ModalFooter>
               <Button color="danger" variant="light" onPress={onClose}>
                 Закрыть
               </Button>
-            </ModalFooter>
+            </ModalFooter> */}
           </>
         )}
       </ModalContent>
