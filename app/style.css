@@ -1,0 +1,11 @@
+/* Для Chrome, Safari, Edge, Opera */
+input.no-spinner::-webkit-outer-spin-button,
+input.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Для Firefox */
+input.no-spinner {
+  -moz-appearance: textfield;
+}

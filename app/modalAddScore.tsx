@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import {
   Modal,
   ModalContent,
@@ -11,58 +12,86 @@ import {
 } from "@heroui/react";
 
 import MyDropzone from "./dropzone";
-import { PdfViewer } from "./pdfViewer";
+import ModalFilePreviewer from "./modalFilePreviewer"; // подключаем вторую модалку
 
 export default function ModalAddScore() {
+  // управление первой модалкой
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
+  // управление второй модалкой (предпросмотр)
+  const {
+    isOpen: isPreviewOpen,
+    onOpen: onOpenPreview,
+    onClose: onClosePreview,
+  } = useDisclosure();
+
+  const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [isSaved, setIsSaved] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen && !isSaved) {
+      setSelectedFile(null);
+    }
+    if (!isOpen) {
+      setIsSaved(false);
+    }
+  }, [isOpen, isSaved]);
+
   return (
     <>
       <Button onPress={onOpen}>Добавить партитуру</Button>
+
+      {/* первая модалка */}
       <Modal
         isDismissable={false}
         isKeyboardDismissDisabled={true}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        placement={"top"}
+        placement="top"
       >
         <ModalContent>
-          {(onClose) => (
+          {() => (
             <>
-              <ModalHeader className="flex flex-col gap-1 text-center">
+              <ModalHeader className="text-center">
                 Добавить новую партитуру
               </ModalHeader>
               <ModalBody>
                 <Input
                   isRequired
-                  errorMessage="Пожалуйста, введите название!"
                   label="Название"
                   labelPlacement="outside"
-                  name="nameScore"
                   placeholder="Введите название"
-                  type="nameScore"
                 />
                 <Input
                   label="Автор"
                   labelPlacement="outside"
                   placeholder="Введите автора"
-                  type="autorScore"
                 />
-                <MyDropzone />
-                <Button>Предпросмотр</Button>
-                <PdfViewer />
+                <MyDropzone onFileSelect={setSelectedFile} />
+
+                {/* Кнопка предпросмотра */}
+                <Button onPress={onOpenPreview} isDisabled={!selectedFile}>
+                  Предпросмотр
+                </Button>
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onClose}>
-                  Close
+                <Button color="danger" variant="light" onPress={onOpenChange}>
+                  Закрыть
                 </Button>
-                <Button color="primary" onPress={onClose}>
-                  Action
+                <Button color="primary" onPress={() => setIsSaved(true)}>
+                  Сохранить
                 </Button>
               </ModalFooter>
             </>
           )}
         </ModalContent>
       </Modal>
+
+      {/* вторая модалка — предпросмотр */}
+      <ModalFilePreviewer
+        isOpen={isPreviewOpen}
+        onClose={onClosePreview}
+        selectedFile={selectedFile}
+      />
     </>
   );
 }

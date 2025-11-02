@@ -16,6 +16,16 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import { data } from "framer-motion/client";
 
+import cors from "cors";
+
+app.use(
+  cors({
+    origin: "http://localhost:3000", // адрес фронтенда
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.use(express.static(__dirname + "/build"));
@@ -40,6 +50,36 @@ app.listen(PORT, () => {
 
 app.get("/", (req, res) => {
   res.send("hello my dear");
+});
+
+// Загрузка файла
+
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  if (!req.file) {
+    return res
+      .status(400)
+      .json({ status: "error", message: "Файл не загружен" });
+  }
+
+  const fileData = {
+    _id: Date.now().toString(), // или req.file.filename
+    originalName: req.file.originalname,
+    path: req.file.path,
+    mimetype: req.file.mimetype,
+    size: req.file.size,
+    ...req.body, // если есть дополнительные данные
+  };
+
+  database.insert(fileData, (err, doc) => {
+    if (err) {
+      console.log("err", err);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Не удалось сохранить запись" });
+    }
+    console.log("adding file:", fileData.originalName);
+    res.json({ status: "ok", doc });
+  });
 });
 
 // Ноты
