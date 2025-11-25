@@ -9,6 +9,7 @@
     "lint": "eslint --fix"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.0",
     "@heroui/accordion": "2.2.23",
     "@heroui/alert": "2.2.26",
     "@heroui/autocomplete": "2.3.28",

@@ -42,7 +42,7 @@ export default function ModalFilePreviewer({
         {() => (
           <>
             <ModalHeader className="text-center">Предпросмотр</ModalHeader>
-            <ModalBody>
+            <ModalBody style={{ marginBottom: "14px" }}>
               <Card
                 radius="lg"
                 className="fixed left-66 top-1/2 -translate-y-1/2 z-50 w-30 h-50 flex items-center justify-center"

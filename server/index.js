@@ -93,6 +93,32 @@ app.get("/song/:songId", (req, res) => {
   });
 });
 
+app.delete("/song/:songId", (req, res) => {
+  database.remove({ _id: req.params.songId }, (err, numDeleted) => {
+    console.log("delete song: ", req.params.songId);
+    if (err) {
+      console.log("err", err);
+    }
+    res.json({ status: "ok", numDeleted });
+  });
+});
+
+app.delete("/api/upload/:fileId", (req, res) => {
+  const fileId = String(req.params.fileId); // гарантируем строку
+  database.findOne({ _id: fileId }, (err, doc) => {
+    if (err || !doc) return res.status(404).send("Not Found");
+
+    fs.unlink(doc.path, (fsErr) => {
+      if (fsErr) console.error(fsErr);
+
+      database.remove({ _id: fileId }, {}, (dbErr) => {
+        if (dbErr) return res.status(500).json({ error: dbErr });
+        res.json({ status: "ok" });
+      });
+    });
+  });
+});
+
 app.get("/songs", (req, res) => {
   database.find({ docType: "song" }, (err, docs) => {
     console.log("getting songs: ", docs);
