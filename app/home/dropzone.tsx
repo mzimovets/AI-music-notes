@@ -17,8 +17,10 @@ export default function MyDropzone({
   useEffect(() => {
     Dropzone.autoDiscover = false;
 
+    // TO DO: Тут не нужно сразу отправлять на сервер. нужно просто сохранить в хранилке (hook-form/rtk/state+props)
+    // и потом отправлять сразу файл и поля Автор, название как multipart/form-data
     const dz = new Dropzone("#my-dropzone", {
-      url: "http://localhost:4000/api/upload",
+      // url: "http://localhost:4000/api/upload",
       maxFilesize: 5,
       acceptedFiles: "image/*,application/pdf",
       paramName: "file",
