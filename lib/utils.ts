@@ -24,10 +24,14 @@ const getSongById = async (id: string) => {
 
 export const postSong = async (data: Song, id?: string) => {
   console.log("POst song data", data);
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("author", data.author || "");
+  formData.append("file", data.file || "");
+  formData.append("docType", data.docType || "");
   const resp = await fetch(`http://localhost:4000/song/${id}`, {
     method: "POST",
-    headers: {},
-    body: JSON.stringify(data),
+    body: formData,
   });
 
   const posts = await resp.json();

@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { ChangeEvent, useState } from "react";
 import {
   Modal,
   ModalContent,
@@ -13,6 +13,8 @@ import {
 
 import MyDropzone from "./dropzone";
 import ModalFilePreviewer from "./modalFilePreviewer"; // подключаем вторую модалку
+import { addSong } from "@/actions/actions";
+import { Song } from "@/lib/types";
 
 export default function ModalAddScore() {
   // управление первой модалкой
@@ -27,6 +29,9 @@ export default function ModalAddScore() {
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
   const [isSaved, setIsSaved] = React.useState(false);
 
+  const [name, setName] = useState("");
+  const [author, setAuthor] = useState("");
+
   React.useEffect(() => {
     if (!isOpen && !isSaved) {
       setSelectedFile(null);
@@ -35,6 +40,26 @@ export default function ModalAddScore() {
       setIsSaved(false);
     }
   }, [isOpen, isSaved]);
+
+  const changeName = (e: ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+  };
+
+  const changeAuthor = (e: ChangeEvent<HTMLInputElement>) => {
+    setAuthor(e.target.value);
+  };
+
+  const handleSave = () => {
+    const data: Song = {
+      name: name,
+      author: author,
+      file: selectedFile,
+      docType: "song",
+    };
+    console.log("Saving data", data);
+    setIsSaved(true);
+    addSong(data);
+  };
 
   return (
     <>
@@ -65,13 +90,15 @@ export default function ModalAddScore() {
                   label="Название"
                   labelPlacement="outside"
                   placeholder="Введите название"
+                  onChange={changeName}
                 />
                 <Input
                   label="Автор"
                   labelPlacement="outside"
                   placeholder="Введите автора"
+                  onChange={changeAuthor}
                 />
-                {/* <MyDropzone onFileSelect={setSelectedFile} /> */}
+                <MyDropzone onFileSelect={setSelectedFile} />
 
                 {/* Кнопка предпросмотра */}
                 <Button onPress={onOpenPreview} isDisabled={!selectedFile}>
@@ -82,7 +109,7 @@ export default function ModalAddScore() {
                 <Button color="danger" variant="light" onPress={onOpenChange}>
                   Закрыть
                 </Button>
-                <Button color="primary" onPress={() => setIsSaved(true)}>
+                <Button color="primary" onPress={handleSave}>
                   Сохранить
                 </Button>
               </ModalFooter>
