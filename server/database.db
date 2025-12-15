@@ -1,3 +1,8 @@
+{"_id":"0.05065819972660934"}
+{"_id":"0.2760937518921338"}
+{"_id":"0.41780449234534633"}
+{"_id":"0.6245484021001206"}
+{"_id":"0.6840634809158643"}
 {"_id":"1","name":"song 1"}
 {"_id":"1761826772863","originalName":"ilovepdf_merged (1).pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ilovepdf_merged (1).pdf","mimetype":"application/pdf","size":3144999}
 {"_id":"1761826801430","originalName":"ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","mimetype":"application/pdf","size":36218}
@@ -22,3 +27,5 @@
 {"_id":"3","name":"song 3","docType":"song"}
 {"_id":"4","name":"song 4","docType":"song"}
 {"_id":"5","name":"song 5","docType":"song"}
+{"_id":"testcreate1"}
+{"_id":"0.7032022350427776"}

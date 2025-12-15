@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { getData } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
+import FormSong from "./home/form";
 
 export default function Home() {
   const albumsPromise = getData();
@@ -15,6 +16,7 @@ export default function Home() {
         </div>
         <Suspense>
           <Albums />
+          <FormSong />
         </Suspense>
       </section>
     </SongsLibraryContextProvider>
