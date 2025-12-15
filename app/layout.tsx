@@ -21,10 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "white" },
-    { media: "(prefers-color-scheme: dark)", color: "black" },
-  ],
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "white" }],
 };
 
 export default function RootLayout({
@@ -41,11 +38,11 @@ export default function RootLayout({
           fontSans.variable
         )}
       >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
+        <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
           <div className="relative flex flex-col h-screen">
             <Navbar />
             <div className="h-[1px] w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42]"></div>
-            <main className="container mx-auto max-w-7xl pt-16 px-6 flex-grow">
+            <main className="container mx-auto max-w-7xl pt-4 px-6 flex-grow">
               {children}
             </main>
             <footer className="w-full flex items-center justify-center py-3"></footer>

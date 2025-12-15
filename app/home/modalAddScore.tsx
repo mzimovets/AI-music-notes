@@ -38,7 +38,12 @@ export default function ModalAddScore() {
 
   return (
     <>
-      <Button onPress={onOpen}>Добавить партитуру</Button>
+      <Button
+        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md w-auto min-w-0"
+        onPress={onOpen}
+      >
+        +
+      </Button>
 
       {/* первая модалка */}
       <Modal
@@ -66,7 +71,7 @@ export default function ModalAddScore() {
                   labelPlacement="outside"
                   placeholder="Введите автора"
                 />
-                <MyDropzone onFileSelect={setSelectedFile} />
+                {/* <MyDropzone onFileSelect={setSelectedFile} /> */}
 
                 {/* Кнопка предпросмотра */}
                 <Button onPress={onOpenPreview} isDisabled={!selectedFile}>

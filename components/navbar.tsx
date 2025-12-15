@@ -12,7 +12,8 @@ import { Kbd } from "@heroui/kbd";
 import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
 import { link as linkStyles } from "@heroui/theme";
-import NextLink from "next/link";
+import ModalAddScore from "@/app/home/modalAddScore";
+
 import clsx from "clsx";
 
 import { siteConfig } from "@/config/site";
@@ -31,15 +32,14 @@ import { CamertonLogo } from "./camertonSvg";
 export const Navbar = () => {
   return (
     <HeroUINavbar maxWidth="xl" position="sticky" className="bg-navbar ">
-      <NavbarContent className=" basis-1/5 sm:basis-full" justify="start">
-        <CamertonLogo className="h-12 w-12 -translate-y-1" />
-        <p className="font-navbarBrand text-inherit">Нотная библиотека</p>
-        <NavbarBrand as="li" className="gap-3 max-w-fit">
-          <NextLink className="flex justify-start items-center gap-1" href="/">
-            {/* <CamertonLogo className="h-12 w-12 -translate-y-1" />
-            <p className="font-navbarBrand text-inherit">Нотная библиотека</p> */}
-          </NextLink>
-        </NavbarBrand>
+      <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
+        <Link href={"/"} style={{ display: "inline" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <CamertonLogo className="h-12 w-12 -translate-y-1" />
+            <p className="font-navbarBrand text-inherit">Нотная библиотека</p>
+          </div>
+        </Link>
+
         {/* <ul className="hidden lg:flex gap-4 justify-start ml-2">
           {siteConfig.navItems.map((item) => (
             <NavbarItem key={item.href}>
@@ -63,14 +63,16 @@ export const Navbar = () => {
         justify="end"
       >
         <NavbarItem className="hidden md:flex gap-4">
-          <Button
+          {/* <Button
             as={Link}
             className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md w-auto min-w-0"
+            onClick={}
             // href={siteConfig.links.sponsor}
             // startContent={<HeartFilledIcon className="text-danger" />}
           >
             +
-          </Button>
+          </Button> */}
+          <ModalAddScore />
           <Button
             as={Link}
             className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md w-auto min-w-0"
