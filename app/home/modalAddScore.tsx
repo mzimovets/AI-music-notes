@@ -9,6 +9,8 @@ import {
   Button,
   Input,
   useDisclosure,
+  Autocomplete,
+  AutocompleteItem,
 } from "@heroui/react";
 
 import MyDropzone from "./dropzone";
@@ -36,6 +38,37 @@ export default function ModalAddScore() {
     }
   }, [isOpen, isSaved]);
 
+  const songs = [
+    {
+      label: "Духовные канты",
+      key: "spiritual_chants",
+    },
+    {
+      label: "Пасха",
+      key: "easter",
+    },
+    {
+      label: "Колядки",
+      key: "carols",
+    },
+    {
+      label: "Народные",
+      key: "folk",
+    },
+    {
+      label: "Советские",
+      key: "soviet",
+    },
+    {
+      label: "Военные",
+      key: "military",
+    },
+    {
+      label: "Детские",
+      key: "childrens",
+    },
+  ];
+
   return (
     <>
       <Button
@@ -52,24 +85,55 @@ export default function ModalAddScore() {
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         placement="top"
+        size="3xl"
+        classNames={{
+          backdrop:
+            "bg-linear-to-t from-[#BD9673] to-[#BD9673]/10 backdrop-opacity-20",
+        }}
       >
         <ModalContent>
           {() => (
             <>
-              <ModalHeader className="text-center">
+              <ModalHeader className="flex flex-col text-center justify-center font-header gap-4">
                 Добавить новую партитуру
               </ModalHeader>
               <ModalBody>
+                <Autocomplete
+                  isRequired
+                  // className="max-w-xs"
+                  defaultItems={songs}
+                  // defaultSelectedKey="cat"
+                  label="Категория"
+                  placeholder="Выберите категорию"
+                  labelPlacement="outside-top"
+                >
+                  {(item) => (
+                    <AutocompleteItem key={item.key}>
+                      {item.label}
+                    </AutocompleteItem>
+                  )}
+                </Autocomplete>
                 <Input
                   isRequired
                   label="Название"
                   labelPlacement="outside"
                   placeholder="Введите название"
                 />
+
                 <Input
                   label="Автор"
                   labelPlacement="outside"
                   placeholder="Введите автора"
+                />
+                <Input
+                  label="Автор обработки"
+                  labelPlacement="outside"
+                  placeholder="Введите автора обработки"
+                />
+                <Input
+                  label="Автор аранжировки"
+                  labelPlacement="outside"
+                  placeholder="Введите автора аранжировки"
                 />
                 {/* <MyDropzone onFileSelect={setSelectedFile} /> */}
 
@@ -79,11 +143,11 @@ export default function ModalAddScore() {
                 </Button>
               </ModalBody>
               <ModalFooter>
-                <Button color="danger" variant="light" onPress={onOpenChange}>
-                  Закрыть
-                </Button>
-                <Button color="primary" onPress={() => setIsSaved(true)}>
-                  Сохранить
+                <Button
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42]"
+                  onPress={() => setIsSaved(true)}
+                >
+                  Добавить
                 </Button>
               </ModalFooter>
             </>
