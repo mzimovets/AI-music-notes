@@ -1,6 +1,6 @@
 import { database } from "../index.js";
 
-export const songsRoutes = (app) => {
+export const songsRoutes = (app, urlencodedParser) => {
   app.get("/song/:songId", (req, res) => {
     database.findOne({ _id: req.params.songId }, (err, doc) => {
       console.log("getting song: ", req.params.songId);
@@ -21,9 +21,9 @@ export const songsRoutes = (app) => {
     });
   });
 
-  app.post("/song/:songId", (req, res) => {
+  app.post("/song/:songId", urlencodedParser, (req, res) => {
     database.insert({ _id: req.params.songId, ...req.body }, (err, doc) => {
-      console.log("adding song: ", req.params.songId);
+      console.log("adding song: ", req.params.songId, req.body);
       if (err) {
         console.log("err", err);
       }
@@ -31,7 +31,7 @@ export const songsRoutes = (app) => {
     });
   });
 
-  app.put("/song/:songId", (req, res) => {
+  app.put("/song/:songId", urlencodedParser, (req, res) => {
     database.update({ _id: req.params.songId, ...req.body }, (err, doc) => {
       console.log("edited song: ", req.params.songId);
       if (err) {
