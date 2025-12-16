@@ -45,7 +45,7 @@ export default function ModalAddScore() {
       author,
       file: selectedFile,
       docType: "song",
-      category, // передаем категорию
+      category,
     };
     setIsSaved(true);
     addSong(data);
@@ -105,9 +105,7 @@ export default function ModalAddScore() {
                 Добавить новую партитуру
               </ModalHeader>
               <ModalBody>
-                {/* Используем сетку для выравнивания */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-8">
-                  {/* Название делаем на всю ширину (2 колонки) */}
                   <div className="md:col-span-2">
                     <Input
                       isRequired
@@ -118,7 +116,6 @@ export default function ModalAddScore() {
                     />
                   </div>
 
-                  {/* Категория (Dropdown) */}
                   <Select
                     isRequired
                     label="Категория"
@@ -155,23 +152,12 @@ export default function ModalAddScore() {
                   />
                 </div>
 
-                {/* MyDropzone с кнопкой предпросмотра внутри - ПЕРЕДАЕМ onPreview */}
                 <div className="mt-4">
                   <MyDropzone
                     onFileSelect={setSelectedFile}
                     onPreview={onOpenPreview}
                   />
                 </div>
-
-                {/* УДАЛИЛИ эту кнопку - теперь она в MyDropzone */}
-                {/* <Button
-                  onPress={onOpenPreview}
-                  isDisabled={!selectedFile}
-                  variant="flat"
-                  className="w-full mt-2"
-                >
-                  Предпросмотр файла
-                </Button> */}
               </ModalBody>
               <ModalFooter className="flex justify-center">
                 <Button
