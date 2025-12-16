@@ -1,3 +1,26 @@
+{"_id":"0.05065819972660934"}
+{"_id":"0.07225375442950499","name":"Снег идет","author":"В. Попов","docType":"song","file":{"fieldname":"file","originalname":"6761375503d08.pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads","filename":"6761375503d08.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/6761375503d08.pdf","size":192990}}
+{"_id":"0.13261787455269491","name":"Задостойник","author":"","docType":"song","file":{"fieldname":"file","originalname":"ÐÐ°Ð´Ð¾ÑÑÐ¾Ð¸ÌÐ½Ð¸Ðº Ð¢ÑÑÐ±Ð°ÑÐµÐ².pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads","filename":"ÐÐ°Ð´Ð¾ÑÑÐ¾Ð¸ÌÐ½Ð¸Ðº Ð¢ÑÑÐ±Ð°ÑÐµÐ².pdf","path":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads/ÐÐ°Ð´Ð¾ÑÑÐ¾Ð¸ÌÐ½Ð¸Ðº Ð¢ÑÑÐ±Ð°ÑÐµÐ².pdf","size":141791}}
+{"_id":"0.13773278915863907"}
+{"_id":"0.15155545218599586"}
+{"_id":"0.22336547978063193"}
+{"_id":"0.2760937518921338"}
+{"_id":"0.2892657045784808","name":"undefined","author":"","docType":""}
+{"_id":"0.41780449234534633"}
+{"_id":"0.45836615663152136"}
+{"_id":"0.4630494111266541"}
+{"_id":"0.49612395435260104","name":"","author":"","docType":"song","file":{"fieldname":"file","originalname":"6761375503d08.pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads","filename":"6761375503d08.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/6761375503d08.pdf","size":192990}}
+{"_id":"0.5466617561413609","name":"Снег идет","author":"Т. Чиж","docType":"song","file":{"fieldname":"file","originalname":"6761375503d08.pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads","filename":"6761375503d08.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/6761375503d08.pdf","size":192990}}
+{"_id":"0.568785719557946"}
+{"_id":"0.6245484021001206"}
+{"_id":"0.6264652974608298","name":"лирилрироли","author":"","docType":"song","file":{"fieldname":"file","originalname":"pdf (2).pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads","filename":"pdf (2).pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/pdf (2).pdf","size":569884}}
+{"_id":"0.6840634809158643"}
+{"_id":"0.7032022350427776"}
+{"_id":"0.711107004302822"}
+{"_id":"0.7668655996994527","name":"","author":"","docType":"song"}
+{"_id":"0.8132166812100443","name":"gggg","author":"","docType":"song"}
+{"_id":"0.9092383980483159"}
+{"_id":"0.9801237565966165","name":"sdfsdf","author":"","docType":"song","file":{"fieldname":"file","originalname":"IMG_5834.JPG","encoding":"7bit","mimetype":"image/jpeg","destination":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads","filename":"IMG_5834.JPG","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/IMG_5834.JPG","size":151958}}
 {"_id":"1","name":"song 1"}
 {"_id":"1761826772863","originalName":"ilovepdf_merged (1).pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ilovepdf_merged (1).pdf","mimetype":"application/pdf","size":3144999}
 {"_id":"1761826801430","originalName":"ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","mimetype":"application/pdf","size":36218}
@@ -22,3 +45,5 @@
 {"_id":"3","name":"song 3","docType":"song"}
 {"_id":"4","name":"song 4","docType":"song"}
 {"_id":"5","name":"song 5","docType":"song"}
+{"_id":"testcreate1"}
+{"_id":"testcreate2","name":"Test","author":"","docType":"song"}

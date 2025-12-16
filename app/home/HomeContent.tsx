@@ -5,7 +5,7 @@ async function HomeContent() {
   let posts = await data.json();
 
   return (
-    <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
+    <section className="flex flex-col items-center justify-center gap-4">
       {/* {posts.map((post: { id: string; title: string }) => (
         <li key={post.id}>{post.title}</li>
       ))} */}

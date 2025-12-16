@@ -85,7 +85,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 });
 
 // Ноты
-songsRoutes(app);
+songsRoutes(app, urlencodedParser, upload);
 
 // Пользователи
 usersRoutes(app);

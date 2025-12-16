@@ -1,4 +1,66 @@
 @import "tailwindcss";
 
-@config "../tailwind.config.js"
+@config "../tailwind.config.js";
+
+@font-face {
+  font-family: 'Roboto Slab';
+  src: url('/fonts/roboto-slab/RobotoSlab-VariableFont_wght.ttf') format('ttf');
+  font-weight: 700;
+  font-style: normal;
+}
+
+/* Навбар */
+
+.font-navbarBrand {
+ font-family: 'Roboto Slab', serif;
+ font-weight: bold;
+ font-size: 26px;
+
+ /* Градиентный текст */
+  background: linear-gradient(to right, #BD9673, #7D5E42);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Для совместимости с Firefox */
+  background-clip: text;
+  color: transparent;
+}
+
+.camerton-color {
+  /* Градиентный текст */
+  background: linear-gradient(to right, #BD9673, #7D5E42);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+
+  /* Для совместимости с Firefox */
+  background-clip: text;
+  color: transparent;
+}
+
+.button-bg {
+  background: linear-gradient(to right, #BD9673, #7D5E42);
+  color: white; /* текст белый */
+  border-radius: 0.375rem; /* округление, как rounded-md */
+  padding: 0.5rem 1rem; /* внутренние отступы */
+  font-size: 18px;
+}
+
+/* Главная страница */
+
+.font-header {
+ font-family: 'Roboto Slab', serif;
+ font-weight: bold;
+ font-size: 24px;
+}
+
+.font-pheader {
+font-family: 'Roboto Slab', serif;
+ font-weight: 400;
+ font-size: 20px;
+}
+
+.card-header {
+  font-family: 'Roboto Slab', serif;
+  font-weight: bold;
+}
 
