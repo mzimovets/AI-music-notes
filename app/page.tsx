@@ -19,7 +19,6 @@ import {
   TableCell,
 } from "@heroui/table";
 import { motion, AnimatePresence } from "framer-motion";
-import FormSong from "./home/form";
 
 export const columns = [
   { name: "НАЗВАНИЕ", uid: "name" },
@@ -340,7 +339,6 @@ export default function Home() {
 
         <Suspense>
           <Albums />
-          <FormSong />
         </Suspense>
       </section>
     </SongsLibraryContextProvider>

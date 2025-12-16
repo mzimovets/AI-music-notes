@@ -13,6 +13,7 @@ import { Link } from "@heroui/link";
 import { Input } from "@heroui/input";
 import { link as linkStyles } from "@heroui/theme";
 import ModalAddScore from "@/app/home/modalAddScore";
+import Script from "next/script";
 
 import clsx from "clsx";
 

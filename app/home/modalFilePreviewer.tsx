@@ -11,6 +11,7 @@ import Pdfjs from "./pdfjs";
 import { Card } from "@heroui/react";
 import { ButtonGroup, Button } from "@heroui/button";
 import { useState, useEffect } from "react";
+import SwarrowIcon, { SwarrowIconWithCircle } from "@/components/swarrow";
 
 interface ModalFilePreviewerProps {
   isOpen: boolean;
@@ -41,13 +42,13 @@ export default function ModalFilePreviewer({
       >
         {() => (
           <>
-            <ModalHeader className="text-center">Предпросмотр</ModalHeader>
+            {/* <ModalHeader className="text-center">Предпросмотр</ModalHeader> */}
             <ModalBody>
-              <Card
+              {/* <Card
                 radius="lg"
                 className="fixed left-66 top-1/2 -translate-y-1/2 z-50 w-30 h-50 flex items-center justify-center"
-              >
-                <Button
+              > */}
+              {/* <Button
                   color="primary"
                   variant="shadow"
                   radius="full"
@@ -117,12 +118,12 @@ export default function ModalFilePreviewer({
                   disabled={pageNum === null ? true : pageNum <= 1}
                 >
                   -
-                </Button>
-              </Card>
+                </Button> */}
+              {/* </Card> */}
               {selectedFile ? (
                 <>
                   <Card
-                    className={`w-132 h-180 flex items-center justify-center p-6 transition-colors duration-200`}
+                    className={`w-130 h-180 flex items-center justify-center p-6 transition-colors duration-200`}
                   >
                     <Pdfjs
                       fileUrl={selectedFile}
@@ -131,38 +132,63 @@ export default function ModalFilePreviewer({
                     />
                   </Card>
                   {/* Стандартные кнопки под pdf */}
-                  {/* <div
+                  <div
                     style={{
                       display: "flex",
                       justifyContent: "center",
+                      alignItems: "center",
                       marginTop: 2,
-                      gap: 10,
+                      gap: 20, // Увеличил gap
                     }}
                   >
-                    <ButtonGroup>
-                      <Button
-                        onClick={() =>
-                          setPageNum((prev) => (prev !== null && prev > 1 ? prev - 1 : prev))
-                        }
-                        disabled={pageNum === null ? true : pageNum <= 1}
-                      >
-                        Prev
-                      </Button>
-                      <span>
-                        Page {pageNum || 1} / {pdfDoc?.numPages || 0}
-                      </span>
-                      <Button
-                        onClick={() =>
-                          setPageNum((prev) =>
-                            pdfDoc && prev !== null && prev < pdfDoc.numPages ? prev + 1 : prev
-                          )
-                        }
-                        disabled={pdfDoc ? (pageNum === null ? true : pageNum >= pdfDoc.numPages) : true}
-                      >
-                        Next
-                      </Button>
-                    </ButtonGroup>
-                  </div> */}
+                    {/* Кнопка назад */}
+                    <div
+                      onClick={() =>
+                        pageNum !== null &&
+                        pageNum > 1 &&
+                        setPageNum(pageNum - 1)
+                      }
+                      className={`cursor-pointer p-3 ${
+                        pageNum !== null && pageNum > 1
+                          ? "hover:opacity-80 hover:scale-105"
+                          : "opacity-30 cursor-not-allowed"
+                      } transition-all duration-200`}
+                      title="Предыдущая страница"
+                    >
+                      <SwarrowIconWithCircle
+                        width={50} // Увеличил ширину
+                        height={13} // Увеличил высоту
+                        circleSize={20} // Увеличил круг
+                      />
+                    </div>
+
+                    <span className="text-lg font-medium mx-4">
+                      {pageNum || 1} / {pdfDoc?.numPages || 0}
+                    </span>
+
+                    {/* Кнопка вперед */}
+                    <div
+                      onClick={() =>
+                        pdfDoc &&
+                        pageNum !== null &&
+                        pageNum < pdfDoc.numPages &&
+                        setPageNum(pageNum + 1)
+                      }
+                      className={`cursor-pointer p-3 ${
+                        pdfDoc && pageNum !== null && pageNum < pdfDoc.numPages
+                          ? "hover:opacity-80 hover:scale-105"
+                          : "opacity-30 cursor-not-allowed"
+                      } transition-all duration-200`}
+                      title="Следующая страница"
+                    >
+                      <SwarrowIconWithCircle
+                        width={50}
+                        height={13}
+                        circleSize={20}
+                        className="rotate-180"
+                      />
+                    </div>
+                  </div>
                 </>
               ) : (
                 <div className="text-center">Файл не выбран</div>
