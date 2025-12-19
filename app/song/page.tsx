@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import { useState, useEffect, useRef } from "react";
 import { title } from "@/components/primitives";
 import { Button } from "@heroui/button";
@@ -17,7 +18,8 @@ import { Monogram } from "@/components/monogram";
 export default function PricingPage() {
   const iframeRef = useRef();
   const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [pageNum, setPageNum] = useState<number | null>(1);
+  const [pageNum, setPageNum] = useState<number>(1);
+  const [currentPage, setCurrentPage] = React.useState(1);
   // useEffect(() => {
   //   if (!isOpen) {
   //     setPageNum(1);
@@ -68,76 +70,71 @@ export default function PricingPage() {
             <Pdfjs
               fileUrl="/testnotes.pdf"
               setPdfDoc={setPdfDoc}
-              pageNum={pageNum || 1}
+              pageNum={pageNum}
             />
           </Card>
         </div>
-        <div className="flex item-center justify-center mt-4">
-          {/* Кнопка назад */}
+        <div className="flex items-center justify-center mt-4 gap-4">
           <div
-            onClick={() =>
-              pageNum !== null && pageNum > 1 && setPageNum(pageNum - 1)
-            }
+            onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
             className={`cursor-pointer p-3 ${
-              pageNum !== null && pageNum > 1
+              pageNum > 1
                 ? "hover:opacity-80 hover:scale-105"
                 : "opacity-30 cursor-not-allowed"
             } transition-all duration-200`}
             title="Предыдущая страница"
           >
-            <SwarrowIconWithCircle
-              width={50} // Увеличил ширину
-              height={13} // Увеличил высоту
-              circleSize={20} // Увеличил круг
-            />
+            <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
           </div>
-          <Pagination
-            onChange={(num) => setPageNum(num)}
-            initialPage={1}
-            total={pdfDoc?.numPages || 0}
-            page={pageNum || 1}
-          />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              marginTop: 2,
-              gap: 20, // Увеличил gap
-            }}
-          >
-            {/* <span className="text-lg font-medium mx-4">
-              {pageNum || 1} / {pdfDoc?.numPages || 0}
-            </span> */}
 
-            {/* Кнопка вперед */}
-            <div
-              onClick={() =>
-                pdfDoc &&
-                pageNum !== null &&
-                pageNum < pdfDoc.numPages &&
-                setPageNum(pageNum + 1)
-              }
-              className={`cursor-pointer p-3 ${
-                pdfDoc && pageNum !== null && pageNum < pdfDoc.numPages
-                  ? "hover:opacity-80 hover:scale-105"
-                  : "opacity-30 cursor-not-allowed"
-              } transition-all duration-200`}
-              title="Следующая страница"
-            >
-              <SwarrowIconWithCircle
-                width={50}
-                height={13}
-                circleSize={20}
-                className="rotate-180"
-              />
-            </div>
+          <Pagination
+            onChange={setPageNum}
+            total={pdfDoc?.numPages || 0}
+            page={pageNum}
+            showControls={false}
+            classNames={{
+              wrapper: "font-header",
+              item: [
+                "font-pagination",
+                "text-gray-700",
+                "data-[hover=true]:text-white",
+                "data-[hover=true]:bg-gradient-to-r",
+                "data-[hover=true]:from-[#BD9673]",
+                "data-[hover=true]:to-[#7D5E42]",
+                "transition-colors duration-200",
+              ].join(" "),
+              cursor: [
+                "font-pagination",
+                "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                "text-white",
+                "font-bold",
+                "shadow-lg",
+              ].join(" "),
+            }}
+          />
+
+          <div
+            onClick={() =>
+              pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)
+            }
+            className={`cursor-pointer p-3 ${
+              pdfDoc && pageNum < pdfDoc.numPages
+                ? "hover:opacity-80 hover:scale-105"
+                : "opacity-30 cursor-not-allowed"
+            } transition-all duration-200`}
+            title="Следующая страница"
+          >
+            <SwarrowIconWithCircle
+              width={50}
+              height={13}
+              circleSize={20}
+              className="rotate-180"
+            />
           </div>
         </div>
       </div>
       <Card className="fixed items-center justify-center gap-6 left-0 top-70 h-50 w-20 p-2 shadow-lg rounded-tr-lg rounded-br-lg rounded-tl-none rounded-bl-none rounded-r-2xl">
         <button
-          // onClick={handleShare}
           className="hover:opacity-100 transition-opacity duration-300 group"
           title="Поделиться"
         >
@@ -148,7 +145,6 @@ export default function PricingPage() {
           />
         </button>
         <button
-          // onClick={handleShare}
           className="hover:opacity-100 transition-opacity duration-300 group"
           title="Скачать"
         >
@@ -172,7 +168,10 @@ export default function PricingPage() {
       <Card className="mt-8 p-3">
         <span className="flex items-center gap-42">
           <p className="card-header text-left pl-5">Информация о партитуре:</p>
-          <Button className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full w-10 h-10">
+          <Button
+            isIconOnly
+            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full ml-10"
+          >
             ред
           </Button>
         </span>
