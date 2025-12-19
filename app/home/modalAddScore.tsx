@@ -113,6 +113,7 @@ export default function ModalAddScore() {
                       labelPlacement="outside"
                       placeholder="Введите название партитуры"
                       onChange={(e) => setName(e.target.value)}
+                      className="input-header"
                     />
                   </div>
 
@@ -124,6 +125,7 @@ export default function ModalAddScore() {
                     onSelectionChange={(keys) =>
                       setCategory(Array.from(keys)[0] as string)
                     }
+                    className="input-header"
                   >
                     {songs.map((song) => (
                       <SelectItem key={song.key} textValue={song.label}>
@@ -133,22 +135,25 @@ export default function ModalAddScore() {
                   </Select>
 
                   <Input
-                    label="Автор"
+                    label="Автор музыки"
                     labelPlacement="outside"
                     placeholder="Введите автора"
                     onChange={(e) => setAuthor(e.target.value)}
+                    className="input-header"
                   />
 
                   <Input
-                    label="Автор обработки"
+                    label="Автор слов"
                     labelPlacement="outside"
-                    placeholder="Введите автора обработки"
+                    placeholder="Введите автора"
+                    className="input-header"
                   />
 
                   <Input
                     label="Автор аранжировки"
                     labelPlacement="outside"
-                    placeholder="Введите автора аранжировки"
+                    placeholder="Введите автора"
+                    className="input-header"
                   />
                 </div>
 
@@ -161,7 +166,7 @@ export default function ModalAddScore() {
               </ModalBody>
               <ModalFooter className="flex justify-center">
                 <Button
-                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-lg"
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-lg input-header"
                   onPress={() => handleSave(onClose)}
                 >
                   Добавить в базу

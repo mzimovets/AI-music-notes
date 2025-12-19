@@ -76,11 +76,13 @@ export const Navbar = () => {
           <ModalAddScore />
           <Button
             as={Link}
-            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md w-auto min-w-0"
+            radius="full"
+            isIconOnly
+            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  shadow-md"
             // href={siteConfig.links.sponsor}
             // startContent={<HeartFilledIcon className="text-danger" />}
           >
-            U
+            S
           </Button>
         </NavbarItem>
       </NavbarContent>

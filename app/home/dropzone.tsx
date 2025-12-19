@@ -75,43 +75,84 @@ export default function MyDropzone({
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  console.log("MyDropzone render - selectedFile:", selectedFile?.name);
-  console.log("MyDropzone render - onPreview:", !!onPreview);
+  // Массив эмодзи для фона
+  const documentEmojis = [
+    "📄",
+    "📋",
+    "📑",
+    "📊",
+    "📈",
+    "📉",
+    "🗂️",
+    "🗄️",
+    "📁",
+    "📂",
+    "🗃️",
+    "📇",
+  ];
 
   return (
     <div className="space-y-4">
       {/* Dropzone */}
-      <Card className="w-full h-48 flex items-center justify-center p-6">
+      <Card className="w-full h-48 flex items-center justify-center p-6 relative overflow-hidden">
+        {/* Фон из эмодзи (только когда файл выбран) */}
+        {selectedFile && (
+          <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
+            <div className="grid grid-cols-4 grid-rows-3 gap-8 rotate-12 scale-125">
+              {documentEmojis.map((emoji, index) => (
+                <div
+                  key={`emoji-${index}`}
+                  className="text-3xl flex items-center justify-center"
+                  style={{
+                    animation: `pulse ${2 + index * 0.2}s infinite alternate`,
+                  }}
+                >
+                  {emoji}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <form
           id="my-dropzone"
-          className="dropzone w-full h-full flex items-center justify-center"
+          className="dropzone w-full h-full flex items-center justify-center relative z-10"
           style={{ border: "none", position: "relative" }}
         >
           <div className="dropzone-clickable w-full h-full flex items-center justify-center cursor-pointer">
             {!selectedFile ? (
-              <div className="text-center font-medium text-default-500">
+              <div className="text-center font-medium text-default-500 input-header">
                 Перетащите файлы сюда
                 <br />
                 или кликните для выбора
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center w-full">
+              <div className="flex flex-col items-center justify-center w-full relative z-20">
                 {/* Файл с крестиком */}
-                <div className="relative">
-                  <div className="px-4 py-3 bg-gradient-to-r from-[#BD9673]/10 to-[#7D5E42]/10 rounded-lg border border-[#BD9673]/30 flex items-center space-x-3">
-                    <div className="text-xl">
+                <div className="relative backdrop-blur-sm bg-white/80 rounded-xl p-2">
+                  <div className="px-6 py-4 bg-gradient-to-r from-[#BD9673]/20 to-[#7D5E42]/20 rounded-lg border border-[#BD9673]/40 flex items-center space-x-4 shadow-lg">
+                    <div className="text-3xl bg-white/90 p-3 rounded-lg shadow">
                       {getFileIcon(selectedFile.name)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className="font-medium text-gray-800 truncate text-sm"
+                        className="font-semibold text-gray-900 truncate text-base"
                         title={selectedFile.name}
                       >
                         {selectedFile.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm text-gray-600 mt-1">
                         {formatFileSize(selectedFile.size)}
                       </p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-1.5">
+                          <div
+                            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] h-1.5 rounded-full"
+                            style={{ width: "100%" }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">Загружено</span>
+                      </div>
                     </div>
                   </div>
 
@@ -123,10 +164,10 @@ export default function MyDropzone({
                       handleRemoveFile(e);
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow"
+                    className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg hover:scale-110 z-30"
                     aria-label="Удалить файл"
                   >
-                    <span className="text-xs font-bold">×</span>
+                    <span className="text-sm font-bold">×</span>
                   </button>
                 </div>
               </div>
@@ -137,31 +178,26 @@ export default function MyDropzone({
 
       {/* Кнопка предпросмотра */}
       {selectedFile && onPreview && (
-        <div>
-          <Button
-            onPress={onPreview}
-            className="w-full py-3 bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white text-sm rounded-lg flex items-center justify-center space-x-2 hover:opacity-90 transition-opacity shadow-md"
-          >
-            <span className="font-medium">Предпросмотр файла</span>
-          </Button>
-          {/* Отладочная информация */}
-          <div className="text-xs text-gray-400 mt-1 text-center">
-            Файл: {selectedFile.name} ({formatFileSize(selectedFile.size)})
-          </div>
-        </div>
+        <Button
+          onPress={onPreview}
+          className="w-full py-4 input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white text-base font-medium rounded-xl flex items-center justify-center space-x-2 hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
+        >
+          <span className="font-semibold">Предпросмотр файла</span>
+        </Button>
       )}
 
-      {/* Отладочная информация когда кнопка не показывается */}
-      {!selectedFile && (
-        <div className="text-xs text-gray-400 text-center">
-          Ожидание загрузки файла...
-        </div>
-      )}
-      {selectedFile && !onPreview && (
-        <div className="text-xs text-red-400 text-center">
-          Файл загружен, но onPreview не передан
-        </div>
-      )}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            opacity: 0.3;
+            transform: scale(0.95);
+          }
+          100% {
+            opacity: 0.7;
+            transform: scale(1.05);
+          }
+        }
+      `}</style>
     </div>
   );
 }

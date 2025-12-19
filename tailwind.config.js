@@ -9,6 +9,10 @@ const config = {
   ],
   theme: {
     extend: {
+      // Кастомные значения для более плавных теней
+      scrollShadow: {
+        smooth: "0 0 60px rgba(0,0,0,0.1)",
+      },
       colors: {
         page: "#F7F4F1",
         navbar: "#F7F4F1",
