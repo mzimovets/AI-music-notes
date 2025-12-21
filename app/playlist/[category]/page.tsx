@@ -296,10 +296,10 @@ export default function PlaylistPage({ params }) {
                 </Card>
               </div>
             </div>
-            <div className="flex justify-center">
+            <div className="w-full">
               <Table
                 aria-label="Example table with custom cells"
-                className="mt-4 w-200"
+                className="mt-4 w-full min-w-full"
               >
                 <TableHeader columns={columns}>
                   {(column) => (

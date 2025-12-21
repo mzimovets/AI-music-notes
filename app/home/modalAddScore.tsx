@@ -122,6 +122,9 @@ export default function ModalAddScore() {
                     label="Категория"
                     placeholder="Выберите категорию"
                     labelPlacement="outside"
+                    description={
+                      <div style={{ height: "24px", color: "white" }}></div>
+                    }
                     onSelectionChange={(keys) =>
                       setCategory(Array.from(keys)[0] as string)
                     }
@@ -140,6 +143,7 @@ export default function ModalAddScore() {
                     placeholder="Введите автора"
                     onChange={(e) => setAuthor(e.target.value)}
                     className="input-header"
+                    description="Полное имя и фамилия, напр.: Иван Иванов"
                   />
 
                   <Input
@@ -147,6 +151,7 @@ export default function ModalAddScore() {
                     labelPlacement="outside"
                     placeholder="Введите автора"
                     className="input-header"
+                    description="Полное имя и фамилия, напр.: Иван Иванов"
                   />
 
                   <Input
@@ -154,6 +159,7 @@ export default function ModalAddScore() {
                     labelPlacement="outside"
                     placeholder="Введите автора"
                     className="input-header"
+                    description="Полное имя и фамилия, напр.: Иван Иванов"
                   />
                 </div>
 
