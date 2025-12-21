@@ -8,11 +8,18 @@ export async function getData() {
   return posts;
 }
 
-const getSongs = async () => {
-  const data = await fetch("http://localhost:4000/songs");
+export const getSongs = async (category?: string) => {
+  if (category) {
+    const data = await fetch(`http://localhost:4000/songs/${category}`);
 
-  const posts = await data.json();
-  return posts;
+    const posts = await data.json();
+    return posts;
+  } else {
+    const data = await fetch("http://localhost:4000/songs");
+
+    const posts = await data.json();
+    return posts;
+  }
 };
 
 const getSongById = async (id: string) => {
@@ -29,6 +36,7 @@ export const postSong = async (data: Song, id?: string) => {
   formData.append("author", data.author || "");
   formData.append("file", data.file || "");
   formData.append("docType", data.docType || "");
+  formData.append("category", data.category || "");
   const resp = await fetch(`http://localhost:4000/song/${id}`, {
     method: "POST",
     body: formData,

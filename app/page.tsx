@@ -208,7 +208,7 @@ const statusColorMap = {
 };
 
 export default function Home() {
-  const albumsPromise = getData();
+  const albumsPromise = new Promise((resolve) => resolve(null)); //getData();
   const [showTable, setShowTable] = useState(false);
 
   const handleInputClick = () => {

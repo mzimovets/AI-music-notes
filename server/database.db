@@ -44,9 +44,12 @@
 {"_id":"1761924291643","originalName":"ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","mimetype":"application/pdf","size":36218}
 {"_id":"1761926687809","originalName":"ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ÐÐ¸Ð»ÐµÑÑ ÐÐ¸Ð²Ð°Ð½.pdf","mimetype":"application/pdf","size":36218}
 {"_id":"1761927055659","originalName":"ÐÑÐ¾Ð³ÑÐ°Ð¼Ð¼Ð° ÑÐ¾Ñ.pdf","path":"/Users/maksimzimovec/Documents/Projects/AI-email/ai-mail/server/uploads/ÐÑÐ¾Ð³ÑÐ°Ð¼Ð¼Ð° ÑÐ¾Ñ.pdf","mimetype":"application/pdf","size":122807}
-{"_id":"2","name":"song 2","docType":"song"}
-{"_id":"3","name":"song 3","docType":"song"}
+{"_id":"2","name":"song 2","docType":"song","category":"carols"}
+{"_id":"3","name":"song 3","docType":"song","category":"carols"}
 {"_id":"4","name":"song 4","docType":"song"}
-{"_id":"5","name":"song 5","docType":"song"}
+{"_id":"5","name":"song 5","docType":"song","category":"carols"}
 {"_id":"testcreate1"}
 {"_id":"testcreate2","name":"Test","author":"","docType":"song"}
+{"_id":"0.729392495800681","name":"колядка","author":"колядка","docType":"song","file":{"fieldname":"file","originalname":"8.9.-iz-rukopisnyh-not..pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads","filename":"8.9.-iz-rukopisnyh-not..pdf","path":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads/8.9.-iz-rukopisnyh-not..pdf","size":899387}}
+{"_id":"0.8349529024858304","name":"Песня","author":"Песня","docType":"song","category":"carols","file":{"fieldname":"file","originalname":"8.9.-iz-rukopisnyh-not..pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads","filename":"8.9.-iz-rukopisnyh-not..pdf","path":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads/8.9.-iz-rukopisnyh-not..pdf","size":899387}}
+{"_id":"0.7841685558130007","name":"Христос Воскресе","author":"Филипп Неседов","docType":"song","category":"easter","file":{"fieldname":"file","originalname":"Ð¥ÑÐ¸ÑÑÐ¾Ñ_Ð²Ð¾ÑÐºÑÐµÑÐµ!,_Ð¼ÑÐ·_Ð¸ÐµÑÐ¾Ð¼Ð¾Ð½Ð°ÑÐ°_Ð¤Ð¸Ð»Ð¸Ð¿Ð¿Ð°_ÐÐµÑÐµÐ´Ð¾Ð²Ð°.pdf","encoding":"7bit","mimetype":"application/pdf","destination":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads","filename":"Ð¥ÑÐ¸ÑÑÐ¾Ñ_Ð²Ð¾ÑÐºÑÐµÑÐµ!,_Ð¼ÑÐ·_Ð¸ÐµÑÐ¾Ð¼Ð¾Ð½Ð°ÑÐ°_Ð¤Ð¸Ð»Ð¸Ð¿Ð¿Ð°_ÐÐµÑÐµÐ´Ð¾Ð²Ð°.pdf","path":"/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes/server/uploads/Ð¥ÑÐ¸ÑÑÐ¾Ñ_Ð²Ð¾ÑÐºÑÐµÑÐµ!,_Ð¼ÑÐ·_Ð¸ÐµÑÐ¾Ð¼Ð¾Ð½Ð°ÑÐ°_Ð¤Ð¸Ð»Ð¸Ð¿Ð¿Ð°_ÐÐµÑÐµÐ´Ð¾Ð²Ð°.pdf","size":72176}}

@@ -21,6 +21,20 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
     });
   });
 
+  app.get("/songs/:category", (req, res) => {
+    console.log("GET songs category", req.params);
+    database.find(
+      { docType: "song", category: req.params.category },
+      (err, docs) => {
+        console.log("getting songs: ", docs);
+        if (err) {
+          console.log("err", err);
+        }
+        res.json({ status: "ok", docs });
+      }
+    );
+  });
+
   // Add Multer middleware
   app.post(
     "/song/:songId",
