@@ -98,7 +98,7 @@ export const InfoCard = () => {
               <p>Категория:</p>
               <Input></Input>
             </span>
-            <div
+            {/* <div
               style={{
                 textAlign: "center",
                 justifyContent: "center",
@@ -108,7 +108,7 @@ export const InfoCard = () => {
               className="card-header"
             >
               Заменить файл
-            </div>
+            </div> */}
             <MyDropzone
               onFileSelect={handleFileSelect}
               onPreview={handlePreview}
@@ -116,11 +116,11 @@ export const InfoCard = () => {
           </span>
         )}
       </Card>
-      {/* <ModalFilePreviewer
+      <ModalFilePreviewer
         isOpen={isPreviewModalOpen}
         onClose={handleClosePreview}
         selectedFile={selectedFile}
-      /> */}
+      />
     </SongContextProvider>
   );
-};
+}
