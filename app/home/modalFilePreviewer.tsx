@@ -1,22 +1,15 @@
 // modalFilePreviewer.tsx
 "use client";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/react";
-import Pdfjs from "./pdfjs";
-import { Card } from "@heroui/react";
-import { ButtonGroup, Button } from "@heroui/button";
+import { Modal, ModalContent, ModalBody } from "@heroui/react";
+
 import { useState, useEffect } from "react";
-import SwarrowIcon, { SwarrowIconWithCircle } from "@/components/swarrow";
+
+import { DocViewer } from "../song/[id]/components/DocViewer";
 
 interface ModalFilePreviewerProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedFile: File | null; // <- добавляем проп
+  selectedFile: File | null;
 }
 
 export default function ModalFilePreviewer({
@@ -24,7 +17,6 @@ export default function ModalFilePreviewer({
   onClose,
   selectedFile,
 }: ModalFilePreviewerProps) {
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [pageNum, setPageNum] = useState<number | null>(1);
 
   useEffect(() => {
@@ -37,168 +29,20 @@ export default function ModalFilePreviewer({
     <Modal isOpen={isOpen} onOpenChange={onClose} placement="top" size="xl">
       <ModalContent
         style={{
-          marginTop: "20px", // уменьшаем отступ сверху
+          marginTop: "20px",
         }}
       >
         {() => (
           <>
-            {/* <ModalHeader className="text-center">Предпросмотр</ModalHeader> */}
             <ModalBody>
-              {/* <Card
-                radius="lg"
-                className="fixed left-66 top-1/2 -translate-y-1/2 z-50 w-30 h-50 flex items-center justify-center"
-              > */}
-              {/* <Button
-                  color="primary"
-                  variant="shadow"
-                  radius="full"
-                  //   className="w-12 h-12"
-                  onClick={() =>
-                    setPageNum((prev) =>
-                      pdfDoc && prev !== null && prev < pdfDoc.numPages
-                        ? prev + 1
-                        : prev
-                    )
-                  }
-                  disabled={
-                    pdfDoc
-                      ? pageNum === null
-                        ? true
-                        : pageNum >= pdfDoc.numPages
-                      : true
-                  }
-                >
-                  +
-                </Button>
-                <span style={{ display: "flex" }}>
-                  <input
-                    type="number"
-                    min={1}
-                    value={pageNum === null ? "" : pageNum}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "") {
-                        setPageNum(null); // временно пустое значение
-                        return;
-                      }
-                      const num = Number(val);
-                      if (
-                        !isNaN(num) &&
-                        num >= 1 &&
-                        (!pdfDoc || num <= pdfDoc.numPages)
-                      ) {
-                        setPageNum(num);
-                      }
-                    }}
-                    onBlur={() => {
-                      if (!pageNum || pageNum < 1) {
-                        setPageNum(1);
-                      } else if (pdfDoc && pageNum > pdfDoc.numPages) {
-                        setPageNum(pdfDoc.numPages);
-                      }
-                    }}
-                    style={{
-                      width: "40px",
-                      textAlign: "center",
-                      margin: "0 8px",
-                    }}
-                  />
-                  <span>/ {pdfDoc?.numPages || 0}</span>
-                </span>
-                <Button
-                  color="primary"
-                  variant="shadow"
-                  //   className="w-12 h-12"
-                  radius="full"
-                  onClick={() =>
-                    setPageNum((prev) =>
-                      prev !== null && prev > 1 ? prev - 1 : prev
-                    )
-                  }
-                  disabled={pageNum === null ? true : pageNum <= 1}
-                >
-                  -
-                </Button> */}
-              {/* </Card> */}
               {selectedFile ? (
                 <>
-                  <Card
-                    className={`w-130 h-180 flex items-center justify-center p-6 transition-colors duration-200`}
-                  >
-                    <Pdfjs
-                      fileUrl={selectedFile}
-                      setPdfDoc={setPdfDoc}
-                      pageNum={pageNum || 1}
-                    />
-                  </Card>
-                  {/* Стандартные кнопки под pdf */}
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      marginTop: 2,
-                      gap: 20, // Увеличил gap
-                    }}
-                  >
-                    {/* Кнопка назад */}
-                    <div
-                      onClick={() =>
-                        pageNum !== null &&
-                        pageNum > 1 &&
-                        setPageNum(pageNum - 1)
-                      }
-                      className={`cursor-pointer p-3 ${
-                        pageNum !== null && pageNum > 1
-                          ? "hover:opacity-80 hover:scale-105"
-                          : "opacity-30 cursor-not-allowed"
-                      } transition-all duration-200`}
-                      title="Предыдущая страница"
-                    >
-                      <SwarrowIconWithCircle
-                        width={50} // Увеличил ширину
-                        height={13} // Увеличил высоту
-                        circleSize={20} // Увеличил круг
-                      />
-                    </div>
-
-                    <span className="text-lg font-medium mx-4">
-                      {pageNum || 1} / {pdfDoc?.numPages || 0}
-                    </span>
-
-                    {/* Кнопка вперед */}
-                    <div
-                      onClick={() =>
-                        pdfDoc &&
-                        pageNum !== null &&
-                        pageNum < pdfDoc.numPages &&
-                        setPageNum(pageNum + 1)
-                      }
-                      className={`cursor-pointer p-3 ${
-                        pdfDoc && pageNum !== null && pageNum < pdfDoc.numPages
-                          ? "hover:opacity-80 hover:scale-105"
-                          : "opacity-30 cursor-not-allowed"
-                      } transition-all duration-200`}
-                      title="Следующая страница"
-                    >
-                      <SwarrowIconWithCircle
-                        width={50}
-                        height={13}
-                        circleSize={20}
-                        className="rotate-180"
-                      />
-                    </div>
-                  </div>
+                  <DocViewer />
                 </>
               ) : (
                 <div className="text-center">Файл не выбран</div>
               )}
             </ModalBody>
-            {/* <ModalFooter>
-              <Button color="danger" variant="light" onPress={onClose}>
-                Закрыть
-              </Button>
-            </ModalFooter> */}
           </>
         )}
       </ModalContent>

@@ -4,34 +4,33 @@ import { useCallback } from "react";
 import { EyeIcon } from "../../../../components/icons/EyeIcon";
 import { EditIcon } from "../../../../components/icons/EditIcon";
 import { DeleteIcon } from "../../../../components/icons/DeleteIcon";
-import { Song } from "@/lib/types";
+import { ServerSong, Song } from "@/lib/types";
+import Link from "next/link";
 
 export const useTableCell = () => {
-  const tableCell = useCallback((song: Song, columnKey) => {
+  const tableCell = useCallback((song: ServerSong, columnKey) => {
     const cellValue = song[columnKey];
-
+    console.log("song: ", song);
     switch (columnKey) {
       case "name":
         return (
-          <a href="/song">
+          <Link href={`/song/${song._id}`}>
             <div className="flex flex-col">
-              <p className="text-bold text-sm capitalize">{cellValue}</p>
-              <p className="text-bold text-sm capitalize text-default-400">
-                {song.name}
-              </p>
+              <p className="text-bold text-sm capitalize">{song.name}</p>
+              {/* <p className="text-bold text-sm capitalize text-default-400"></p> */}
             </div>
-          </a>
+          </Link>
         );
       case "author":
         return (
-          <a href="/song">
+          <Link href={`/song/${song._id}`}>
             <div className="flex flex-col">
               <p className="text-bold text-sm capitalize">{cellValue}</p>
               <p className="text-bold text-sm capitalize text-default-400">
                 {song.author}
               </p>
             </div>
-          </a>
+          </Link>
         );
       case "actions":
         return (

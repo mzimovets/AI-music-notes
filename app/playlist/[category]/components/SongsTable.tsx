@@ -18,8 +18,6 @@ export const SongsTable = () => {
   const songs = songsResponse?.docs;
 
   const columns = [
-    // Добавить еще автора слов (Слова: Маршака)
-    // Разбить колонки на обработка, аранжировка
     { name: "НАЗВАНИЕ", uid: "name" },
     { name: "АВТОР", uid: "author" },
     { name: "ДЕЙСТВИЕ", uid: "actions" },

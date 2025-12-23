@@ -210,9 +210,23 @@ const statusColorMap = {
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null)); //getData();
   const [showTable, setShowTable] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
+  // Обработчик изменения значения в поле поиска
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchValue(value);
+
+    // Показываем таблицу, если введен хотя бы один символ
+    setShowTable(value.trim().length > 0);
+  };
+
+  // Обработчик клика по полю ввода
   const handleInputClick = () => {
-    setShowTable(true);
+    // Показываем таблицу только если уже есть текст
+    if (searchValue.trim().length > 0) {
+      setShowTable(true);
+    }
   };
 
   const renderCell = React.useCallback((user, columnKey) => {
@@ -280,13 +294,15 @@ export default function Home() {
         <Input
           type="search"
           placeholder="Поиск"
+          value={searchValue}
+          onChange={handleSearchChange}
+          onClick={handleInputClick}
           endContent={<SearchIcon className="text-default-400" />}
           className="w-100 mx-auto"
           classNames={{
             inputWrapper: "bg-[#FFFAF5] rounded-md",
             input: "text-sm",
           }}
-          onClick={handleInputClick}
         />
         <Monogram className="h-6 w-auto" />
         <AnimatePresence>
@@ -300,7 +316,7 @@ export default function Home() {
             >
               <Table
                 aria-label="Example table with custom cells"
-                className="mt-4 w-144 w-auto"
+                className="mt-4 w-144 w-auto m-3"
               >
                 <TableHeader columns={columns}>
                   {(column) => (

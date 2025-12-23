@@ -4,18 +4,38 @@ import { Monogram } from "@/components/monogram";
 import { useParams } from "next/navigation";
 import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
 import { usePlaylistContext } from "../PlaylistContextProvider";
+import { categorySongs } from "@/components/constants";
 
-interface IProps {
-  categorySongs: { key: string; name: string }[];
-}
-
-export const CategoryHeader = ({ categorySongs }: IProps) => {
+export const CategoryHeader = () => {
   const params = useParams<{ category: string }>();
   const { category } = params;
 
   const context = usePlaylistContext();
   const { songsResponse } = context;
   const songs = songsResponse?.docs;
+  const count = songs.length;
+
+  const getSongWord = (count) => {
+    // 0 всегда "песен"
+    if (count === 0) return "песен";
+
+    const lastDigit = count % 10;
+    const lastTwoDigits = count % 100;
+
+    // Исключения: 11, 12, 13, 14 - всегда "песен"
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) {
+      return "песен";
+    }
+
+    // Основные правила
+    if (lastDigit === 1) {
+      return "песня";
+    } else if (lastDigit >= 2 && lastDigit <= 4) {
+      return "песни";
+    } else {
+      return "песен";
+    }
+  };
 
   return (
     <div className="flex items-start gap-8 font-header w-full">
@@ -38,7 +58,9 @@ export const CategoryHeader = ({ categorySongs }: IProps) => {
               {categorySongs.find((ctg) => ctg.key == category)?.name ||
                 category}
             </p>
-            <small className="text-default-500">{songs.length} песен</small>
+            <small className="text-default-500">
+              {songs.length} {getSongWord(songs.length)}
+            </small>
           </CardHeader>
           <CardBody className="py-0">
             <Input

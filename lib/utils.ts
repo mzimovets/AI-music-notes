@@ -22,9 +22,8 @@ export const getSongs = async (category?: string) => {
   }
 };
 
-const getSongById = async (id: string) => {
+export const getSongById = async (id: string) => {
   const data = await fetch(`http://localhost:4000/song/${id}`);
-
   const posts = await data.json();
   return posts;
 };

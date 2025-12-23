@@ -1,6 +1,6 @@
 import React from "react";
 import PlaylistLayout from "./layout";
-import { categorySongs } from "@/components/constants";
+
 import { CategoryHeader } from "./components/CategoryHeader";
 import { SongsTable } from "./components/SongsTable";
 import { getSongs } from "@/lib/utils";
@@ -17,8 +17,7 @@ export default async function PlaylistPage({
   return (
     <PlaylistContextProvider songsResponse={playlistSongs}>
       <PlaylistLayout>
-        <CategoryHeader categorySongs={categorySongs} />
-
+        <CategoryHeader />
         <SongsTable />
       </PlaylistLayout>
     </PlaylistContextProvider>
