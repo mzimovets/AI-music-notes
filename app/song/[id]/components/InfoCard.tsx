@@ -1,4 +1,3 @@
-"use client";
 import MyDropzone from "@/app/home/dropzone";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 import Separator from "@/components/Separator";
@@ -14,12 +13,11 @@ export default async function InfoCard({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+  const song = await getSongById(id);
   const [isEdit, setIsEdit] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-
-  const { id } = await params;
-  const song = await getSongById(id);
 
   const handleEdit = () => {
     setIsEdit(!isEdit);
@@ -103,7 +101,7 @@ export default async function InfoCard({
               <p>Категория:</p>
               <Input></Input>
             </span>
-            <div
+            {/* <div
               style={{
                 textAlign: "center",
                 justifyContent: "center",
@@ -113,7 +111,7 @@ export default async function InfoCard({
               className="card-header"
             >
               Заменить файл
-            </div>
+            </div> */}
             <MyDropzone
               onFileSelect={handleFileSelect}
               onPreview={handlePreview}

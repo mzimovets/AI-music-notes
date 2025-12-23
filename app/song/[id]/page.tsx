@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@heroui/card";
 import { Monogram } from "@/components/monogram";
-import { InfoCard } from "./components/InfoCard";
+import InfoCard from "./components/InfoCard";
 import { PrintSong } from "./components/PrintSong";
 import { DownloadSong } from "./components/DownloadSong";
 import { ShareSong } from "./components/ShareSong";
