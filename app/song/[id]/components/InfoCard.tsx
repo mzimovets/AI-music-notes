@@ -6,20 +6,15 @@ import { Button } from "@heroui/button";
 import { Card } from "@heroui/card";
 import { Input } from "@heroui/input";
 import { useState } from "react";
-import { SongContextProvider } from "../SongContextProvider";
-import { getSongById } from "@/lib/utils";
+import { SongContextProvider, useSongContext } from "../SongContextProvider";
 
-export default async function InfoCard({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export const InfoCard = () => {
   const [isEdit, setIsEdit] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
 
-  const { id } = await params;
-  const song = await getSongById(id);
+  const context = useSongContext();
+  const song = context.songResponse;
 
   const handleEdit = () => {
     setIsEdit(!isEdit);
@@ -121,11 +116,11 @@ export default async function InfoCard({
           </span>
         )}
       </Card>
-      <ModalFilePreviewer
+      {/* <ModalFilePreviewer
         isOpen={isPreviewModalOpen}
         onClose={handleClosePreview}
         selectedFile={selectedFile}
-      />
+      /> */}
     </SongContextProvider>
   );
-}
+};
