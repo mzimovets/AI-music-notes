@@ -1,9 +1,7 @@
 // modalFilePreviewer.tsx
 "use client";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
-
 import { useState, useEffect } from "react";
-
 import { DocViewer } from "../song/[id]/components/DocViewer";
 
 interface ModalFilePreviewerProps {
@@ -37,7 +35,7 @@ export default function ModalFilePreviewer({
             <ModalBody>
               {selectedFile ? (
                 <>
-                  <DocViewer />
+                  <DocViewer fileUrl={selectedFile} />
                 </>
               ) : (
                 <div className="text-center">Файл не выбран</div>

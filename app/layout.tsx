@@ -30,18 +30,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning lang="en">
+    <html
+      suppressHydrationWarning
+      lang="en"
+      className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
+    >
       <head />
       <body
         className={clsx(
-          "min-h-screen text-foreground font-sans antialiased bg-page",
+          "text-foreground font-sans bg-page",
           fontSans.variable
+          // min-h-screen antialiased
         )}
       >
         <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          <div className="relative flex flex-col h-screen">
+          <div className="relative flex flex-col">
             <Navbar />
-            <div className="h-[1px] w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42]"></div>
+
             <main className="container mx-auto max-w-7xl pt-4 px-6 flex-grow">
               {children}
             </main>

@@ -1,7 +1,7 @@
 import React from "react";
 import { Card } from "@heroui/card";
 import { Monogram } from "@/components/monogram";
-import InfoCard from "./components/InfoCard";
+import { InfoCard } from "./components/InfoCard";
 import { PrintSong } from "./components/PrintSong";
 import { DownloadSong } from "./components/DownloadSong";
 import { ShareSong } from "./components/ShareSong";
@@ -18,6 +18,7 @@ export default async function PricingPage({
   const { id } = await params;
   const song = await getSongById(id);
   console.log(song);
+
   return (
     <SongContextProvider songResponse={song}>
       <div>
@@ -26,9 +27,10 @@ export default async function PricingPage({
           <p className="flex flex-col text-center justify-center font-header gap-4">
             {song.doc.name}
           </p>
-          <p className="font-pheader">{song.doc.author}</p>
-
-          <DocViewer />
+          <p className="font-pheader text-center">{song.doc.author}</p>
+          <DocViewer
+            fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
+          />
         </div>
         <Card className="fixed items-center justify-center gap-6 left-0 top-70 h-50 w-20 p-2 shadow-lg rounded-tr-lg rounded-br-lg rounded-tl-none rounded-bl-none rounded-r-2xl">
           <ShareSong />

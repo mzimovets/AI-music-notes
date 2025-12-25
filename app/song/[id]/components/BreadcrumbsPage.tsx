@@ -5,6 +5,7 @@ import { Button } from "@heroui/button";
 import { Breadcrumbs, BreadcrumbItem } from "@heroui/react";
 import { useParams, useRouter } from "next/navigation";
 import { useSongContext } from "../SongContextProvider";
+import { getCategoryDisplay } from "@/lib/utils";
 
 export const BreadcrumbsPage = () => {
   const router = useRouter();
@@ -22,10 +23,10 @@ export const BreadcrumbsPage = () => {
       </Button>
       <Breadcrumbs
         separator={<Separator />}
-        className="absolute left-5 top-2 -ml-86"
+        className="absolute left-37 top-2 -ml-86"
       >
         <BreadcrumbItem href={`/playlist/${song.category}`}>
-          {song.category}
+          {getCategoryDisplay(song.category, "full")}
         </BreadcrumbItem>
         <BreadcrumbItem>{song.name}</BreadcrumbItem>
       </Breadcrumbs>

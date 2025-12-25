@@ -5,7 +5,7 @@ import { Card } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
 import { useState } from "react";
 
-export const DocViewer = () => {
+export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [pageNum, setPageNum] = useState<number>(1);
 
@@ -13,13 +13,9 @@ export const DocViewer = () => {
     <>
       <div className="pt-4 flex justify-center">
         <Card
-          className={`w-200 h-180 flex items-center justify-center p-2 transition-colors duration-200`}
+          className={`w-200 h-auto flex items-center justify-center p-2 transition-colors duration-200`}
         >
-          <Pdfjs
-            fileUrl="/testnotes.pdf"
-            setPdfDoc={setPdfDoc}
-            pageNum={pageNum}
-          />
+          <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={pageNum} />
         </Card>
       </div>
       <div className="flex items-center justify-center mt-4 gap-4">
@@ -40,6 +36,7 @@ export const DocViewer = () => {
           total={pdfDoc?.numPages || 0}
           page={pageNum}
           showControls={false}
+          className="pb-4"
           classNames={{
             wrapper: "font-header",
             item: [

@@ -4,7 +4,7 @@ import { Song } from "@/lib/types";
 import { postSong } from "@/lib/utils";
 
 export async function addSong(song: Song) {
-  await postSong(song, Math.random().toString());
+  return await postSong(song, Math.random().toString());
 }
 
 // "use server";

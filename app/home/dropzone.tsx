@@ -232,7 +232,6 @@ export default function MyDropzone({
   useEffect(() => {
     // Убедимся, что Dropzone инициализируется только один раз
     if (dropzoneInitialized.current) {
-      console.log("Dropzone уже инициализирован");
       return;
     }
 
@@ -242,17 +241,25 @@ export default function MyDropzone({
     const dz = new Dropzone(`#${dropzoneId}`, {
       url: "http://localhost:4000/api/upload",
       maxFilesize: 5,
-      acceptedFiles: "image/*,application/pdf",
+      acceptedFiles: ".pdf",
       paramName: "file",
       autoProcessQueue: false,
       dictDefaultMessage: "",
       clickable: ".dropzone-clickable",
       previewsContainer: false,
       createImageThumbnails: false,
+      maxFiles: 1,
+    });
+
+    // Добавьте обработчик для отклонения не-PDF файлов
+    dz.on("error", (file, message) => {
+      if (message.includes("You can't upload files of this type")) {
+        alert("Пожалуйста, загрузите только PDF файлы");
+      }
+      dz.removeFile(file);
     });
 
     dz.on("addedfile", (file) => {
-      console.log("Файл добавлен в Dropzone:", file.name);
       setSelectedFile(file);
       if (onFileSelect) onFileSelect(file);
     });
@@ -269,10 +276,7 @@ export default function MyDropzone({
     dzRef.current = dz;
     dropzoneInitialized.current = true;
 
-    console.log("Dropzone инициализирован с ID:", dropzoneId);
-
     return () => {
-      console.log("Очистка Dropzone...");
       if (dzRef.current) {
         dzRef.current.destroy();
         dzRef.current = null;
@@ -353,12 +357,24 @@ export default function MyDropzone({
           <div className="dropzone-clickable w-full h-full flex items-center justify-center cursor-pointer">
             {!selectedFile ? (
               <div
-                className="text-center font-medium input-header"
+                className="text-center input-header"
                 style={hasError ? { color: "#f31260" } : { color: "#71717a" }}
               >
-                Перетащите файл сюда
-                <br />
-                или кликните для выбора*
+                <div className="font-medium text-lg mb-2">
+                  Перетащите файл сюда
+                </div>
+
+                <div className="font-normal text-base mb-4 opacity-90">
+                  или кликните для выбора
+                  <span className="text-red-500 ml-1">*</span>
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#BD9673]/10 to-[#7D5E42]/10 rounded-full border border-[#BD9673]/20">
+                  <span className="text-[#7D5E42]">📄</span>
+                  <span className="text-sm font-medium text-[#7D5E42]">
+                    Только PDF файлы
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center w-full relative z-20">

@@ -31,6 +31,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.use(express.static(__dirname + "/build"));
 
+app.use(express.static(__dirname + "/uploads"));
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, __dirname + "/uploads");

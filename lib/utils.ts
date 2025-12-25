@@ -1,4 +1,27 @@
 import { Song } from "./types";
+import { categorySongs } from "@/components/constants";
+
+export const getCategoryDisplay = (key: string, format: 'short' | 'full' = 'short'): string => {
+  const category = categorySongs.find(item => item.key === key);
+  
+  if (!category) return key;
+  
+  if (format === 'full') {
+    const fullNames: Record<string, string> = {
+      "spiritual_chants": "Духовные канты",
+      "easter": "Пасхальные песни",
+      "carols": "Колядки",
+      "folk": "Народные песни",
+      "soviet": "Советские песни",
+      "military": "Военные песни",
+      "childrens": "Детские песни",
+      "other": "Другие песни",
+    };
+    return fullNames[key] || `${category.name} песни`;
+  }
+  
+  return category.name;
+};
 
 export async function getData() {
   //   const data = await fetch("https://api.vercel.app/blog");
@@ -36,6 +59,8 @@ export const postSong = async (data: Song, id?: string) => {
   formData.append("file", data.file || "");
   formData.append("docType", data.docType || "");
   formData.append("category", data.category || "");
+  formData.append("authorArrange", data.authorArrange || "");
+  formData.append("authorLyrics", data.authorLyrics || "");
   const resp = await fetch(`http://localhost:4000/song/${id}`, {
     method: "POST",
     body: formData,
@@ -54,4 +79,6 @@ const putSong = async () => {
 
   const posts = await data.json();
   return posts;
+
+  
 };

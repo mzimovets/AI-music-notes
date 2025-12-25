@@ -4,6 +4,8 @@ export type Song = {
   file: File | null;
   category?: string;
   docType: "song";
+  authorArrange?: string;
+  authorLyrics?: string;
   // _id: string;
 };
 

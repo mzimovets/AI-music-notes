@@ -6,7 +6,7 @@ import { getData } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
 import { PdfViewer } from "./home/pdfViewer";
-import { Input, Tooltip, Chip, User } from "@heroui/react";
+import { Input, Tooltip, Chip, User, Pagination } from "@heroui/react";
 import { Skeleton } from "@heroui/skeleton";
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
@@ -245,8 +245,10 @@ export default function Home() {
       case "role":
         return (
           <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{cellValue}</p>
-            <p className="text-bold text-sm capitalize text-default-400">
+            <p className="text-bold text-sm capitalize text-center">
+              {cellValue}
+            </p>
+            <p className="text-bold text-sm capitalize text-default-400 text-center">
               {user.team}
             </p>
           </div>
@@ -287,9 +289,21 @@ export default function Home() {
     }
   }, []);
 
+  const [page, setPage] = React.useState(1);
+  const rowsPerPage = 4;
+
+  const pages = Math.ceil(users.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return users.slice(start, end);
+  }, [page, users]);
+
   return (
     <SongsLibraryContextProvider albumsPromise={albumsPromise}>
-      <div className="flex flex-col text-center justify-center font-header gap-4">
+      <div className="flex flex-col text-center justify-center font-header gap-4 relative">
         Заголовок
         <Input
           type="search"
@@ -308,15 +322,44 @@ export default function Home() {
         <AnimatePresence>
           {showTable && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
+              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-8 z-50"
             >
               <Table
                 aria-label="Example table with custom cells"
-                className="mt-4 w-144 w-auto m-3"
+                className="mt-4 w-144 w-auto m-3 bg-white rounded-lg shadow-xl"
+                bottomContent={
+                  <Pagination
+                    isCompact
+                    onChange={(page) => setPage(page)}
+                    total={pages}
+                    page={page}
+                    // showControls={false}
+                    className="pb-4"
+                    classNames={{
+                      wrapper: "font-header",
+                      item: [
+                        "font-pagination",
+                        "text-gray-700",
+                        "data-[hover=true]:text-white",
+                        "data-[hover=true]:bg-gradient-to-r",
+                        "data-[hover=true]:from-[#BD9673]",
+                        "data-[hover=true]:to-[#7D5E42]",
+                        "transition-colors duration-200",
+                      ].join(" "),
+                      cursor: [
+                        "font-pagination",
+                        "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                        "text-white",
+                        "font-bold",
+                        "shadow-lg",
+                      ].join(" "),
+                    }}
+                  />
+                }
               >
                 <TableHeader columns={columns}>
                   {(column) => (
@@ -328,7 +371,7 @@ export default function Home() {
                     </TableColumn>
                   )}
                 </TableHeader>
-                <TableBody items={users}>
+                <TableBody items={items}>
                   {(item) => (
                     <TableRow key={item.id}>
                       {(columnKey) => (
@@ -342,9 +385,9 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-      <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
+      {/* <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
         Стопки (?)
-      </div>
+      </div> */}
       <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
         Песни
       </div>

@@ -238,6 +238,18 @@ import { addSong } from "@/actions/actions";
 import { Song } from "@/lib/types";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
+import { getCategoryDisplay } from "@/lib/utils";
+
+export const songs = [
+  { label: "Духовные канты", key: "spiritual_chants" },
+  { label: "Пасха", key: "easter" },
+  { label: "Колядки", key: "carols" },
+  { label: "Народные", key: "folk" },
+  { label: "Советские", key: "soviet" },
+  { label: "Военные", key: "military" },
+  { label: "Детские", key: "childrens" },
+  { label: "Другое", key: "other" },
+];
 
 export default function ModalAddScore() {
   const { isOpen, onOpen, onOpenChange } = useDisclosure();
@@ -253,12 +265,13 @@ export default function ModalAddScore() {
   const [isSaved, setIsSaved] = React.useState(false);
   const [name, setName] = useState("");
   const [author, setAuthor] = useState("");
+  const [authorLyrics, setAuthorLyrics] = useState("");
+  const [authorArrange, setAuthorArrange] = useState("");
   const [category, setCategory] = useState("");
-  const handleToastClick = () => {
-    router.push(`/song/0.3900788308131493`);
+  const handleToastClick = (id: string) => () => {
+    router.push(`/song/${id}`);
   };
 
-  // Добавляем состояние для ошибок валидации
   const [validationErrors, setValidationErrors] = useState({
     name: false,
     category: false,
@@ -292,7 +305,7 @@ export default function ModalAddScore() {
     return !errors.name && !errors.category && !errors.file;
   };
 
-  const handleSave = (onClose: () => void) => {
+  const handleSave = async (onClose: () => void) => {
     // Проверяем форму перед сохранением
     if (!validateForm()) {
       // Показываем ошибки и не сохраняем
@@ -307,20 +320,27 @@ export default function ModalAddScore() {
       file: selectedFile,
       docType: "song",
       category,
+      authorArrange,
+      authorLyrics,
     };
 
     setIsSaved(true);
-    addSong(data);
+    const responsed = await addSong(data);
 
     addToast({
       title: <span className="font-bold text-white">Партитура добавлена</span>,
       description: (
-        <div onClick={handleToastClick} className="text-white">
+        <div
+          onClick={handleToastClick(responsed.doc._id)}
+          className="text-white"
+        >
           <div className="flex gap-6">
             {/* Колонка 1: Название и категория */}
             <div className="flex flex-col">
               <span className="font-bold text-lg">{name}</span>
-              <span className="text-sm opacity-90 mt-1">{category}</span>
+              <span className="text-sm opacity-90 mt-1">
+                {getCategoryDisplay(category, "full")}
+              </span>
             </div>
 
             {/* Колонка 2: Автор (если есть) */}
@@ -341,17 +361,6 @@ export default function ModalAddScore() {
     });
     onClose();
   };
-
-  const songs = [
-    { label: "Духовные канты", key: "spiritual_chants" },
-    { label: "Пасха", key: "easter" },
-    { label: "Колядки", key: "carols" },
-    { label: "Народные", key: "folk" },
-    { label: "Советские", key: "soviet" },
-    { label: "Военные", key: "military" },
-    { label: "Детские", key: "childrens" },
-    { label: "Другое", key: "other" },
-  ];
 
   return (
     <>
@@ -398,7 +407,6 @@ export default function ModalAddScore() {
                       placeholder="Введите название партитуры"
                       onChange={(e) => {
                         setName(e.target.value);
-                        // Сбрасываем ошибку при вводе
                         if (validationErrors.name) {
                           setValidationErrors((prev) => ({
                             ...prev,
@@ -459,6 +467,7 @@ export default function ModalAddScore() {
                     placeholder="Введите автора"
                     className="input-header"
                     description="Полное имя и фамилия, напр.: Иван Иванов"
+                    onChange={(e) => setAuthorLyrics(e.target.value)}
                   />
 
                   <Input
@@ -467,6 +476,7 @@ export default function ModalAddScore() {
                     placeholder="Введите автора"
                     className="input-header"
                     description="Полное имя и фамилия, напр.: Иван Иванов"
+                    onChange={(e) => setAuthorArrange(e.target.value)}
                   />
                 </div>
 

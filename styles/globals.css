@@ -64,6 +64,12 @@
   font-weight: bold;
 }
 
+.button-edit-font {
+  font-family: "Roboto Slab", serif;
+  font-weight: bold;
+  font-size: 18px;
+}
+
 .input-header {
   font-family: "Roboto Slab", serif;
 }
