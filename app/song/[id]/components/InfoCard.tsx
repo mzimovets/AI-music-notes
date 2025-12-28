@@ -9,19 +9,59 @@ import { useState } from "react";
 import { SongContextProvider, useSongContext } from "../SongContextProvider";
 import { getCategoryDisplay } from "@/lib/utils";
 import { InfoCardInput } from "./InfoCardInput";
+import { useRouter } from "next/navigation";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from "@heroui/modal";
 
 export const InfoCard = () => {
   const [isEdit, setIsEdit] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
+  const router = useRouter();
   const context = useSongContext();
   const song = context.songResponse;
 
   const handleEdit = () => setIsEdit(!isEdit);
-  const handlePreview = () => selectedFile && setIsPreviewModalOpen(true);
+  const handlePreview = () => {
+    if (selectedFile) {
+      setIsPreviewModalOpen(true);
+    }
+  };
   const handleFileSelect = (file: File | null) => setSelectedFile(file);
   const handleClosePreview = () => setIsPreviewModalOpen(false);
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      setIsDeleting(true);
+      // Здесь добавьте запрос на удаление песни
+      const response = await fetch(`/api/songs/${song.doc._id}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        router.push("/home");
+        router.refresh();
+      } else {
+        console.error("Ошибка при удалении песни");
+        setIsDeleting(false);
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении песни:", error);
+      setIsDeleting(false);
+    }
+  };
 
   const fields = [
     { label: "Название", value: song.doc.name, required: true },
@@ -51,6 +91,14 @@ export const InfoCard = () => {
             </h2>
             <p className="text-gray-500 text-sm mt-1">Основная информация</p>
           </div>
+          {isEdit && (
+            <Button
+              onPress={handleDeleteClick}
+              className="px-5 py-2.5 rounded-lg bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all"
+            >
+              🗑️ Удалить
+            </Button>
+          )}
           <Button
             onPress={handleEdit}
             endContent={isEdit ? null : null}
@@ -117,7 +165,7 @@ export const InfoCard = () => {
             <>
               <div className="px-8 py-8 border-t border-gray-200 bg-gray-50/30">
                 <div className="max-w-2xl mx-auto">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 card-header">
                     Обновить файл партитуры
                   </h3>
                   <div className="space-y-4">
@@ -129,6 +177,11 @@ export const InfoCard = () => {
                     <MyDropzone
                       onFileSelect={handleFileSelect}
                       onPreview={handlePreview}
+                      currentFile={{
+                        name: song.doc.file.filename,
+                        size: song.doc.file.size,
+                        id: song.doc.fileId,
+                      }}
                     />
                   </div>
                 </div>
@@ -158,6 +211,71 @@ export const InfoCard = () => {
         onClose={handleClosePreview}
         selectedFile={selectedFile}
       />
+
+      {/* РЕФАКТОРИНГ */}
+
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={setIsDeleteModalOpen}
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                    <span className="text-red-600 text-xl">⚠️</span>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Удалить песню
+                  </h3>
+                </div>
+              </ModalHeader>
+              <ModalBody>
+                <div className="space-y-4">
+                  <p className="text-gray-600">
+                    Вы уверены, что хотите удалить песню
+                    <span className="font-semibold text-gray-900 ml-1">
+                      "{song.doc.name}"
+                    </span>
+                    ?
+                  </p>
+                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                    <p className="text-sm text-red-700 font-medium">
+                      ⚠️ Это действие невозможно отменить. Будет удалена вся
+                      информация о песне, включая файл партитуры.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <span className="text-red-500 font-medium">ID:</span>
+                    <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
+                      {song.doc._id}
+                    </code>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="light"
+                  onPress={onClose}
+                  className="px-6 py-3 font-medium"
+                  disabled={isDeleting}
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onPress={handleConfirmDelete}
+                  className="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white font-medium hover:shadow-lg transition-all"
+                  isLoading={isDeleting}
+                >
+                  {isDeleting ? "Удаление..." : "Да, удалить"}
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </SongContextProvider>
   );
 };

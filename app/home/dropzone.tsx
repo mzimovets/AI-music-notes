@@ -213,13 +213,19 @@ import { Button, Card } from "@heroui/react";
 interface MyDropzoneProps {
   onFileSelect?: (file: File | null, id?: string | null) => void;
   onPreview?: () => void;
-  hasError?: boolean; // ← добавляем этот проп
+  hasError?: boolean;
+  currentFile?: {
+    name: string;
+    size: number;
+    id?: string;
+  };
 }
 
 export default function MyDropzone({
   onFileSelect,
   onPreview,
-  hasError = false, // ← получаем проп, по умолчанию false
+  hasError = false,
+  currentFile,
 }: MyDropzoneProps) {
   // ← исправляем параметры
   const [isDragActive, setIsDragActive] = useState(false);
@@ -230,7 +236,24 @@ export default function MyDropzone({
   const dropzoneId = `my-dropzone-${uniqueId.replace(/:/g, "-")}`;
 
   useEffect(() => {
-    // Убедимся, что Dropzone инициализируется только один раз
+    if (currentFile && !selectedFile) {
+      // Создаем "фейковый" File объект для отображения
+      const fakeFile = new File([], currentFile.name, {
+        type: "application/pdf",
+        lastModified: Date.now(),
+      });
+
+      // Устанавливаем размер через Object.defineProperty
+      Object.defineProperty(fakeFile, "size", {
+        value: currentFile.size || 0,
+        writable: false,
+      });
+
+      setSelectedFile(fakeFile);
+    }
+  }, [currentFile]);
+
+  useEffect(() => {
     if (dropzoneInitialized.current) {
       return;
     }
@@ -424,7 +447,7 @@ export default function MyDropzone({
         </form>
       </Card>
 
-      {selectedFile && onPreview && (
+      {selectedFile && selectedFile.size > 0 && onPreview && (
         <Button
           onPress={onPreview}
           className="w-full py-4 input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white text-base font-medium rounded-xl flex items-center justify-center space-x-2 hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
