@@ -28,9 +28,11 @@ export default async function PricingPage({
             {song.doc.name}
           </p>
           <p className="font-pheader text-center">{song.doc.author}</p>
-          <DocViewer
-            fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
-          />
+          {song.doc.file?.filename && (
+            <DocViewer
+              fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
+            />
+          )}
         </div>
         <Card className="fixed items-center justify-center gap-6 left-0 top-70 h-50 w-20 p-2 shadow-lg rounded-tr-lg rounded-br-lg rounded-tl-none rounded-bl-none rounded-r-2xl">
           <ShareSong />

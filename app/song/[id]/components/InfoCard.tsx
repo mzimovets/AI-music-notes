@@ -3,8 +3,6 @@ import MyDropzone from "@/app/home/dropzone";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 import { Button } from "@heroui/button";
 import { Card, CardHeader, CardBody } from "@heroui/card";
-import { Input } from "@heroui/input";
-import { Chip } from "@heroui/chip";
 import { useState } from "react";
 import { SongContextProvider, useSongContext } from "../SongContextProvider";
 import { getCategoryDisplay } from "@/lib/utils";
@@ -17,6 +15,7 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
+import { removeSong } from "@/actions/actions";
 
 export const InfoCard = () => {
   const [isEdit, setIsEdit] = useState(false);
@@ -28,6 +27,12 @@ export const InfoCard = () => {
   const router = useRouter();
   const context = useSongContext();
   const song = context.songResponse;
+
+  const [name, setName] = useState(song.doc.name);
+  const [author, setAuthor] = useState(song.doc.author);
+  const [authorLyrics, setAuthorLyrics] = useState(song.doc.authorLyrics);
+  const [authorArrange, setAuthorArrange] = useState(song.doc.authorArrange);
+  const [category, setCategory] = useState(song.doc.category);
 
   const handleEdit = () => setIsEdit(!isEdit);
   const handlePreview = () => {
@@ -46,12 +51,10 @@ export const InfoCard = () => {
     try {
       setIsDeleting(true);
       // Здесь добавьте запрос на удаление песни
-      const response = await fetch(`/api/songs/${song.doc._id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        router.push("/home");
+      const response = await removeSong(song.doc._id);
+      console.log("response", response);
+      if (response) {
+        router.push(`/playlist/${song.doc.category}`);
         router.refresh();
       } else {
         console.error("Ошибка при удалении песни");
@@ -74,12 +77,6 @@ export const InfoCard = () => {
       required: true,
     },
   ];
-
-  const [name, setName] = useState(song.doc.name);
-  const [author, setAuthor] = useState(song.doc.author);
-  const [authorLyrics, setAuthorLyrics] = useState(song.doc.authorLyrics);
-  const [authorArrange, setAuthorArrange] = useState(song.doc.authorArrange);
-  const [category, setCategory] = useState(song.doc.category);
 
   return (
     <SongContextProvider songResponse={song}>
@@ -178,8 +175,8 @@ export const InfoCard = () => {
                       onFileSelect={handleFileSelect}
                       onPreview={handlePreview}
                       currentFile={{
-                        name: song.doc.file.filename,
-                        size: song.doc.file.size,
+                        name: song.doc.file?.filename,
+                        size: song.doc.file?.size,
                         id: song.doc.fileId,
                       }}
                     />

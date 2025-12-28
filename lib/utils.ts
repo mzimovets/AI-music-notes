@@ -1,25 +1,28 @@
 import { Song } from "./types";
 import { categorySongs } from "@/components/constants";
 
-export const getCategoryDisplay = (key: string, format: 'short' | 'full' = 'short'): string => {
-  const category = categorySongs.find(item => item.key === key);
-  
+export const getCategoryDisplay = (
+  key: string,
+  format: "short" | "full" = "short"
+): string => {
+  const category = categorySongs.find((item) => item.key === key);
+
   if (!category) return key;
-  
-  if (format === 'full') {
+
+  if (format === "full") {
     const fullNames: Record<string, string> = {
-      "spiritual_chants": "Духовные канты",
-      "easter": "Пасхальные песни",
-      "carols": "Колядки",
-      "folk": "Народные песни",
-      "soviet": "Советские песни",
-      "military": "Военные песни",
-      "childrens": "Детские песни",
-      "other": "Другие песни",
+      spiritual_chants: "Духовные канты",
+      easter: "Пасхальные песни",
+      carols: "Колядки",
+      folk: "Народные песни",
+      soviet: "Советские песни",
+      military: "Военные песни",
+      childrens: "Детские песни",
+      other: "Другие песни",
     };
     return fullNames[key] || `${category.name} песни`;
   }
-  
+
   return category.name;
 };
 
@@ -79,6 +82,16 @@ const putSong = async () => {
 
   const posts = await data.json();
   return posts;
+};
 
-  
+export const deleteSong = async (id: string) => {
+  console.log("delete song", id);
+  const data = await fetch(`http://localhost:4000/song/${id}/true`, {
+    headers: {
+      method: "GET",
+    },
+  });
+
+  const posts = await data.json();
+  return posts;
 };

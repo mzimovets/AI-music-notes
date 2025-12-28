@@ -3,7 +3,7 @@ import { ServerSong } from "@/lib/types";
 import { createContext, useContext } from "react";
 
 export const SongContext = createContext<{
-  songResponse: { status: string; docs: ServerSong[] };
+  songResponse: { status: string; doc: ServerSong };
 } | null>(null);
 
 export function SongContextProvider({
@@ -11,7 +11,7 @@ export function SongContextProvider({
   songResponse,
 }: {
   children: React.ReactNode;
-  songResponse: { status: string; docs: ServerSong[] };
+  songResponse: { status: string; doc: ServerSong };
 }) {
   return (
     <SongContext.Provider value={{ songResponse }}>

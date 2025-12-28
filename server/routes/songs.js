@@ -62,4 +62,20 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
       res.json({ status: "ok", doc });
     });
   });
+
+  app.get("/song/:songId/:delete", urlencodedParser, (req, res) => {
+    console.log(
+      "deleting song on server",
+      req.params.songId,
+      req.params.delete
+    );
+    database.remove({ _id: req.params.songId }, (err, num) => {
+      console.log("deleting song: ", req.params.songId, num);
+      if (err) {
+        console.log("err", err);
+      }
+      // Добавить удаление файла
+      res.json({ status: "ok", num });
+    });
+  });
 };

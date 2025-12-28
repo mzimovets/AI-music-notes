@@ -1,10 +1,16 @@
 "use server";
 
 import { Song } from "@/lib/types";
-import { postSong } from "@/lib/utils";
+import { deleteSong, postSong } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
 
 export async function addSong(song: Song) {
   return await postSong(song, Math.random().toString());
+}
+
+export async function removeSong(id: string) {
+  return await deleteSong(id);
+  revalidatePath("/song");
 }
 
 // "use server";

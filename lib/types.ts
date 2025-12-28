@@ -16,4 +16,6 @@ export type ServerSong = {
   category?: string;
   docType: "song";
   _id: string;
+  authorArrange?: string;
+  authorLyrics?: string;
 };
