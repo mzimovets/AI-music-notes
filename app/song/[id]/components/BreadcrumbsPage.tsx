@@ -23,7 +23,7 @@ export const BreadcrumbsPage = () => {
       </Button>
       <Breadcrumbs
         separator={<Separator />}
-        className="absolute left-37 top-2 -ml-86"
+        className="absolute left-37 top-2 -ml-86 input-header"
       >
         <BreadcrumbItem href={`/playlist/${song.category}`}>
           {getCategoryDisplay(song.category, "full")}

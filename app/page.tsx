@@ -1,12 +1,13 @@
 "use client";
-import ModalAddScore from "./home/modalAddScore";
-import { Suspense, useState } from "react";
+import ModalAddScore, { songs } from "./home/modalAddScore";
+import { Suspense, useEffect, useState, useRef } from "react";
+
 import React from "react";
-import { getData } from "@/lib/utils";
+import { getCategoryDisplay, getData } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
 import { PdfViewer } from "./home/pdfViewer";
-import { Input, Tooltip, Chip, User, Pagination } from "@heroui/react";
+import { Input, Tooltip, Chip, User, Pagination, Link } from "@heroui/react";
 import { Skeleton } from "@heroui/skeleton";
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
@@ -19,66 +20,6 @@ import {
   TableCell,
 } from "@heroui/table";
 import { motion, AnimatePresence } from "framer-motion";
-
-export const columns = [
-  { name: "НАЗВАНИЕ", uid: "name" },
-  { name: "АВТОР, ОБРАБОТКА, АРАНЖИРОВКА", uid: "role" },
-  { name: "ACTIONS", uid: "actions" },
-];
-
-export const users = [
-  {
-    id: 1,
-    name: "В землянке",
-    role: "К. Листов",
-    type: "Военные песни",
-    team: "Т. Мезинова",
-    status: "active",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-    email: "tony.reichert@example.com",
-  },
-  {
-    id: 2,
-    name: "Христос Воскрес",
-    role: "-",
-    type: "Пасхальные песни",
-    team: "Я. Яциневич",
-    status: "paused",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    email: "zoey.lang@example.com",
-  },
-  {
-    id: 3,
-    name: "Виноградная косточка",
-    role: "Б. Окуджава",
-    type: "Советские песни",
-    team: "Т. Мезинова",
-    status: "active",
-    avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-    email: "jane.fisher@example.com",
-  },
-  {
-    id: 4,
-    name: "Вот полк прошёл",
-    role: "-",
-    type: "Народные песни",
-    team: "Т. Мезинова",
-    status: "vacation",
-    avatar: "https://i.pravatar.cc/150?u=a048581f4e29026701d",
-    email: "william.howard@example.com",
-  },
-  {
-    id: 5,
-    name: "Колядочка",
-    role: "М. Цололо",
-    type: "Колядки",
-    team: "",
-    status: "active",
-
-    avatar: "https://i.pravatar.cc/150?u=a092581d4ef9026700d",
-    email: "kristen.cooper@example.com",
-  },
-];
 
 export const EyeIcon = (props) => {
   return (
@@ -201,72 +142,190 @@ export const EditIcon = (props) => {
   );
 };
 
-const statusColorMap = {
-  active: "success",
-  paused: "danger",
-  vacation: "warning",
-};
+export const columns = [
+  { name: "НАЗВАНИЕ", uid: "name", align: "start" },
+  { name: "АВТОР", uid: "role", align: "center" },
+  { name: "ДЕЙСТВИЯ", uid: "actions", align: "end" },
+];
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null)); //getData();
+  const [allSongs, setAllSongs] = useState([]);
+  const [filteredSongs, setFilteredSongs] = useState([]);
   const [showTable, setShowTable] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Обработчик изменения значения в поле поиска
+  const tableRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showTable &&
+        tableRef.current &&
+        !tableRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowTable(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTable]);
+
+  useEffect(() => {
+    const fetchAllSongs = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("http://localhost:4000/songs");
+        const data = await response.json();
+
+        if (data.status === "ok" && data.docs) {
+          const songs = data.docs
+            .filter((song) => song.docType === "song")
+            .map((song) => ({
+              _id: song._id,
+              name: song.doc?.name || song.name || "",
+              author: song.doc?.author || song.author || "",
+              authorLyrics: song.doc?.authorLyrics || song.authorLyrics || "",
+              authorArrange:
+                song.doc?.authorArrange || song.authorArrange || "",
+              category: song.doc?.category || song.category || "",
+              file: song.doc?.file || song.file || {},
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+          setAllSongs(songs);
+          setFilteredSongs(songs);
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке песен:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchAllSongs();
+  }, []);
+
+  const searchSongs = (searchText) => {
+    if (!searchText.trim()) {
+      setFilteredSongs(allSongs);
+      return;
+    }
+
+    const lowerSearch = searchText.toLowerCase().trim();
+
+    const results = allSongs.filter((song) => {
+      const nameMatch = song.name.toLowerCase().includes(lowerSearch);
+
+      const authorMatch =
+        song.author && song.author.toLowerCase().includes(lowerSearch);
+
+      return nameMatch || authorMatch;
+    });
+
+    results.sort((a, b) => {
+      const aNameLower = a.name.toLowerCase();
+      const bNameLower = b.name.toLowerCase();
+      const aAuthorLower = a.author ? a.author.toLowerCase() : "";
+      const bAuthorLower = b.author ? b.author.toLowerCase() : "";
+
+      const aNameStartsWith = aNameLower.startsWith(lowerSearch);
+      const bNameStartsWith = bNameLower.startsWith(lowerSearch);
+      if (aNameStartsWith && !bNameStartsWith) return -1;
+      if (!aNameStartsWith && bNameStartsWith) return 1;
+
+      const aAuthorStartsWith = aAuthorLower.startsWith(lowerSearch);
+      const bAuthorStartsWith = bAuthorLower.startsWith(lowerSearch);
+      if (aAuthorStartsWith && !bAuthorStartsWith) return -1;
+      if (!aAuthorStartsWith && bAuthorStartsWith) return 1;
+
+      const aNameIncludes = aNameLower.includes(lowerSearch);
+      const bNameIncludes = bNameLower.includes(lowerSearch);
+      if (aNameIncludes && !bNameIncludes) return -1;
+      if (!aNameIncludes && bNameIncludes) return 1;
+
+      const aAuthorIncludes = aAuthorLower.includes(lowerSearch);
+      const bAuthorIncludes = bAuthorLower.includes(lowerSearch);
+      if (aAuthorIncludes && !bAuthorIncludes) return -1;
+      if (!aAuthorIncludes && bAuthorIncludes) return 1;
+
+      return aNameLower.localeCompare(bNameLower, "ru");
+    });
+
+    setFilteredSongs(results);
+  };
+
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchValue(value);
 
-    // Показываем таблицу, если введен хотя бы один символ
+    searchSongs(value);
+
     setShowTable(value.trim().length > 0);
   };
 
-  // Обработчик клика по полю ввода
   const handleInputClick = () => {
-    // Показываем таблицу только если уже есть текст
     if (searchValue.trim().length > 0) {
       setShowTable(true);
     }
   };
+  const downloadFile = (song) => {
+    if (!song.file?.filename) {
+      console.error("Файл не найден");
+      return;
+    }
 
-  const renderCell = React.useCallback((user, columnKey) => {
-    const cellValue = user[columnKey];
+    // Предполагаем, что файлы лежат в /public/scores/
+    const fileUrl = `/scores/${song.file.filename}`;
 
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = song.file.filename || `песня_${song.name}.pdf`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const renderCell = React.useCallback((song, columnKey) => {
     switch (columnKey) {
       case "name":
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{cellValue}</p>
-            <p className="text-bold text-sm capitalize text-default-400">
-              {user.type}
-            </p>
-          </div>
+          <Link href={`/song/${song._id}`} className="text-foreground">
+            <div className="flex flex-col">
+              <p className="text-bold text-sm capitalize text-left">
+                {song.name}
+              </p>
+              <p className="text-bold text-sm capitalize text-default-400 text-left">
+                {getCategoryDisplay(song.category, "full")}
+              </p>
+            </div>
+          </Link>
         );
       case "role":
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize text-center">
-              {cellValue}
-            </p>
-            <p className="text-bold text-sm capitalize text-default-400 text-center">
-              {user.team}
-            </p>
-          </div>
-        );
-      case "status":
-        return (
-          <Chip
-            className="capitalize"
-            color={statusColorMap[user.status]}
-            size="sm"
-            variant="flat"
-          >
-            {cellValue}
-          </Chip>
+          <Link href={`/song/${song._id}`} className="text-foreground">
+            <div className="flex flex-col items-center justify-center">
+              <p className="text-bold text-sm capitalize text-center">
+                {song.author || "-"}
+              </p>
+              {/* <p className="text-bold text-sm capitalize text-default-400 text-center">
+              {song.category}
+            </p> */}
+            </div>
+          </Link>
         );
       case "actions":
         return (
-          <div className="relative flex items-center gap-2">
+          <div className="relative flex items-center justify-end gap-4">
             <Tooltip content="Share">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
                 <svg
@@ -286,7 +345,14 @@ export default function Home() {
               </span>
             </Tooltip>
             <Tooltip content="Download">
-              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+              <span
+                className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  downloadFile(song);
+                }}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
@@ -324,95 +390,140 @@ export default function Home() {
           </div>
         );
       default:
-        return cellValue;
+      // return cellValue;
     }
   }, []);
 
   const [page, setPage] = React.useState(1);
   const rowsPerPage = 4;
 
-  const pages = Math.ceil(users.length / rowsPerPage);
+  const pages = Math.ceil(filteredSongs.length / rowsPerPage);
 
   const items = React.useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
 
-    return users.slice(start, end);
-  }, [page, users]);
+    return filteredSongs.slice(start, end);
+  }, [page, filteredSongs, rowsPerPage]);
 
   return (
     <SongsLibraryContextProvider albumsPromise={albumsPromise}>
-      <div className="flex flex-col text-center justify-center font-header gap-4 relative">
-        Заголовок
+      <div className="flex flex-col text-center justify-center font-header gap-4 relative mt-4">
         <Input
+          ref={inputRef}
           type="search"
           placeholder="Поиск"
           value={searchValue}
           onChange={handleSearchChange}
           onClick={handleInputClick}
-          endContent={<SearchIcon className="text-default-400" />}
+          isClearable
+          onClear={() => {
+            setSearchValue("");
+            setFilteredSongs(allSongs);
+            setShowTable(false);
+          }}
+          startContent={
+            <div className="mr-2">
+              {" "}
+              <SearchIcon className="text-default-400" />
+            </div>
+          }
           className="w-100 mx-auto"
           classNames={{
             inputWrapper: "bg-[#FFFAF5] rounded-md",
             input: "text-sm",
+            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
           }}
         />
         <Monogram className="h-6 w-auto" />
         <AnimatePresence>
           {showTable && (
             <motion.div
+              ref={tableRef}
               initial={{ opacity: 0, scale: 0.95, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-8 z-50"
+              className="rounded-xl absolute top-1/7 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-8 z-50"
             >
               <Table
+                isStriped
                 aria-label="Example table with custom cells"
-                className="mt-4 w-144 w-auto m-3 bg-white rounded-lg shadow-xl"
+                className="mt-4 w-150 m-3 bg-white rounded-lg shadow-xl p-1"
                 bottomContent={
-                  <Pagination
-                    isCompact
-                    onChange={(page) => setPage(page)}
-                    total={pages}
-                    page={page}
-                    // showControls={false}
-                    className="pb-4"
-                    classNames={{
-                      wrapper: "font-header",
-                      item: [
-                        "font-pagination",
-                        "text-gray-700",
-                        "data-[hover=true]:text-white",
-                        "data-[hover=true]:bg-gradient-to-r",
-                        "data-[hover=true]:from-[#BD9673]",
-                        "data-[hover=true]:to-[#7D5E42]",
-                        "transition-colors duration-200",
-                      ].join(" "),
-                      cursor: [
-                        "font-pagination",
-                        "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
-                        "text-white",
-                        "font-bold",
-                        "shadow-lg",
-                      ].join(" "),
-                    }}
-                  />
+                  pages > 1 ? (
+                    <Pagination
+                      // isCompact
+                      onChange={(page) => setPage(page)}
+                      total={pages}
+                      page={page}
+                      // showControls={false}
+                      className="pb-4"
+                      classNames={{
+                        wrapper: "font-header",
+                        item: [
+                          "font-pagination",
+                          "text-gray-700",
+                          "data-[hover=true]:text-white",
+                          "data-[hover=true]:bg-gradient-to-r",
+                          "data-[hover=true]:from-[#BD9673]",
+                          "data-[hover=true]:to-[#7D5E42]",
+                          "transition-colors duration-200",
+                        ].join(" "),
+                        cursor: [
+                          "font-pagination",
+                          "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                          "text-white",
+                          "font-bold",
+                          "shadow-lg",
+                        ].join(" "),
+                      }}
+                    />
+                  ) : null
                 }
               >
                 <TableHeader columns={columns}>
                   {(column) => (
                     <TableColumn
                       key={column.uid}
-                      align={column.uid === "actions" ? "center" : "start"}
+                      align={column.align || "start"}
+                      className="w-1/3"
                     >
                       {column.name}
                     </TableColumn>
                   )}
                 </TableHeader>
-                <TableBody items={items}>
+                <TableBody
+                  items={items}
+                  emptyContent={
+                    <div className="py-10 text-center">
+                      <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={1.5}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+                          />
+                        </svg>
+                      </div>
+                      <p className="text-gray-500 text-lg font-medium mb-2">
+                        Ничего не найдено
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        Попробуйте изменить запрос или ввести другие ключевые
+                        слова
+                      </p>
+                    </div>
+                  }
+                >
                   {(item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item._id}>
                       {(columnKey) => (
                         <TableCell>{renderCell(item, columnKey)}</TableCell>
                       )}

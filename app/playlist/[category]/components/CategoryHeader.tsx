@@ -66,6 +66,8 @@ export const CategoryHeader = () => {
             <Input
               type="search"
               placeholder="Поиск"
+              // value={searchValue}
+              // onChange={handleSearchChange}
               endContent={<SearchIcon className="text-default-400" />}
               className="mx-auto mt-4"
               classNames={{

@@ -17,7 +17,9 @@ export const useTableCell = () => {
         return (
           <Link href={`/song/${song._id}`}>
             <div className="flex flex-col">
-              <p className="text-bold text-sm capitalize">{song.name}</p>
+              <p className="text-bold text-sm capitalize text-left input-header">
+                {song.name}
+              </p>
               {/* <p className="text-bold text-sm capitalize text-default-400"></p> */}
             </div>
           </Link>
@@ -26,16 +28,16 @@ export const useTableCell = () => {
         return (
           <Link href={`/song/${song._id}`}>
             <div className="flex flex-col">
-              <p className="text-bold text-sm capitalize">{cellValue}</p>
-              <p className="text-bold text-sm capitalize text-default-400">
+              <p className="text-bold text-sm capitalize input-header justify-center">
                 {song.author}
               </p>
+              {/* <p className="text-bold text-sm capitalize text-default-400"></p> */}
             </div>
           </Link>
         );
       case "actions":
         return (
-          <div className="relative flex items-center gap-2 justify-center gap-4">
+          <div className="relative flex items-center gap-2 justify-end  gap-4">
             <Tooltip content="Share">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
                 <svg
