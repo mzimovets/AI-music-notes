@@ -1,9 +1,17 @@
 "use client";
 import { ServerSong } from "@/lib/types";
-import { createContext, useContext } from "react";
+import {
+  createContext,
+  Dispatch,
+  SetStateAction,
+  useContext,
+  useState,
+} from "react";
 
 export const PlaylistContext = createContext<{
   songsResponse: { status: string; docs: ServerSong[] };
+  searchValue: string;
+  setSearchValue: Dispatch<SetStateAction<string>>;
 } | null>(null);
 
 export function PlaylistContextProvider({
@@ -13,8 +21,12 @@ export function PlaylistContextProvider({
   children: React.ReactNode;
   songsResponse: { status: string; docs: ServerSong[] };
 }) {
+  // Состояние для поиска
+  const [searchValue, setSearchValue] = useState("");
   return (
-    <PlaylistContext.Provider value={{ songsResponse }}>
+    <PlaylistContext.Provider
+      value={{ songsResponse, searchValue, setSearchValue }}
+    >
       {children}
     </PlaylistContext.Provider>
   );

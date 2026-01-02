@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
 import { usePlaylistContext } from "../PlaylistContextProvider";
 import { categorySongs } from "@/components/constants";
+import { ChangeEvent } from "react";
 
 export const CategoryHeader = () => {
   const params = useParams<{ category: string }>();
@@ -14,8 +15,9 @@ export const CategoryHeader = () => {
   const { songsResponse } = context;
   const songs = songsResponse?.docs;
   const count = songs.length;
+  const { searchValue, setSearchValue } = context;
 
-  const getSongWord = (count) => {
+  const getSongWord = (count: number) => {
     // 0 всегда "песен"
     if (count === 0) return "песен";
 
@@ -35,6 +37,10 @@ export const CategoryHeader = () => {
     } else {
       return "песен";
     }
+  };
+
+  const handleSearchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setSearchValue(event.target.value);
   };
 
   return (
@@ -66,8 +72,8 @@ export const CategoryHeader = () => {
             <Input
               type="search"
               placeholder="Поиск"
-              // value={searchValue}
-              // onChange={handleSearchChange}
+              value={searchValue}
+              onChange={handleSearchChange}
               endContent={<SearchIcon className="text-default-400" />}
               className="mx-auto mt-4"
               classNames={{
