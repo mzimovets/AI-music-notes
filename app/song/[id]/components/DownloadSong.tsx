@@ -1,51 +1,26 @@
 "use client";
-
-import DownloadIcon from "@/components/DownloadIcon";
+import { useState, useCallback } from "react";
 import { useSongContext } from "../SongContextProvider";
-import { useState } from "react";
 
-export const DownloadSong = () => {
+export const useDownloadSong = () => {
   const context = useSongContext();
   const [isDownloading, setIsDownloading] = useState(false);
 
-  if (!context) {
-    return (
-      <button
-        className="opacity-50 cursor-not-allowed transition-opacity duration-300"
-        disabled
-      >
-        <DownloadIcon width={34} height={34} />
-      </button>
-    );
-  }
+  const handleDownload = useCallback(async () => {
+    const song = context?.songResponse;
+    if (!song?.doc?.file?.filename) return;
 
-  const song = context.songResponse;
-
-  if (!song?.doc?.file?.filename) {
-    return (
-      <button
-        className="opacity-50 cursor-not-allowed transition-opacity duration-300"
-        title="Файл недоступен для скачивания"
-        disabled
-      >
-        <DownloadIcon width={34} height={34} />
-      </button>
-    );
-  }
-
-  const handleDownload = async () => {
     setIsDownloading(true);
     try {
       const fileUrl = `http://localhost:4000/uploads/${song.doc.file.filename}`;
-      const fileName =
-        song.doc.file.originalName ||
-        song.doc.file.filename ||
-        `${song.doc.name}.pdf`;
+      const fileName = song.doc.file.originalName || `${song.doc.name}.pdf`;
 
       const response = await fetch(fileUrl);
-      const blob = await response.blob();
+      if (!response.ok) throw new Error("Ошибка загрузки файла");
 
+      const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = downloadUrl;
       link.download = fileName;
@@ -56,6 +31,7 @@ export const DownloadSong = () => {
       window.URL.revokeObjectURL(downloadUrl);
     } catch (error) {
       console.error("Ошибка при скачивании:", error);
+      // Fallback: просто открываем файл в новом окне
       window.open(
         `http://localhost:4000/uploads/${song.doc.file.filename}`,
         "_blank"
@@ -63,18 +39,11 @@ export const DownloadSong = () => {
     } finally {
       setIsDownloading(false);
     }
-  };
+  }, [context]);
 
-  return (
-    <button
-      onClick={handleDownload}
-      disabled={isDownloading}
-      className={`hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform ${
-        isDownloading ? "opacity-50 cursor-wait" : ""
-      }`}
-      title={`Скачать ${song.doc.name}`}
-    >
-      <DownloadIcon width={34} height={34} />
-    </button>
-  );
+  return {
+    handleDownload,
+    isDownloading,
+    isEnabled: !!context?.songResponse?.doc?.file?.filename,
+  };
 };
