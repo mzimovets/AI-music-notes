@@ -8,6 +8,7 @@ import { getSongById } from "@/lib/utils";
 import { SongContextProvider } from "./SongContextProvider";
 
 import { SongActions } from "./components/SongActions";
+import { NavBackButton } from "@/app/playlist/[category]/components/NavBackButton";
 
 export default async function PricingPage({
   params,
@@ -21,8 +22,11 @@ export default async function PricingPage({
   return (
     <SongContextProvider songResponse={song}>
       <div>
-        <BreadcrumbsPage />
         <div>
+          <div className="mb-6">
+            <BreadcrumbsPage />
+          </div>
+
           <p className="flex flex-col text-center justify-center font-header gap-4">
             {song.doc.name}
           </p>

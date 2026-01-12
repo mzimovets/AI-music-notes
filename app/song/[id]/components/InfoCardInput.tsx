@@ -11,23 +11,28 @@ interface InfoCardInputProps {
   };
   placeholder?: string;
   onChange?: (value: string) => void;
+  category: string;
 }
 
 export const InfoCardInput = ({
   field,
   placeholder,
   onChange,
+  category,
 }: InfoCardInputProps) => {
   if (field.label === "Категория") {
-    const categoryName = categorySongs.find((f) => f.name === field.value);
-
+    const categoryName = categorySongs.find((f) => f.key === category);
+    console.log("categoryName, field: ", categoryName, field);
     const handleSelectionChange = (keys: any) => {
       const selectedKey = Array.from(keys)[0] as string;
       const selectedCategory = categorySongs.find(
         (cat) => cat.key === selectedKey
       );
+      console.log("selectedKey: ", selectedKey);
+      console.log("selectedCategory: ", selectedCategory);
       if (selectedCategory && onChange) {
-        onChange(selectedCategory.name);
+        console.log("selectedCategory.key: ", selectedCategory.key);
+        onChange(selectedCategory.key);
       }
     };
 

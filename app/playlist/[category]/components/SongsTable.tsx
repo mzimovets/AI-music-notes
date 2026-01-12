@@ -7,42 +7,48 @@ import {
   TableRow,
   TableCell,
   Spinner,
+  Pagination,
 } from "@heroui/react";
 import { useTableCell } from "./useTableCell";
 import { usePlaylistContext } from "../PlaylistContextProvider";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export const SongsTable = () => {
   const renderCell = useTableCell();
-  const context = usePlaylistContext();
-  const { songsResponse } = context;
+  const router = useRouter();
+
+  const { songsResponse, searchValue } = usePlaylistContext();
   const songs = songsResponse?.docs;
 
-  const { searchValue } = context;
-
-  // Фильтрация песен по поисковому запросу
   const filteredSongs = useMemo(() => {
     if (!songs) return [];
 
-    if (!searchValue.trim()) {
-      return songs; // Если поиск пустой, показываем все песни
-    }
+    if (!searchValue.trim()) return songs;
 
     const lowerSearch = searchValue.toLowerCase().trim();
 
     return songs.filter((song) => {
-      // Поиск по названию
       const nameMatch = song.name?.toLowerCase().includes(lowerSearch);
-
-      // Поиск по автору
       const authorMatch = song.author?.toLowerCase().includes(lowerSearch);
-
-      // Поиск по категории (если нужно)
-      // const categoryMatch = song.category?.toLowerCase().includes(lowerSearch);
-
-      return nameMatch || authorMatch; // || categoryMatch
+      return nameMatch || authorMatch;
     });
   }, [songs, searchValue]);
+
+  const [page, setPage] = useState(1);
+  const rowsPerPage = 6;
+
+  const pages = Math.ceil(filteredSongs.length / rowsPerPage);
+
+  const items = useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+    return filteredSongs.slice(start, end);
+  }, [page, filteredSongs]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchValue]);
 
   const columns = [
     { name: "НАЗВАНИЕ", uid: "name", align: "start" },
@@ -55,25 +61,60 @@ export const SongsTable = () => {
       <Table
         isStriped
         isHeaderSticky
+        // selectionMode="single"
         aria-label="Таблица песен"
-        className="mt-4 p-1"
+        className="mt-4 p-1 w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
         classNames={{
           base: "max-h-[520px] overflow-scroll",
           table: "min-h-[200px]",
         }}
+        onRowAction={(key) => {
+          router.push(`/song/${key}`);
+        }}
+        bottomContent={
+          pages > 1 ? (
+            <Pagination
+              page={page}
+              total={pages}
+              onChange={setPage}
+              className="pb-4"
+              classNames={{
+                wrapper: "font-header",
+                item: [
+                  "font-pagination",
+                  "text-gray-700",
+                  "data-[hover=true]:text-white",
+                  "data-[hover=true]:bg-gradient-to-r",
+                  "data-[hover=true]:from-[#BD9673]",
+                  "data-[hover=true]:to-[#7D5E42]",
+                ].join(" "),
+                cursor: [
+                  "font-pagination",
+                  "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                  "text-white",
+                  "font-bold",
+                ].join(" "),
+              }}
+            />
+          ) : null
+        }
       >
         <TableHeader columns={columns}>
           {(column) => (
             <TableColumn
               key={column.uid}
-              align={column.align || "start"}
+              align={column.align}
               className="w-1/3 card-header"
             >
               {column.name}
             </TableColumn>
           )}
         </TableHeader>
+
         <TableBody
+          items={items}
+          isLoading={!songs}
+          loadingContent={<Spinner label="Загрузка..." />}
           emptyContent={
             <div className="py-10 text-center">
               <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
@@ -92,20 +133,13 @@ export const SongsTable = () => {
                 </svg>
               </div>
               <p className="text-gray-500 text-lg font-medium mb-2">
-                {searchValue
-                  ? `По запросу "${searchValue}" ничего не найдено`
-                  : "Ничего не найдено"}
+                Ничего не найдено
               </p>
               <p className="text-gray-400 text-sm">
-                {searchValue
-                  ? "Попробуйте изменить запрос"
-                  : "Пока нет песен в этой категории"}
+                Попробуйте изменить запрос или ввести другие ключевые слова
               </p>
             </div>
           }
-          items={filteredSongs || []}
-          isLoading={!songs}
-          loadingContent={<Spinner label="Загрузка..." />}
         >
           {(item) => (
             <TableRow key={item._id}>

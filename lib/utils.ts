@@ -73,14 +73,23 @@ export const postSong = async (data: Song, id?: string) => {
   return posts;
 };
 
-const putSong = async () => {
-  const data = await fetch(`http://localhost:4000/song`, {
-    headers: {
-      method: "PUT",
-    },
+export const putSong = async (data: Song, id?: string) => {
+  const formData = new FormData();
+  formData.append("name", data.name);
+  formData.append("author", data.author || "");
+  if (data.file) {
+    formData.append("file", data.file);
+  }
+  formData.append("docType", data.docType || "");
+  formData.append("category", data.category || "");
+  formData.append("authorArrange", data.authorArrange || "");
+  formData.append("authorLyrics", data.authorLyrics || "");
+  const resp = await fetch(`http://localhost:4000/song/${id}/true`, {
+      method: "POST",
+      body: formData,
   });
 
-  const posts = await data.json();
+  const posts = await resp.json();
   return posts;
 };
 
@@ -95,3 +104,4 @@ export const deleteSong = async (id: string) => {
   const posts = await data.json();
   return posts;
 };
+

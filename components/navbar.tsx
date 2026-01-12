@@ -38,7 +38,6 @@ export const Navbar = () => {
         position="sticky"
         className="bg-navbar"
         style={{ borderBottom: "1px solid #7D5E42" }}
-        // ГРАДИЕНТ!!!
       >
         <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
           <Link href={"/"} style={{ display: "inline" }}>

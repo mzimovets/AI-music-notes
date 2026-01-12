@@ -8,7 +8,6 @@ export default function PlaylistLayout({
   return (
     <section className="flex flex-col justify-center gap-4  container">
       <NavBackButton />
-
       {children}
     </section>
   );

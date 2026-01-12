@@ -25,11 +25,7 @@ export default function ModalFilePreviewer({
 
   return (
     <Modal isOpen={isOpen} onOpenChange={onClose} placement="top" size="xl">
-      <ModalContent
-        style={{
-          marginTop: "20px",
-        }}
-      >
+      <ModalContent>
         {() => (
           <>
             <ModalBody>

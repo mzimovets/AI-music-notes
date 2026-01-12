@@ -3,7 +3,7 @@ import MyDropzone from "@/app/home/dropzone";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 import { Button } from "@heroui/button";
 import { Card, CardHeader, CardBody } from "@heroui/card";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SongContextProvider, useSongContext } from "../SongContextProvider";
 import { getCategoryDisplay } from "@/lib/utils";
 import { InfoCardInput } from "./InfoCardInput";
@@ -15,7 +15,8 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
-import { removeSong } from "@/actions/actions";
+import { editSong, removeSong } from "@/actions/actions";
+import { Song } from "@/lib/types";
 
 export const InfoCard = () => {
   const [isEdit, setIsEdit] = useState(false);
@@ -34,13 +35,39 @@ export const InfoCard = () => {
   const [authorArrange, setAuthorArrange] = useState(song.doc.authorArrange);
   const [category, setCategory] = useState(song.doc.category);
 
+  useEffect(() => {
+    setSelectedFile(song.doc.file);
+    console.log("selectedFile: ", selectedFile);
+  }, []);
+
   const handleEdit = () => setIsEdit(!isEdit);
   const handlePreview = () => {
-    if (selectedFile) {
-      setIsPreviewModalOpen(true);
-    }
+    setIsPreviewModalOpen(true);
+    console.log("selectedFile: ", selectedFile);
   };
-  const handleFileSelect = (file: File | null) => setSelectedFile(file);
+
+  const handleSave = async () => {
+    const data: Song = {
+      docType: "song",
+      name,
+      author,
+      authorLyrics,
+      authorArrange,
+      category,
+      file: selectedFile,
+    };
+    console.log("dataNew: ", data);
+    const editSaveSong = await editSong(song.doc._id, data);
+    console.log("editSong:", editSaveSong);
+    setIsEdit(false);
+    console.log("selectedFile: ", selectedFile);
+  };
+
+  const handleFileSelect = (file: File | null) => {
+    setSelectedFile(file);
+    console.log("file: ", file);
+    console.log("selectedFile: ", selectedFile);
+  };
   const handleClosePreview = () => setIsPreviewModalOpen(false);
 
   const handleDeleteClick = () => {
@@ -73,7 +100,7 @@ export const InfoCard = () => {
     { label: "Автор аранжировки", value: song.doc.authorArrange },
     {
       label: "Категория",
-      value: song.doc.category,
+      value: getCategoryDisplay(song.doc.category, "full"),
       required: true,
     },
   ];
@@ -121,7 +148,7 @@ export const InfoCard = () => {
                 : "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:shadow-lg"
             }`}
           >
-            {isEdit ? "✕ Отменить редактирование" : "✏️ Редактировать"}
+            {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
           </Button>
         </CardHeader>
 
@@ -159,6 +186,7 @@ export const InfoCard = () => {
                         <InfoCardInput
                           placeholder={getPlaceholder(field.label)}
                           field={field}
+                          category={category}
                           onChange={(value) => {
                             switch (field.label) {
                               case "Название":
@@ -222,9 +250,12 @@ export const InfoCard = () => {
               </div>
 
               <div className="px-8 py-6 bg-gray-50 border-t">
-                <div className="flex justify-end gap-3">
-                  <Button className="px-6 py-3 bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white font-medium input-header">
-                    Сохранить все изменения
+                <div className="flex items-center justify-center gap-3">
+                  <Button
+                    onPress={handleSave}
+                    className="px-5 py-2.5 rounded-lg border button-safe-font bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white-400  hover:opacity-90 transition-all"
+                  >
+                    Сохранить
                   </Button>
                 </div>
               </div>

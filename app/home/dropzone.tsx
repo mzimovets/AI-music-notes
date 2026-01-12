@@ -332,46 +332,12 @@ export default function MyDropzone({
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
-  const documentEmojis = [
-    "📄",
-    "📋",
-    "📑",
-    "📊",
-    "📈",
-    "📉",
-    "🗂️",
-    "🗄️",
-    "📁",
-    "📂",
-    "🗃️",
-    "📇",
-  ];
-
   return (
     <div className="space-y-4">
-      {/* ВАЖНО: Убираем внешний div со стилями, применяем стили к Card */}
       <Card
-        className="w-full h-48 flex items-center justify-center p-6 relative overflow-hidden"
+        className="w-full h-48 flex items-center justify-center p-6 relative overflow-hidden border border-gray-100 rounded-xl shadow-lg"
         style={hasError ? { backgroundColor: "#fee7ef" } : {}}
       >
-        {selectedFile && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none">
-            <div className="grid grid-cols-4 grid-rows-3 gap-8 rotate-12 scale-125">
-              {documentEmojis.map((emoji, index) => (
-                <div
-                  key={`emoji-${index}`}
-                  className="text-3xl flex items-center justify-center"
-                  style={{
-                    animation: `pulse ${2 + index * 0.2}s infinite alternate`,
-                  }}
-                >
-                  {emoji}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         <form
           id={dropzoneId}
           className="dropzone w-full h-full flex items-center justify-center relative z-10"
@@ -408,23 +374,19 @@ export default function MyDropzone({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p
-                        className="font-semibold text-gray-900 truncate text-base"
+                        className="font-semibold text-gray-900 text-base overflow-hidden whitespace-nowrap"
+                        style={{
+                          display: "block",
+                          textOverflow: "ellipsis",
+                          maxWidth: "180px", // Настройте под ваш дизайн
+                        }}
                         title={selectedFile.name}
                       >
                         {selectedFile.name}
                       </p>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-base text-gray-600 mt-1">
                         {formatFileSize(selectedFile.size)}
                       </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="w-full bg-gray-200 rounded-full h-1.5">
-                          <div
-                            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] h-1.5 rounded-full"
-                            style={{ width: "100%" }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-500">Загружено</span>
-                      </div>
                     </div>
                   </div>
 
@@ -450,7 +412,7 @@ export default function MyDropzone({
       {selectedFile && selectedFile.size > 0 && onPreview && (
         <Button
           onPress={onPreview}
-          className="w-full py-4 input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white text-base font-medium rounded-xl flex items-center justify-center space-x-2 hover:opacity-90 transition-all hover:scale-[1.02] shadow-lg"
+          className="w-full px-5 py-2.5 rounded-lg border button-safe-font bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white-400  hover:opacity-90 transition-all"
         >
           <span className="font-semibold">Предпросмотр файла</span>
         </Button>

@@ -1,7 +1,7 @@
 "use server";
 
 import { Song } from "@/lib/types";
-import { deleteSong, postSong } from "@/lib/utils";
+import { deleteSong, postSong, putSong } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export async function addSong(song: Song) {
@@ -11,6 +11,10 @@ export async function addSong(song: Song) {
 export async function removeSong(id: string) {
   return await deleteSong(id);
   revalidatePath("/song");
+}
+
+export async function editSong(id: string, song: Song) {
+  return await putSong(song, id)
 }
 
 // "use server";

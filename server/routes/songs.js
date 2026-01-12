@@ -53,15 +53,30 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
     }
   );
 
-  app.put("/song/:songId", urlencodedParser, (req, res) => {
-    database.update({ _id: req.params.songId, ...req.body }, (err, doc) => {
-      console.log("edited song: ", req.params.songId);
-      if (err) {
-        console.log("err", err);
+  app.post(
+    "/song/:songId/:update",
+    urlencodedParser,
+    upload.single("file"),
+    (req, res) => {
+      const serverSong = { ...req.body };
+      if (req.file) {
+        serverSong.file = req.file;
+        console.log("req.file", req.file);
       }
-      res.json({ status: "ok", doc });
-    });
-  });
+      console.log(req.params._id);
+      database.update(
+        { _id: req.params.songId },
+        { $set: { ...serverSong } },
+        (err, doc) => {
+          console.log("edited song: ", req.params.songId);
+          if (err) {
+            console.log("err", err);
+          }
+          res.json({ status: "ok", doc });
+        }
+      );
+    }
+  );
 
   app.get("/song/:songId/:delete", urlencodedParser, (req, res) => {
     console.log(
