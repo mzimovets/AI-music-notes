@@ -236,7 +236,7 @@ export default function MyDropzone({
   const dropzoneId = `my-dropzone-${uniqueId.replace(/:/g, "-")}`;
 
   useEffect(() => {
-    if (currentFile && !selectedFile) {
+    if (currentFile && currentFile?.id && !selectedFile) {
       // Создаем "фейковый" File объект для отображения
       const fakeFile = new File([], currentFile.name, {
         type: "application/pdf",
@@ -257,6 +257,7 @@ export default function MyDropzone({
     if (dropzoneInitialized.current) {
       return;
     }
+    console.log("dropzoneInitialized.current", dropzoneInitialized.current);
 
     Dropzone.autoDiscover = false;
 
@@ -285,11 +286,13 @@ export default function MyDropzone({
     dz.on("addedfile", (file) => {
       setSelectedFile(file);
       if (onFileSelect) onFileSelect(file);
+      console.log("addedfile", file);
     });
 
     dz.on("success", (file, response) => {
       const fileId = response?.id || null;
       if (onFileSelect) onFileSelect(file, fileId);
+      console.log("addedfile", file, fileId);
     });
 
     dz.on("dragenter", () => setIsDragActive(true));
@@ -315,7 +318,6 @@ export default function MyDropzone({
     if (dzRef.current && selectedFile) {
       dzRef.current.removeFile(selectedFile);
       setSelectedFile(null);
-      if (onFileSelect) onFileSelect(null, null);
     }
   };
 

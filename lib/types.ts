@@ -12,7 +12,16 @@ export type Song = {
 export type ServerSong = {
   name: string;
   author?: string;
-  file: File | null;
+  file: {
+    fieldname: string;
+    originalName: string;
+    encoding: string;
+    mimetype: string;
+    destination: string;
+    filename: string;
+    path: string;
+    size: number;
+  } | null;
   category?: string;
   docType: "song";
   _id: string;

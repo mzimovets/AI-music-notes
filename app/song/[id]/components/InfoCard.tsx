@@ -35,15 +35,17 @@ export const InfoCard = () => {
   const [authorArrange, setAuthorArrange] = useState(song.doc.authorArrange);
   const [category, setCategory] = useState(song.doc.category);
 
+  const onLoad = async () => {
+    setSelectedFile(`http://localhost:4000/uploads/${song.doc.file.filename}`); //song.doc.file
+  };
+
   useEffect(() => {
-    setSelectedFile(song.doc.file);
-    console.log("selectedFile: ", selectedFile);
+    onLoad();
   }, []);
 
   const handleEdit = () => setIsEdit(!isEdit);
   const handlePreview = () => {
     setIsPreviewModalOpen(true);
-    console.log("selectedFile: ", selectedFile);
   };
 
   const handleSave = async () => {
@@ -66,12 +68,12 @@ export const InfoCard = () => {
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
     console.log("file: ", file);
-    console.log("selectedFile: ", selectedFile);
   };
   const handleClosePreview = () => setIsPreviewModalOpen(false);
 
   const handleDeleteClick = () => {
     setIsDeleteModalOpen(true);
+    setSelectedFile(null);
   };
 
   const handleConfirmDelete = async () => {
@@ -240,9 +242,18 @@ export const InfoCard = () => {
                       onFileSelect={handleFileSelect}
                       onPreview={handlePreview}
                       currentFile={{
-                        name: song.doc.file?.filename,
-                        size: song.doc.file?.size,
-                        id: song.doc.fileId,
+                        name:
+                          selectedFile && typeof selectedFile === "string"
+                            ? song.doc.name
+                            : selectedFile?.name || "",
+                        size:
+                          selectedFile && typeof selectedFile === "string"
+                            ? song.doc.file?.size
+                            : selectedFile?.size || 0,
+                        id:
+                          selectedFile && typeof selectedFile === "string"
+                            ? song.doc._id
+                            : null,
                       }}
                     />
                   </div>
