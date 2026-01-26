@@ -1,3 +1,4 @@
+"use client";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -8,29 +9,16 @@ import {
   NavbarMenuItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
-import { Kbd } from "@heroui/kbd";
+
 import { Link } from "@heroui/link";
-import { Input } from "@heroui/input";
-import { link as linkStyles } from "@heroui/theme";
+
 import ModalAddScore from "@/app/home/modalAddScore";
-import Script from "next/script";
 
-import clsx from "clsx";
-
-import { siteConfig } from "@/config/site";
-import { ThemeSwitch } from "@/components/theme-switch";
-import {
-  TwitterIcon,
-  GithubIcon,
-  DiscordIcon,
-  HeartFilledIcon,
-  SearchIcon,
-  Logo,
-} from "@/components/icons";
-
+import { useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
 
 export const Navbar = () => {
+  const router = useRouter();
   return (
     <>
       <HeroUINavbar
@@ -81,6 +69,7 @@ export const Navbar = () => {
           </Button> */}
             <ModalAddScore />
             <Button
+              onPress={() => router.push("/stack")}
               as={Link}
               radius="full"
               isIconOnly

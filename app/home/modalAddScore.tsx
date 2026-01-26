@@ -522,10 +522,14 @@ export default function ModalAddScore() {
                             category: false,
                           }));
                       }}
-                      className="input-header mb-0"
+                      className="input-header mb-0 "
                     >
                       {songs.map((song) => (
-                        <SelectItem key={song.key} textValue={song.label}>
+                        <SelectItem
+                          className="input-header"
+                          key={song.key}
+                          textValue={song.label}
+                        >
                           {song.label}
                         </SelectItem>
                       ))}
@@ -560,7 +564,6 @@ export default function ModalAddScore() {
                     />
                   </div>
 
-                  {/* Загрузка файла */}
                   <div className="mt-4">
                     <MyDropzone
                       onFileSelect={(file) => {

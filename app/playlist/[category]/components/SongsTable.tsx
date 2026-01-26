@@ -61,7 +61,6 @@ export const SongsTable = () => {
       <Table
         isStriped
         isHeaderSticky
-        // selectionMode="single"
         aria-label="Таблица песен"
         className="mt-4 p-1 w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
         classNames={{
@@ -136,7 +135,7 @@ export const SongsTable = () => {
                 Ничего не найдено
               </p>
               <p className="text-gray-400 text-sm">
-                Попробуйте изменить запрос или ввести другие ключевые слова
+                Попробуйте изменить запрос
               </p>
             </div>
           }

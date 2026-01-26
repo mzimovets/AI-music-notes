@@ -46,7 +46,11 @@ export const InfoCardInput = ({
         className="input-header"
       >
         {categorySongs.map((category) => (
-          <SelectItem key={category.key} textValue={category.name}>
+          <SelectItem
+            className="input-header"
+            key={category.key}
+            textValue={category.name}
+          >
             {category.name}
           </SelectItem>
         ))}

@@ -6,7 +6,7 @@ import React from "react";
 import { getCategoryDisplay, getData } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
-import { PdfViewer } from "./home/pdfViewer";
+
 import { Input, Tooltip, Chip, User, Pagination, Link } from "@heroui/react";
 import { Skeleton } from "@heroui/skeleton";
 import { SearchIcon } from "@/components/icons";
@@ -283,7 +283,6 @@ export default function Home() {
       return;
     }
 
-    // Предполагаем, что файлы лежат в /public/scores/
     const fileUrl = `/scores/${song.file.filename}`;
 
     const link = document.createElement("a");
@@ -516,8 +515,7 @@ export default function Home() {
                         Ничего не найдено
                       </p>
                       <p className="text-gray-400 text-sm">
-                        Попробуйте изменить запрос или ввести другие ключевые
-                        слова
+                        Попробуйте изменить запрос
                       </p>
                     </div>
                   }
@@ -538,9 +536,7 @@ export default function Home() {
       {/* <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
         Стопки (?)
       </div> */}
-      <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
-        Песни
-      </div>
+      <div className="pl-32 pb-0 flex flex-col font-header gap-4">Песни</div>
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
         <div className="inline-block max-w-xl text-center justify-center">
           {/* <ModalAddScore /> */}
