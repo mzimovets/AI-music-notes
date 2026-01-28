@@ -2,23 +2,34 @@
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
-  NavbarMenu,
-  NavbarMenuToggle,
-  NavbarBrand,
   NavbarItem,
-  NavbarMenuItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
 
 import { Link } from "@heroui/link";
 
 import ModalAddScore from "@/app/home/modalAddScore";
+import StackNameModal from "@/components/modalAddStack";
 
 import { useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
+import { useState } from "react";
+import React from "react";
 
 export const Navbar = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [stackName, setStackName] = useState("");
+
   const router = useRouter();
+
+  const handleOpenStack = () => setIsModalOpen(true);
+
+  const handleConfirmStack = () => {
+    if (stackName.trim() === "") return;
+    setIsModalOpen(false);
+    router.push("/stack");
+  };
+
   return (
     <>
       <HeroUINavbar
@@ -34,23 +45,6 @@ export const Navbar = () => {
               <p className="font-navbarBrand text-inherit">Нотная библиотека</p>
             </div>
           </Link>
-
-          {/* <ul className="hidden lg:flex gap-4 justify-start ml-2">
-          {siteConfig.navItems.map((item) => (
-            <NavbarItem key={item.href}>
-              <NextLink
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium"
-                )}
-                color="foreground"
-                href={item.href}
-              >
-                {item.label}
-              </NextLink>
-            </NavbarItem>
-          ))}
-        </ul> */}
         </NavbarContent>
 
         <NavbarContent
@@ -58,31 +52,25 @@ export const Navbar = () => {
           justify="end"
         >
           <NavbarItem className="hidden md:flex gap-4">
-            {/* <Button
-            as={Link}
-            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md w-auto min-w-0"
-            onClick={}
-            // href={siteConfig.links.sponsor}
-            // startContent={<HeartFilledIcon className="text-danger" />}
-          >
-            +
-          </Button> */}
             <ModalAddScore />
             <Button
-              onPress={() => router.push("/stack")}
-              as={Link}
+              onPress={handleOpenStack}
               radius="full"
               isIconOnly
-              className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  shadow-md"
-              // href={siteConfig.links.sponsor}
-              // startContent={<HeartFilledIcon className="text-danger" />}
+              className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
             >
               S
             </Button>
           </NavbarItem>
         </NavbarContent>
       </HeroUINavbar>
-      {/* <div className="h-[1px] w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42]"></div> */}
+      <StackNameModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        stackName={stackName}
+        setStackName={setStackName}
+        onConfirm={handleConfirmStack}
+      />
     </>
   );
 };

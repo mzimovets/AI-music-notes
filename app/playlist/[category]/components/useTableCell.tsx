@@ -31,9 +31,8 @@ export const useTableCell = () => {
           <Link href={`/song/${song._id}`}>
             <div className="flex flex-col">
               <p className="text-bold text-sm capitalize input-header justify-center">
-                {song.author}
+                {song.author ? song.author : "-"}
               </p>
-              {/* <p className="text-bold text-sm capitalize text-default-400"></p> */}
             </div>
           </Link>
         );

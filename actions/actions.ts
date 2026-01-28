@@ -13,7 +13,7 @@ export async function removeSong(id: string) {
   revalidatePath("/song");
 }
 
-export async function editSong(id: string, song: Song) {
+export async function editSong(id: string, song: Partial <Song>) {
   return await putSong(song, id)
 }
 

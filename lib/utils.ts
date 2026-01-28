@@ -73,7 +73,7 @@ export const postSong = async (data: Song, id?: string) => {
   return posts;
 };
 
-export const putSong = async (data: Song, id?: string) => {
+export const putSong = async (data: Partial <Song>, id?: string) => {
   const formData = new FormData();
   formData.append("name", data.name);
   formData.append("author", data.author || "");

@@ -2,7 +2,8 @@
 "use client";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { useState, useEffect } from "react";
-import { DocViewer } from "../song/[id]/components/DocViewer";
+
+import { Viewer } from "../stack/components/Viewer";
 
 interface ModalFilePreviewerProps {
   isOpen: boolean;
@@ -22,17 +23,24 @@ export default function ModalFilePreviewer({
       setPageNum(1);
     }
   }, [isOpen]);
-
+  console.log("Viewer: ", Viewer);
   return (
-    <Modal isOpen={isOpen} onOpenChange={onClose} placement="top" size="xl">
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onClose}
+      placement="top"
+      size="xl"
+      classNames={{
+        wrapper: "!items-start",
+        base: "-translate-y-10",
+      }}
+    >
       <ModalContent>
         {() => (
           <>
-            <ModalBody>
+            <ModalBody className="mb-4">
               {selectedFile ? (
-                <>
-                  <DocViewer fileUrl={selectedFile} />
-                </>
+                <Viewer fileUrl={selectedFile} />
               ) : (
                 <div className="text-center">Файл не выбран</div>
               )}

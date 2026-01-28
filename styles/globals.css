@@ -47,6 +47,10 @@
 
 /* Главная страница */
 
+.main-font {
+  font-family: "Roboto Slab", serif;
+}
+
 .font-header {
   font-family: "Roboto Slab", serif;
   font-weight: bold;
@@ -91,3 +95,6 @@
   width: 80%;
   margin: 0 auto;
 }
+
+
+/* !!! */

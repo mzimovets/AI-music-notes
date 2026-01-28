@@ -16,8 +16,18 @@ export function StackContextProvider({
   children: React.ReactNode;
 }) {
   const [stackSongs, setStackSongs] = useState([]);
+
+  const removeSong = (instanceId) => {
+    setStackSongs((prev) =>
+      prev.filter((song) => song.instanceId !== instanceId)
+    );
+  };
+
+  const clearStack = () => setStackSongs([]);
   return (
-    <StackContext.Provider value={{ stackSongs, setStackSongs }}>
+    <StackContext.Provider
+      value={{ stackSongs, setStackSongs, removeSong, clearStack }}
+    >
       {children}
     </StackContext.Provider>
   );

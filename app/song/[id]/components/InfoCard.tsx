@@ -49,15 +49,18 @@ export const InfoCard = () => {
   };
 
   const handleSave = async () => {
-    const data: Song = {
+    const data: Partial<Song> = {
       docType: "song",
       name,
       author,
       authorLyrics,
       authorArrange,
       category,
-      file: selectedFile,
     };
+    if (selectedFile && typeof selectedFile !== "string") {
+      data.file = selectedFile;
+    }
+
     console.log("dataNew: ", data);
     const editSaveSong = await editSong(song.doc._id, data);
     console.log("editSong:", editSaveSong);

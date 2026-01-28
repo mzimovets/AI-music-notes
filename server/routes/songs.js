@@ -59,7 +59,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
     upload.single("file"),
     (req, res) => {
       const serverSong = { ...req.body };
-      if (req.file) {
+      if (req.file && typeof req.file !== "string") {
         serverSong.file = req.file;
         console.log("req.file", req.file);
       }

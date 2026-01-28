@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Input } from "@heroui/input";
 import { SearchIcon } from "@/components/icons";
-import { Button, Card, Pagination } from "@heroui/react";
+import { Button, Card, Pagination, ScrollShadow } from "@heroui/react";
 import { StackContextProvider, useStackContext } from "./StackContextProvider";
 
 // DND Kit
@@ -20,6 +20,11 @@ import {
   verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
+import {
+  restrictToVerticalAxis,
+  restrictToWindowEdges,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
 
 const SortableSong = ({ song, onRemove }) => {
@@ -42,9 +47,9 @@ const SortableSong = ({ song, onRemove }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="mb-4 touch-none">
+    <div ref={setNodeRef} style={style} className="touch-none select-none">
       <Card
-        className={`p-3 flex-row items-center justify-between gap-4 ${isDragging ? "shadow-2xl opacity-50" : "shadow-sm"}`}
+        className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${isDragging ? "shadow-xl opacity-50" : "shadow-sm"}`}
       >
         <div className="flex flex-col overflow-hidden">
           <p className="text-bold text-sm capitalize text-left input-header truncate">
@@ -164,6 +169,9 @@ export const Sidebar = () => {
   });
 
   const [page, setPage] = useState(1);
+  useEffect(() => {
+    if (isOpen) setPage(1);
+  }, [isOpen]);
   const rowsPerPage = 4;
   const pages = Math.ceil(filteredSongs.length / rowsPerPage);
 
@@ -277,30 +285,55 @@ export const Sidebar = () => {
       )}
 
       {stackSongs && stackSongs.length > 0 && (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={stackSongs.map((s) => s.instanceId)}
-            strategy={verticalListSortingStrategy}
+        /* Внешняя карточка-контейнер со всеми твоими стилями */
+        <Card className="mt-8 p-2 pt-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm overflow-visible rounded-2xl">
+          <div className="flex items-center justify-between px-2 mb-2">
+            <span className="text-xs main-font font-bold uppercase tracking-wider text-default-400">
+              Ваша стопка
+            </span>
+            <span className="text-[10px] bg-default-100 px-2 py-0.5 rounded-full text-default-500">
+              Drag & Drop
+            </span>
+          </div>
+
+          {/* Добавляем ScrollShadow с сохранением верстки */}
+          <ScrollShadow
+            hideScrollBar
+            className="max-h-[450px] overflow-y-auto overflow-x-visible px-1"
+            size={40}
           >
-            <div className="mt-6">
-              {stackSongs.map((song) => (
-                <SortableSong
-                  key={song.instanceId}
-                  song={song}
-                  onRemove={(id) =>
-                    setStackSongs((prev) =>
-                      prev.filter((s) => s.instanceId !== id)
-                    )
-                  }
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              modifiers={[
+                restrictToVerticalAxis,
+                restrictToWindowEdges,
+                restrictToParentElement,
+              ]}
+            >
+              <SortableContext
+                items={stackSongs.map((s) => s.instanceId)}
+                strategy={verticalListSortingStrategy}
+              >
+                {/* gap-1 делает расстояние между карточками меньше */}
+                <div className="flex flex-col gap-1 relative min-h-[50px]">
+                  {stackSongs.map((song) => (
+                    <SortableSong
+                      key={song.instanceId}
+                      song={song}
+                      onRemove={(id) =>
+                        setStackSongs((prev) =>
+                          prev.filter((s) => s.instanceId !== id)
+                        )
+                      }
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </ScrollShadow>
+        </Card>
       )}
     </div>
   );
