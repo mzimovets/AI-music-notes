@@ -1,12 +1,6 @@
 "use client";
-import { ServerSong } from "@/lib/types";
-import {
-  createContext,
-  Dispatch,
-  SetStateAction,
-  useContext,
-  useState,
-} from "react";
+
+import { createContext, useContext, useState } from "react";
 
 export const StackContext = createContext<{} | null>(null);
 
@@ -19,7 +13,7 @@ export function StackContextProvider({
 
   const removeSong = (instanceId) => {
     setStackSongs((prev) =>
-      prev.filter((song) => song.instanceId !== instanceId)
+      prev.filter((song) => song.instanceId !== instanceId),
     );
   };
 

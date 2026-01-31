@@ -1,8 +1,6 @@
 "use client";
 import Pdfjs from "@/app/home/pdfjs";
-import { SwarrowIconWithCircle } from "@/components/swarrow";
 import { Card } from "@heroui/card";
-import { Pagination } from "@heroui/pagination";
 import { useState } from "react";
 
 export const PdfTitlePage = ({ fileUrl }: { fileUrl: string | File }) => {

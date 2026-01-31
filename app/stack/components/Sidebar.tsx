@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Input } from "@heroui/input";
 import { SearchIcon } from "@/components/icons";
 import { Button, Card, Pagination, ScrollShadow } from "@heroui/react";
-import { StackContextProvider, useStackContext } from "./StackContextProvider";
+import { useStackContext } from "./StackContextProvider";
 
 // DND Kit
 import {
@@ -26,8 +26,10 @@ import {
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+import { TrashBinIcon } from "./icons/TrashBinIcon";
+import { EmptyIcon } from "./icons/DragIcon";
 
-const SortableSong = ({ song, onRemove }) => {
+const SortableSong = ({ song, onRemove, index }) => {
   const {
     attributes,
     listeners,
@@ -53,6 +55,7 @@ const SortableSong = ({ song, onRemove }) => {
       >
         <div className="flex flex-col overflow-hidden">
           <p className="text-bold text-sm capitalize text-left input-header truncate">
+            <span className="mr-2 text-default-400">{index + 1}.</span>
             {song.name}
           </p>
           <p className="text-bold text-sm capitalize input-header justify-center text-default-500 truncate">
@@ -67,20 +70,7 @@ const SortableSong = ({ song, onRemove }) => {
             onPress={() => onRemove(song.instanceId)}
             className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
           >
-            <svg
-              xmlns="http://www.w3.org"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
-              />
-            </svg>
+            <TrashBinIcon />
           </Button>
 
           <div
@@ -88,17 +78,7 @@ const SortableSong = ({ song, onRemove }) => {
             {...listeners}
             className="cursor-grab active:cursor-grabbing p-1 text-default-400 hover:text-default-600"
           >
-            <svg
-              width="20px"
-              height="20px"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M7.375 3.67c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .646.56 1.17 1.25 1.17s1.25-.524 1.25-1.17zm0 8.66c0-.646-.56-1.17-1.25-1.17s-1.25.524-1.25 1.17c0 .645.56 1.17 1.25 1.17s1.25-.525 1.25-1.17zm-1.25-5.5c.69 0 1.25.525 1.25 1.17 0 .645-.56 1.17-1.25 1.17S4.875 8.645 4.875 8c0-.645.56-1.17 1.25-1.17zm5-3.16c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .646.56 1.17 1.25 1.17s1.25-.524 1.25-1.17zm-1.25 7.49c.69 0 1.25.524 1.25 1.17 0 .645-.56 1.17-1.25 1.17s-1.25-.525-1.25-1.17c0-.646.56-1.17 1.25-1.17zM11.125 8c0-.645-.56-1.17-1.25-1.17s-1.25.525-1.25 1.17c0 .645.56 1.17 1.25 1.17s1.25-.525 1.25-1.17z"
-              />
-            </svg>
+            <EmptyIcon />
           </div>
         </div>
       </Card>
@@ -106,7 +86,6 @@ const SortableSong = ({ song, onRemove }) => {
   );
 };
 
-// --- ОСНОВНОЙ КОМПОНЕНТ ---
 export const Sidebar = () => {
   const [songslist, setSongsList] = useState([]);
   const [searchValue, setSearchValue] = useState("");
@@ -115,7 +94,7 @@ export const Sidebar = () => {
 
   const searchRef = useRef(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const getSongs = async () => {
@@ -177,7 +156,6 @@ export const Sidebar = () => {
 
   const start = (page - 1) * rowsPerPage;
   const end = start + rowsPerPage;
-  // Обрезаем отфильтрованный список
   const items = filteredSongs.slice(start, end);
 
   return (
@@ -285,7 +263,6 @@ export const Sidebar = () => {
       )}
 
       {stackSongs && stackSongs.length > 0 && (
-        /* Внешняя карточка-контейнер со всеми твоими стилями */
         <Card className="mt-8 p-2 pt-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm overflow-visible rounded-2xl">
           <div className="flex items-center justify-between px-2 mb-2">
             <span className="text-xs main-font font-bold uppercase tracking-wider text-default-400">
@@ -296,7 +273,6 @@ export const Sidebar = () => {
             </span>
           </div>
 
-          {/* Добавляем ScrollShadow с сохранением верстки */}
           <ScrollShadow
             hideScrollBar
             className="max-h-[450px] overflow-y-auto overflow-x-visible px-1"
@@ -318,13 +294,14 @@ export const Sidebar = () => {
               >
                 {/* gap-1 делает расстояние между карточками меньше */}
                 <div className="flex flex-col gap-1 relative min-h-[50px]">
-                  {stackSongs.map((song) => (
+                  {stackSongs.map((song, index) => (
                     <SortableSong
                       key={song.instanceId}
                       song={song}
+                      index={index}
                       onRemove={(id) =>
                         setStackSongs((prev) =>
-                          prev.filter((s) => s.instanceId !== id)
+                          prev.filter((s) => s.instanceId !== id),
                         )
                       }
                     />

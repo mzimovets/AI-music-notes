@@ -5,7 +5,7 @@ import { useDownloadSong } from "./DownloadSong";
 import { usePrintSong } from "./PrintSong";
 import ShareIcon from "@/components/ShareIcon";
 import PrinterIcon from "@/components/PrinterIcon";
-import DownloadIcon from "@/components/DownloadIcon";
+import DownloadIcon from "@/components/icons/DownloadIcon";
 
 export const SongActions = () => {
   const context = useSongContext();

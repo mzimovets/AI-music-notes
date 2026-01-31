@@ -39,9 +39,10 @@ export default async function StackLayout({ children, params }) {
 
   return (
     <StackContextProvider>
-      <div className="flex h-screen overflow-hidden">
+      {/* <div className="flex h-screen"> */}
+      <div>
         {/* SIDEBAR */}
-        <aside
+        {/* <aside
           className="
             fixed
             left-30
@@ -58,12 +59,10 @@ export default async function StackLayout({ children, params }) {
               <Sidebar />
             </PlaylistContextProvider>
           </div>
-        </aside>
+        </aside> */}
 
         {/* CONTENT */}
-        <main className="ml-72 mt-16 flex-1 overflow-y-auto p-4">
-          {children}
-        </main>
+        <main className="">{children}</main>
       </div>
     </StackContextProvider>
   );

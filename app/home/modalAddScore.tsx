@@ -342,6 +342,7 @@ import { Song } from "@/lib/types";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
+import { AddSongIcon } from "@/components/icons/AddSongIcon";
 
 export const songs = [
   { label: "Духовные канты", key: "spiritual_chants" },
@@ -447,17 +448,19 @@ export default function ModalAddScore() {
   return (
     <>
       <Button
-        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full px-6 py-2 text-2xl font-normal shadow-md relative overflow-hidden group"
+        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  text-2xl font-normal shadow-md relative overflow-hidden group"
         onPress={onOpen}
+        radius="full"
+        isIconOnly
       >
-        <span className="relative z-10">+</span>
+        <AddSongIcon />
       </Button>
 
       <Modal
         isDismissable={false}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
-        placement="top"
+        placement="center"
         size="3xl"
         classNames={{
           wrapper: "!items-start",

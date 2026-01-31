@@ -1,4 +1,5 @@
 "use client";
+import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
@@ -15,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
 import { useState } from "react";
 import React from "react";
+import { StackIcon } from "./icons/StackIcon";
 
 export const Navbar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -59,7 +61,7 @@ export const Navbar = () => {
               isIconOnly
               className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
             >
-              S
+              <StackIcon color="white" />
             </Button>
           </NavbarItem>
         </NavbarContent>

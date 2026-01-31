@@ -6,7 +6,6 @@ import { Button } from "@heroui/button";
 export const ScrollToTop = () => {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Показываем кнопку, когда прокрутили вниз на 300px
   useEffect(() => {
     const toggleVisibility = () => {
       if (window.scrollY > 300) {
@@ -23,7 +22,7 @@ export const ScrollToTop = () => {
   const scrollToTop = () => {
     window.scrollTo({
       top: 0,
-      behavior: "smooth", // Плавная прокрутка
+      behavior: "smooth",
     });
   };
 

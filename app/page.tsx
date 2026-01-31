@@ -20,6 +20,8 @@ import {
   TableCell,
 } from "@heroui/table";
 import { motion, AnimatePresence } from "framer-motion";
+import { LoadingCamerton } from "@/components/LoadingCamerton";
+import { EmptyIcon } from "../components/icons/EmptyIcon";
 
 export const EyeIcon = (props) => {
   return (
@@ -452,11 +454,9 @@ export default function Home() {
                 bottomContent={
                   pages > 1 ? (
                     <Pagination
-                      // isCompact
                       onChange={(page) => setPage(page)}
                       total={pages}
                       page={page}
-                      // showControls={false}
                       className="pb-4"
                       classNames={{
                         wrapper: "font-header",
@@ -497,19 +497,7 @@ export default function Home() {
                   emptyContent={
                     <div className="py-10 text-center">
                       <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          strokeWidth={1.5}
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
-                          />
-                        </svg>
+                        <EmptyIcon />
                       </div>
                       <p className="text-gray-500 text-lg font-medium mb-2">
                         Ничего не найдено
@@ -537,6 +525,7 @@ export default function Home() {
         Стопки (?)
       </div> */}
       <div className="pl-32 pb-0 flex flex-col font-header gap-4">Песни</div>
+      <LoadingCamerton />
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
         <div className="inline-block max-w-xl text-center justify-center">
           {/* <ModalAddScore /> */}
