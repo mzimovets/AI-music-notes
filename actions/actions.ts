@@ -4,8 +4,10 @@ import { Song } from "@/lib/types";
 import { deleteSong, postSong, putSong } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
-export async function addSong(song: Song) {
-  return await postSong(song, Math.random().toString());
+export async function addSong(song: Song, currentUrl: string) {
+  const response = await postSong(song, Math.random().toString());
+  revalidatePath(currentUrl)
+  return response
 }
 
 export async function removeSong(id: string) {
@@ -14,7 +16,9 @@ export async function removeSong(id: string) {
 }
 
 export async function editSong(id: string, song: Partial <Song>) {
-  return await putSong(song, id)
+  const response = await putSong(song, id)
+  revalidatePath(`/song/${id}`);
+  return response
 }
 
 // "use server";

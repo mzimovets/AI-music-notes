@@ -29,6 +29,7 @@ import {
   Pagination,
   ScrollShadow,
   Chip,
+  Divider,
 } from "@heroui/react";
 import { Select, SelectItem } from "@heroui/react";
 import { Input } from "@heroui/input";
@@ -58,10 +59,13 @@ import { StackIcon } from "@/components/icons/StackIcon";
 import { ListIcon } from "./icons/ListIcon";
 import { EmptyIcon } from "../../../components/icons/EmptyIcon";
 import { CopyIcon } from "./icons/CopyIcon";
-import DownloadIcon from "@/components/icons/DownloadIcon";
+import DownloadIcon from "@/components/DownloadIcon";
 import SideButton from "./icons/SideButton";
 import AddSongStackIcon from "./icons/AddSongStackIcon";
 import ReserveIcon from "./icons/ReserveIcon";
+import SidebarIcon from "./icons/SidebarIcon";
+import DownloadPngIcon from "./icons/DownloadPngIcon";
+import ProgramDownload from "./ProgramDownload";
 // Removed unused import: DownloadIcon
 
 export const Sidebar2 = ({ onPreview }) => {
@@ -231,11 +235,64 @@ export const Sidebar2 = ({ onPreview }) => {
   const end = start + rowsPerPage;
   const items = filteredSongs.slice(start, end);
 
+  // --- Формирование текста программы для ProgramDownload ---
+  const getProgramText = () => {
+    const mainSongs = stackSongs.filter((song) => !song.isReserve);
+    const reserveSongs = stackSongs.filter((song) => song.isReserve);
+
+    const songInfoText = (song) => {
+      let lines = [];
+      if (programSelected.includes("Слова") && song.authorLyrics) {
+        if (song.author === song.authorLyrics) {
+          lines.push(`сл. и муз. ${song.author}`);
+        } else {
+          lines.push(
+            `сл. ${song.authorLyrics}${song.author ? `, муз. ${song.author}` : ""}`,
+          );
+        }
+      } else if (song.author) {
+        lines.push(`муз. ${song.author}`);
+      }
+      if (programSelected.includes("Аранжировка") && song.authorArrange) {
+        lines.push(`аранж. ${song.authorArrange}`);
+      }
+      return lines;
+    };
+
+    let text = "";
+
+    if (mainSongs.length > 0) {
+      text += "Программа:\n";
+      mainSongs.forEach((song, idx) => {
+        text += `${idx + 1}. ${song.name}\n`;
+        songInfoText(song).forEach((line) => {
+          text += `   ${line}\n`;
+        });
+      });
+    }
+
+    if (reserveSongs.length > 0) {
+      text += (mainSongs.length > 0 ? "\n" : "") + "Резерв:\n";
+      reserveSongs.forEach((song, idx) => {
+        text += `${idx + 1}. ${song.name}\n`;
+        songInfoText(song).forEach((line) => {
+          text += `   ${line}\n`;
+        });
+      });
+    }
+
+    return text || "Песен нет";
+  };
+
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <Button className="capitalize" onPress={() => handleOpen()}>
-          Open
+        <Button
+          style={{ position: "fixed", left: 20, top: 86 }}
+          className=""
+          onPress={() => handleOpen()}
+        >
+          <SidebarIcon />
         </Button>
       </div>
       <Drawer
@@ -347,13 +404,13 @@ export const Sidebar2 = ({ onPreview }) => {
                                       {song.author}
                                     </p>
                                   </div>
-                                  <div className="flex gap-1">
+                                  <div className="flex gap-3">
                                     {/* Добавление в обычную стопку */}
                                     <Button
                                       radius="full"
                                       isIconOnly
                                       variant="shadow"
-                                      size="sm"
+                                      size="md"
                                       onPress={() => handleAddSong(song, false)}
                                       className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:opacity-90"
                                     >
@@ -366,7 +423,7 @@ export const Sidebar2 = ({ onPreview }) => {
                                         radius="full"
                                         isIconOnly
                                         variant="shadow"
-                                        size="sm"
+                                        size="md"
                                         className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:opacity-90"
                                         onPress={() =>
                                           handleAddSong(song, true)
@@ -427,7 +484,7 @@ export const Sidebar2 = ({ onPreview }) => {
       bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl"
                       >
                         <div className="flex items-center justify-between px-2 mb-2">
-                          <span className="text-xs main-font font-bold uppercase tracking-wider text-default-400">
+                          <span className="text-xs main-font font-bold uppercase tracking-wider text-default-500">
                             Ваша стопка
                           </span>
                           <div className="flex gap-2">
@@ -479,17 +536,26 @@ export const Sidebar2 = ({ onPreview }) => {
                             </Chip>
                           </div>
                         </div>
-                        {stackSongs.some((s) => !s.isReserve) && (
-                          <span className="text-xs px-2 text-default-400 main-font font-bold uppercase input-header tracking-wider block mb-2">
-                            Программа:
-                          </span>
-                        )}
+                        <Divider
+                          className="mt-1"
+                          style={{ borderColor: "#BD9673" }}
+                        />
+                        {/* {stackSongs.some((s) => !s.isReserve) && (
+                          
+                        )} */}
                         <div className="flex-1 relative min-h-0 mt-2">
                           <ScrollShadow
                             hideScrollBar
                             className="absolute inset-0 px-1"
                             size={40}
                           >
+                            <div className="flex items-center my-3 select-none pointer-events-none">
+                              <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                              <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                Программа
+                              </span>
+                              <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                            </div>
                             <DndContext
                               sensors={sensors}
                               collisionDetection={closestCenter}
@@ -568,9 +634,13 @@ export const Sidebar2 = ({ onPreview }) => {
                                   strategy={verticalListSortingStrategy}
                                 >
                                   <div id="reserve-drop">
-                                    <span className="text-xs px-1 text-default-400 main-font font-bold uppercase input-header tracking-wider block mb-2">
-                                      Резерв:
-                                    </span>
+                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                      <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                        Резерв
+                                      </span>
+                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                    </div>
                                     {stackSongs
                                       .filter((s) => s.isReserve)
                                       .map((song, index) => (
@@ -622,63 +692,16 @@ export const Sidebar2 = ({ onPreview }) => {
                           {item}
                         </Chip>
                       ))}
-                      {/* Кнопка копирования программы и резерва */}
                       <Button
                         size="sm"
                         variant="flat"
                         isIconOnly
                         className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                         onClick={() => {
-                          // Формируем текст программы и резерва
-                          function songInfoText(song) {
-                            let arr = [];
-                            if (
-                              programSelected.includes("Слова") &&
-                              song.authorLyrics
-                            ) {
-                              if (song.author === song.authorLyrics) {
-                                arr.push(`сл. и муз. ${song.author}`);
-                              } else {
-                                arr.push(
-                                  `сл. ${song.authorLyrics}${song.author ? `, муз. ${song.author}` : ""}`,
-                                );
-                              }
-                            } else if (song.author) {
-                              arr.push(`муз. ${song.author}`);
-                            }
-                            if (
-                              programSelected.includes("Аранжировка") &&
-                              song.authorArrange
-                            ) {
-                              arr.push(`аранж. ${song.authorArrange}`);
-                            }
-                            return arr.length ? ` (${arr.join(", ")})` : "";
-                          }
-                          let text = "";
-                          const mainSongs = stackSongs.filter(
-                            (song) => !song.isReserve,
-                          );
-                          const reserveSongs = stackSongs.filter(
-                            (song) => song.isReserve,
-                          );
-                          if (mainSongs.length > 0) {
-                            text += "Программа:\n";
-                            mainSongs.forEach((song, idx) => {
-                              text += `${idx + 1}. ${song.name}${songInfoText(song)}\n`;
-                            });
-                          }
-                          if (reserveSongs.length > 0) {
-                            text +=
-                              (mainSongs.length > 0 ? "\n" : "") + "Резерв:\n";
-                            reserveSongs.forEach((song, idx) => {
-                              text += `${idx + 1}. ${song.name}${songInfoText(song)}\n`;
-                            });
-                          }
-                          if (!text) text = "Песен нет";
+                          const text = getProgramText();
                           navigator.clipboard.writeText(text.trim());
                         }}
                       >
-                        {/* SVG иконка копирования */}
                         <CopyIcon size={22} />
                       </Button>
                       <Button
@@ -687,34 +710,35 @@ export const Sidebar2 = ({ onPreview }) => {
                         isIconOnly
                         className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                       >
-                        <DownloadIcon />
+                        <DownloadPngIcon />
                       </Button>
+                      <ProgramDownload
+                        backgroundUrl="/ProgramCover.png"
+                        programText={getProgramText()}
+                      />
                     </div>
                     <Card
                       className="mt-0 p-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl 
-               flex-1 min-h-0 flex flex-col mb-4"
+               flex-1 min-h-0 flex flex-col mb-4 pt-2"
                     >
                       <div className="flex flex-col gap-3 text-left flex-1 min-h-0">
                         <div className="flex-1 relative min-h-0 mt-2">
                           <ScrollShadow
                             hideScrollBar
-                            className="absolute inset-0"
-                            isEnabled={false}
+                            className="absolute inset-0 px-1"
+                            size={40}
                           >
                             <div className="flex flex-col gap-2 pb-4">
                               {stackSongs.length > 0 ? (
                                 <>
                                   {stackSongs.filter((song) => !song.isReserve)
                                     .length > 0 && (
-                                    <div
-                                      className="
-    sticky top-0 z-100
-    text-xs main-font font-bold uppercase tracking-wider text-default-400
-    bg-white/80 backdrop-blur-sm
-    py-1
-  "
-                                    >
-                                      Программа:
+                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                      <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                        Программа
+                                      </span>
+                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                                     </div>
                                   )}
                                   {stackSongs
@@ -748,17 +772,13 @@ export const Sidebar2 = ({ onPreview }) => {
                                   {stackSongs.filter((song) => song.isReserve)
                                     .length > 0 && (
                                     <>
-                                      <span
-                                        className="
-    sticky top-0 z-20
-    mt-4
-    text-xs main-font font-bold uppercase tracking-wider text-default-400
-    bg-white/80 backdrop-blur-sm
-    py-1
-  "
-                                      >
-                                        Резерв:
-                                      </span>
+                                      <div className="flex items-center my-3 select-none pointer-events-none">
+                                        <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                        <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                          Резерв
+                                        </span>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                      </div>
                                       {stackSongs
                                         .filter((song) => song.isReserve)
                                         .map((song, index) => (

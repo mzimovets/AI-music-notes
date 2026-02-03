@@ -11,7 +11,8 @@ import { EyePreviewButton } from "./components/EyePreviewButton";
 import { RemoveSongButton } from "./components/RemoveSongButton";
 import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
-import { Tab, Tabs } from "@heroui/tabs";
+import { Pattern } from "@/components/pattern";
+import { Monogram } from "@/components/monogram";
 
 export default function StackPage() {
   const { stackSongs, removeSong, setStackSongs } = useStackContext();
@@ -24,6 +25,10 @@ export default function StackPage() {
     setIsPreviewModalOpen(true);
   };
 
+  // Разделяем песни на обычные и резерв
+  const mainSongs = stackSongs.filter((s) => !s.isReserve);
+  const reserveSongs = stackSongs.filter((s) => s.isReserve);
+
   return (
     <div>
       <ScrollToTop />
@@ -33,39 +38,89 @@ export default function StackPage() {
       </p>
       {stackSongs && stackSongs.length > 0 ? (
         <>
-          {stackSongs.map((song, index) => (
-            <div
-              key={song.instanceId || index}
-              className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm"
-            >
-              <div className="flex gap-2 items-center justify-between">
-                <div className="flex gap-2 items-center">
-                  <p className="text-bold text-sm capitalize text-left input-header">
-                    {song.name}
-                  </p>
-                  {song.author && <span>{"\u2013"}</span>}
-                  <p className="text-bold text-sm capitalize input-header justify-center text-default-500 grow-20 items-center">
-                    {song.author}
-                  </p>
+          {/* Основная программа */}
+          <p className="flex flex-col text-default-500  text-center justify-center font-header gap-4 mb-6">
+            Программа
+          </p>
+          {mainSongs.length > 0 &&
+            mainSongs.map((song, index) => (
+              <div
+                key={song.instanceId || index}
+                className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm"
+              >
+                <div className="flex gap-2 items-center justify-between">
+                  <div className="flex gap-2 items-center">
+                    <p className="text-bold text-sm capitalize text-left input-header">
+                      {index + 1}. {song.name}
+                    </p>
+                    {song.author && <span>{"\u2013"}</span>}
+                    <p className="text-bold text-sm capitalize input-header justify-center text-default-500 grow-20 items-center">
+                      {song.author}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <EyePreviewButton onClick={() => handlePreview(song)} />
+                    <RemoveSongButton
+                      onClick={() => removeSong(song.instanceId)}
+                    />
+                  </div>
                 </div>
-
-                <div className="flex gap-2">
-                  <EyePreviewButton onClick={() => handlePreview(song)} />
-                  <RemoveSongButton
-                    onClick={() => removeSong(song.instanceId)}
+                <div className="relative my-4">
+                  <Divider className="opacity-60" />
+                </div>
+                <div className="mt-2 mb-6">
+                  <PdfTitlePage
+                    fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
                   />
                 </div>
               </div>
-              <div className="relative my-4">
-                <Divider className="opacity-60" />
-              </div>
-              <div className="mt-2">
-                <PdfTitlePage
-                  fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
-                />
+            ))}
+          <div className="flex justify-center mt-4 mb-14">
+            <Monogram className="h-9" />
+          </div>
+          {/* Резерв */}
+          {reserveSongs.length > 0 && (
+            <div className="mt-16 flex flex-col gap-2">
+              <p className="flex text-default-500 flex-col text-center justify-center font-header gap-4 mb-6">
+                Резерв
+              </p>
+              {reserveSongs.map((song, index) => (
+                <div
+                  key={song.instanceId || index}
+                  className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm"
+                >
+                  <div className="flex gap-2 items-center justify-between">
+                    <div className="flex gap-2 items-center">
+                      <p className="text-bold text-sm capitalize text-left input-header">
+                        {index + 1}. {song.name}
+                      </p>
+                      {song.author && <span>{"\u2013"}</span>}
+                      <p className="text-bold text-sm capitalize input-header justify-center text-default-500 grow-20 items-center">
+                        {song.author}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <EyePreviewButton onClick={() => handlePreview(song)} />
+                      <RemoveSongButton
+                        onClick={() => removeSong(song.instanceId)}
+                      />
+                    </div>
+                  </div>
+                  <div className="relative my-4">
+                    <Divider className="opacity-60" />
+                  </div>
+                  <div className="mt-2">
+                    <PdfTitlePage
+                      fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+                    />
+                  </div>
+                </div>
+              ))}
+              <div className="flex justify-center mt-4 mb-14">
+                <Monogram className="h-9" />
               </div>
             </div>
-          ))}
+          )}
 
           <div className="flex flex-col gap-4 mt-6">
             <div className="justify-center flex gap-2">
@@ -73,7 +128,6 @@ export default function StackPage() {
                 {stackSongs.length} {getPluralForm(stackSongs.length)}
               </p>
             </div>
-
             <div className="flex gap-3 justify-center">
               <Button
                 variant="flat"

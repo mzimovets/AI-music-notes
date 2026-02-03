@@ -185,7 +185,9 @@ export default function Home() {
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:4000/songs");
+        const response = await fetch("http://localhost:4000/songs", {
+          cache: "no-store",
+        });
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {

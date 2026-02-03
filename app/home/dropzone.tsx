@@ -275,6 +275,8 @@ export default function MyDropzone({
       maxFiles: 1,
     });
 
+    console.log("ERW currentFile, selectedFile: ", currentFile, selectedFile);
+
     // Добавьте обработчик для отклонения не-PDF файлов
     dz.on("error", (file, message) => {
       if (message.includes("You can't upload files of this type")) {
@@ -286,7 +288,7 @@ export default function MyDropzone({
     dz.on("addedfile", (file) => {
       setSelectedFile(file);
       if (onFileSelect) onFileSelect(file);
-      console.log("addedfile", file);
+      console.log("UIE addedfile", file);
     });
 
     dz.on("success", (file, response) => {
@@ -302,15 +304,17 @@ export default function MyDropzone({
     dzRef.current = dz;
     dropzoneInitialized.current = true;
 
+    console.log("dropzoneId: ", dropzoneId);
     return () => {
       if (dzRef.current) {
         dzRef.current.destroy();
         dzRef.current = null;
       }
       dropzoneInitialized.current = false;
+      console.log("ERW: ", currentFile);
     };
-  }, [dropzoneId, onFileSelect]);
-
+  }, [dropzoneId]);
+  // , onFileSelect
   const handleRemoveFile = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();

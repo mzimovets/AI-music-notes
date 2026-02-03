@@ -202,7 +202,9 @@ export const Sidebar = () => {
                     isIconOnly
                     variant="shadow"
                     size="sm"
-                    onPress={() => handleAddSong(song)}
+                    onPress={() =>
+                      handleAddSong(song, window.location.pathname)
+                    }
                   >
                     +
                   </Button>
