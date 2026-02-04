@@ -22,6 +22,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { LoadingCamerton } from "@/components/LoadingCamerton";
 import { EmptyIcon } from "../components/icons/EmptyIcon";
+import { StackCard } from "./home/StackCard";
 
 export const EyeIcon = (props) => {
   return (
@@ -523,16 +524,13 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-      {/* <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
-        Стопки (?)
-      </div> */}
+      <div className="pl-32 px-4 pb-0 flex flex-col font-header gap-4">
+        Стопки
+      </div>
+      <StackCard />
       <div className="pl-32 pb-0 flex flex-col font-header gap-4">Песни</div>
       <LoadingCamerton />
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
-        <div className="inline-block max-w-xl text-center justify-center">
-          {/* <ModalAddScore /> */}
-        </div>
-
         <Suspense>
           <Albums />
         </Suspense>

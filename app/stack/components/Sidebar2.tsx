@@ -89,6 +89,8 @@ export const Sidebar2 = ({ onPreview }) => {
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  const programRef = useRef<{ handleDownload: () => void }>(null);
+
   const getSongs = async () => {
     try {
       const response = await fetch("http://localhost:4000/songs");
@@ -242,17 +244,21 @@ export const Sidebar2 = ({ onPreview }) => {
 
     const songInfoText = (song) => {
       let lines = [];
+
+      if (programSelected.includes("Музыка") && song.author) {
+        lines.push(`муз. ${song.author}`);
+      }
       if (programSelected.includes("Слова") && song.authorLyrics) {
         if (song.author === song.authorLyrics) {
           lines.push(`сл. и муз. ${song.author}`);
         } else {
+          // добавляем автора музыки только если чип "Музыка" активен
           lines.push(
-            `сл. ${song.authorLyrics}${song.author ? `, муз. ${song.author}` : ""}`,
+            `сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`,
           );
         }
-      } else if (song.author) {
-        lines.push(`муз. ${song.author}`);
       }
+      // больше не добавляем автора музыки по умолчанию
       if (programSelected.includes("Аранжировка") && song.authorArrange) {
         lines.push(`аранж. ${song.authorArrange}`);
       }
@@ -671,51 +677,57 @@ export const Sidebar2 = ({ onPreview }) => {
 
                 {activeTab === "program" && (
                   <>
-                    <div className="mt-12 flex flex-wrap gap-2 items-center shrink-0">
-                      {["Слова", "Аранжировка"].map((item) => (
-                        <Chip
+                    <div className="mt-12 flex items-center justify-between flex-wrap">
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {["Музыка", "Слова", "Аранжировка"].map((item) => (
+                          <Chip
+                            size="sm"
+                            key={item}
+                            color="primary"
+                            variant="flat"
+                            className={`cursor-pointer input-header border px-2 py-1 rounded-full
+                              ${programSelected.includes(item) ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
+                            `}
+                            onClick={() => {
+                              setProgramSelected((prev) =>
+                                prev.includes(item)
+                                  ? prev.filter((v) => v !== item)
+                                  : [...prev, item],
+                              );
+                            }}
+                          >
+                            {item}
+                          </Chip>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
                           size="sm"
-                          key={item}
-                          color="primary"
                           variant="flat"
-                          className={`cursor-pointer input-header border px-2 py-1 rounded-full
-                            ${programSelected.includes(item) ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
-                          `}
+                          isIconOnly
+                          className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                           onClick={() => {
-                            setProgramSelected((prev) =>
-                              prev.includes(item)
-                                ? prev.filter((v) => v !== item)
-                                : [...prev, item],
-                            );
+                            const text = getProgramText();
+                            navigator.clipboard.writeText(text.trim());
                           }}
                         >
-                          {item}
-                        </Chip>
-                      ))}
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        isIconOnly
-                        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                        onClick={() => {
-                          const text = getProgramText();
-                          navigator.clipboard.writeText(text.trim());
-                        }}
-                      >
-                        <CopyIcon size={22} />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="flat"
-                        isIconOnly
-                        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                      >
-                        <DownloadPngIcon />
-                      </Button>
-                      <ProgramDownload
-                        backgroundUrl="/ProgramCover.png"
-                        programText={getProgramText()}
-                      />
+                          <CopyIcon size={22} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="flat"
+                          isIconOnly
+                          className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                          onClick={() => programRef.current?.handleDownload()}
+                        >
+                          <DownloadPngIcon />
+                        </Button>
+                        <ProgramDownload
+                          ref={programRef}
+                          backgroundUrl="/ProgramCover.png"
+                          programText={getProgramText()}
+                        />
+                      </div>
                     </div>
                     <Card
                       className="mt-0 p-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl 
@@ -752,18 +764,20 @@ export const Sidebar2 = ({ onPreview }) => {
                                           {index + 1}. {song.name}
                                         </span>
                                         <span className="text-sm input-header text-default-500">
+                                          {programSelected.includes("Музыка") &&
+                                          song.author
+                                            ? `муз. ${song.author}`
+                                            : ""}
                                           {programSelected.includes("Слова") &&
                                           song.authorLyrics
                                             ? song.author === song.authorLyrics
-                                              ? `сл. и муз. ${song.author}`
-                                              : `сл. ${song.authorLyrics}${song.author ? `, муз. ${song.author}` : ""}`
-                                            : song.author
-                                              ? `муз. ${song.author}`
-                                              : ""}
+                                              ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
+                                              : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
+                                            : ""}
                                           {programSelected.includes(
                                             "Аранжировка",
                                           ) && song.authorArrange
-                                            ? `${song.author || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
+                                            ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
                                             : ""}
                                         </span>
                                       </div>
@@ -791,19 +805,22 @@ export const Sidebar2 = ({ onPreview }) => {
                                             </span>
                                             <span className="text-sm input-header text-default-500">
                                               {programSelected.includes(
+                                                "Музыка",
+                                              ) && song.author
+                                                ? `муз. ${song.author}`
+                                                : ""}
+                                              {programSelected.includes(
                                                 "Слова",
                                               ) && song.authorLyrics
                                                 ? song.author ===
                                                   song.authorLyrics
-                                                  ? `сл. и муз. ${song.author}`
-                                                  : `сл. ${song.authorLyrics}${song.author ? `, муз. ${song.author}` : ""}`
-                                                : song.author
-                                                  ? `муз. ${song.author}`
-                                                  : ""}
+                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
+                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
+                                                : ""}
                                               {programSelected.includes(
                                                 "Аранжировка",
                                               ) && song.authorArrange
-                                                ? `${song.author || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
+                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
                                                 : ""}
                                             </span>
                                           </div>
