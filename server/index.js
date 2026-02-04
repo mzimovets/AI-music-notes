@@ -24,7 +24,7 @@ app.use(
     origin: "http://localhost:3000", // адрес фронтенда
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-  })
+  }),
 );
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -90,10 +90,10 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 songsRoutes(app, urlencodedParser, upload);
 
 // Пользователи
-usersRoutes(app);
+usersRoutes(app, urlencodedParser);
 
 // Стопки
-stacksRoutes(app);
+stacksRoutes(app, urlencodedParser);
 
 const deleteOldFiles = (fileName) => {
   // Считываем все файлы и удаяем файл, если его имя не совпадает с fileName

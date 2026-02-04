@@ -1,6 +1,6 @@
 import { database } from "../index.js";
 
-export const stacksRoutes = (app) => {
+export const stacksRoutes = (app, urlencodedParser) => {
   app.get("/stack/:stackId", (req, res) => {
     database.findOne({ _id: req.params.stackId }, (err, doc) => {
       console.log("getting stack: ", req.params.stackId);
@@ -21,7 +21,8 @@ export const stacksRoutes = (app) => {
     });
   });
 
-  app.post("/stack/:stackId", (req, res) => {
+  app.post("/stack/:stackId", urlencodedParser, (req, res) => {
+    console.log("req.body", req.body);
     database.insert({ _id: req.params.stackId, ...req.body }, (err, doc) => {
       console.log("adding stack: ", req.params.stackId);
       if (err) {

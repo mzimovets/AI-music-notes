@@ -1,13 +1,14 @@
 "use server";
 
-import { Song } from "@/lib/types";
+import { postStack } from "@/lib/stack-requests";
+import { Song, StackSong } from "@/lib/types";
 import { deleteSong, postSong, putSong } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export async function addSong(song: Song, currentUrl: string) {
   const response = await postSong(song, Math.random().toString());
-  revalidatePath(currentUrl)
-  return response
+  revalidatePath(currentUrl);
+  return response;
 }
 
 export async function removeSong(id: string) {
@@ -15,10 +16,24 @@ export async function removeSong(id: string) {
   revalidatePath("/song");
 }
 
-export async function editSong(id: string, song: Partial <Song>) {
-  const response = await putSong(song, id)
+export async function editSong(id: string, song: Partial<Song>) {
+  const response = await putSong(song, id);
   revalidatePath(`/song/${id}`);
-  return response
+  return response;
+}
+
+export async function saveStack(
+  stack: StackSong[],
+  isPublished: boolean,
+  currentUrl: string,
+) {
+  const response = await postStack(
+    stack,
+    isPublished,
+    Math.random().toString(),
+  );
+  revalidatePath(currentUrl);
+  return response;
 }
 
 // "use server";

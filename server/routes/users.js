@@ -1,6 +1,6 @@
 import { database } from "../index.js";
 
-export const usersRoutes = (app) => {
+export const usersRoutes = (app, urlencodedParser) => {
   app.get("/user/:userId", (req, res) => {
     database.findOne({ _id: req.params.userId }, (err, doc) => {
       console.log("getting user: ", req.params.userId);
@@ -21,7 +21,7 @@ export const usersRoutes = (app) => {
     });
   });
 
-  app.post("/user/:userId", (req, res) => {
+  app.post("/user/:userId", urlencodedParser, (req, res) => {
     database.insert({ _id: req.params.userId, ...req.body }, (err, doc) => {
       console.log("adding user: ", req.params.userId);
       if (err) {
@@ -31,7 +31,7 @@ export const usersRoutes = (app) => {
     });
   });
 
-  app.put("/user/:userId", (req, res) => {
+  app.put("/user/:userId", urlencodedParser, (req, res) => {
     database.update({ _id: req.params.userId, ...req.body }, (err, doc) => {
       console.log("edited user: ", req.params.userId);
       if (err) {

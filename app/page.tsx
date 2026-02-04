@@ -1,14 +1,12 @@
 "use client";
-import ModalAddScore, { songs } from "./home/modalAddScore";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
 
 import React from "react";
-import { getCategoryDisplay, getData } from "@/lib/utils";
+import { getCategoryDisplay } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
 
-import { Input, Tooltip, Chip, User, Pagination, Link } from "@heroui/react";
-import { Skeleton } from "@heroui/skeleton";
+import { Input, Tooltip, Pagination, Link } from "@heroui/react";
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
 import {
@@ -152,7 +150,7 @@ export const columns = [
 ];
 
 export default function Home() {
-  const albumsPromise = new Promise((resolve) => resolve(null)); //getData();
+  const albumsPromise = new Promise((resolve) => resolve(null));
   const [allSongs, setAllSongs] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showTable, setShowTable] = useState(false);
@@ -186,9 +184,7 @@ export default function Home() {
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:4000/songs", {
-          cache: "no-store",
-        });
+        const response = await fetch("http://localhost:4000/songs");
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -299,7 +295,7 @@ export default function Home() {
     document.body.removeChild(link);
   };
 
-  const renderCell = React.useCallback((song, columnKey) => {
+  const renderCell = useCallback((song, columnKey) => {
     switch (columnKey) {
       case "name":
         return (
@@ -321,9 +317,6 @@ export default function Home() {
               <p className="text-bold text-sm capitalize text-center">
                 {song.author || "-"}
               </p>
-              {/* <p className="text-bold text-sm capitalize text-default-400 text-center">
-              {song.category}
-            </p> */}
             </div>
           </Link>
         );

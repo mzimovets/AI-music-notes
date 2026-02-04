@@ -11,8 +11,8 @@ import { EyePreviewButton } from "./components/EyePreviewButton";
 import { RemoveSongButton } from "./components/RemoveSongButton";
 import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
-import { Pattern } from "@/components/pattern";
 import { Monogram } from "@/components/monogram";
+import { saveStack } from "@/actions/actions";
 
 export default function StackPage() {
   const { stackSongs, removeSong, setStackSongs } = useStackContext();
@@ -23,6 +23,16 @@ export default function StackPage() {
   const handlePreview = (song) => {
     setSelectedFile(`http://localhost:4000/uploads/${song.file.filename}`);
     setIsPreviewModalOpen(true);
+  };
+
+  const save = async () => {
+    const resp = await saveStack(stackSongs, false, window.location.pathname);
+    console.log("resp", resp);
+  };
+
+  const publicStack = async () => {
+    const resp = await saveStack(stackSongs, true, window.location.pathname);
+    console.log("resp", resp);
   };
 
   // Разделяем песни на обычные и резерв
@@ -133,6 +143,7 @@ export default function StackPage() {
                 variant="flat"
                 color="primary"
                 className="font-medium button-bg"
+                onPress={save}
               >
                 Сохранить
               </Button>
@@ -140,6 +151,7 @@ export default function StackPage() {
                 variant="shadow"
                 color="success"
                 className="text-white font-medium"
+                onPress={publicStack}
               >
                 Опубликовать
               </Button>

@@ -28,3 +28,15 @@ export type ServerSong = {
   authorArrange?: string;
   authorLyrics?: string;
 };
+
+export interface StackSong extends Song {
+  instanceId: string;
+  isReserve: false;
+}
+
+export type Stack = {
+  _id: string;
+  name: string;
+  songs: StackSong[];
+  isPublished: boolean;
+};
