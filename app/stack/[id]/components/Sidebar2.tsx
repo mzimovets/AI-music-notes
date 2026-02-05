@@ -96,7 +96,8 @@ import {
 // Removed unused imports: CSS, TrashBinIcon, EmptyIcon, EyePreviewButton, EyeIcon
 import { StackIcon } from "@/components/icons/StackIcon";
 import { ListIcon } from "./icons/ListIcon";
-import { EmptyIcon } from "../../../components/icons/EmptyIcon";
+// import { EmptyIcon } from "../../../components/icons/EmptyIcon";
+import { EmptyIcon } from "@/components/icons/EmptyIcon";
 import { CopyIcon } from "./icons/CopyIcon";
 import DownloadIcon from "@/components/DownloadIcon";
 import SideButton from "./icons/SideButton";

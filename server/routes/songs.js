@@ -13,7 +13,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
 
   app.get("/songs", (req, res) => {
     database.find({ docType: "song" }, (err, docs) => {
-      console.log("getting songs: ", docs);
+      // console.log("getting songs: ", docs);
       if (err) {
         console.log("err", err);
       }
@@ -31,7 +31,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
           console.log("err", err);
         }
         res.json({ status: "ok", docs });
-      }
+      },
     );
   });
 
@@ -50,7 +50,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
         }
         res.json({ status: "ok", doc });
       });
-    }
+    },
   );
 
   app.post(
@@ -73,16 +73,16 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
             console.log("err", err);
           }
           res.json({ status: "ok", doc });
-        }
+        },
       );
-    }
+    },
   );
 
   app.get("/song/:songId/:delete", urlencodedParser, (req, res) => {
     console.log(
       "deleting song on server",
       req.params.songId,
-      req.params.delete
+      req.params.delete,
     );
     database.remove({ _id: req.params.songId }, (err, num) => {
       console.log("deleting song: ", req.params.songId, num);

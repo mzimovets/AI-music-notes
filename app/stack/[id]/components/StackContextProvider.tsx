@@ -1,13 +1,18 @@
 "use client";
 
+import { StackSong } from "@/lib/types";
 import { createContext, useContext, useState } from "react";
 
-export const StackContext = createContext<{} | null>(null);
+export const StackContext = createContext<{
+  stackResponse: { status: string; doc: StackSong };
+} | null>(null);
 
 export function StackContextProvider({
   children,
+  stackResponse,
 }: {
   children: React.ReactNode;
+  stackResponse: { status: string; doc: StackSong };
 }) {
   const [stackSongs, setStackSongs] = useState([]);
   const [mealType, setMealType] = useState<string | null>(null);
@@ -23,6 +28,7 @@ export function StackContextProvider({
   return (
     <StackContext.Provider
       value={{
+        stackResponse,
         stackSongs,
         setStackSongs,
         removeSong,

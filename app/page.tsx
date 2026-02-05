@@ -152,6 +152,7 @@ export const columns = [
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const [allSongs, setAllSongs] = useState([]);
+  const [stacks, setStacks] = useState([]);
   const [filteredSongs, setFilteredSongs] = useState([]);
   const [showTable, setShowTable] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -212,7 +213,24 @@ export default function Home() {
       }
     };
 
+    const fetchAllStacks = async () => {
+      try {
+        const response = await fetch("http://localhost:4000/stacks");
+        const data = await response.json();
+
+        if (data.status === "ok" && data.docs) {
+          console.log("stacks", data.docs);
+          setStacks(data.docs);
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке stacks:", error);
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
     fetchAllSongs();
+    fetchAllStacks();
   }, []);
 
   const searchSongs = (searchText) => {
@@ -520,7 +538,7 @@ export default function Home() {
       <div className="pl-32 px-4 pb-0 flex flex-col font-header gap-4">
         Стопки
       </div>
-      <StackCard />
+      <StackCard stacks={stacks} />
       <div className="pl-32 pb-0 flex flex-col font-header gap-4">Песни</div>
       <LoadingCamerton />
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">

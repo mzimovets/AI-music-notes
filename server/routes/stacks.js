@@ -32,14 +32,33 @@ export const stacksRoutes = (app, urlencodedParser) => {
     });
   });
 
+  app.post("/stack/:stackId/update", urlencodedParser, (req, res) => {
+    console.log("req.body", req.body);
+    database.update(
+      { _id: req.params.stackId },
+      { $set: { ...req.body } },
+      (err, doc) => {
+        console.log("updating stack: ", req.params.stackId);
+        if (err) {
+          console.log("err", err);
+        }
+        res.json({ status: "ok", doc });
+      },
+    );
+  });
+
   app.put("/stack/:stackId", (req, res) => {
-    database.update({ _id: req.params.stackId, ...req.body }, (err, doc) => {
-      console.log("editer stack: ", req.params.stackId);
-      if (err) {
-        console.log("err", err);
-      }
-      res.json({ status: "ok", doc });
-    });
+    database.update(
+      { _id: req.params.stackId },
+      { $set: { ...req.body } },
+      (err, doc) => {
+        console.log("editer stack: ", req.params.stackId);
+        if (err) {
+          console.log("err", err);
+        }
+        res.json({ status: "ok", doc });
+      },
+    );
   });
 
   app.delete("/stack/:stackId", (req, res) => {

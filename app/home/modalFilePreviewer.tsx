@@ -2,8 +2,7 @@
 "use client";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { useState, useEffect } from "react";
-
-import { Viewer } from "../stack/components/Viewer";
+import { Viewer } from "../stack/[id]/components/Viewer";
 
 interface ModalFilePreviewerProps {
   isOpen: boolean;

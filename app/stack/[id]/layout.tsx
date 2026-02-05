@@ -1,12 +1,13 @@
 import React from "react";
 import { getSongById } from "@/lib/utils";
 import { StackContextProvider } from "./components/StackContextProvider";
+import { getStackById } from "@/lib/stack-requests";
 
 export default async function StackLayout({ children, params }) {
-  const song = await getSongById(params.id);
-
+  const stack = await getStackById(params.id);
+  console.log("GET Stack", params.id, stack);
   return (
-    <StackContextProvider>
+    <StackContextProvider stackResponse={stack}>
       <div>
         <main className="">{children}</main>
       </div>

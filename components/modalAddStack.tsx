@@ -12,6 +12,7 @@ import {
 } from "@heroui/react";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
+import { saveStack } from "@/actions/actions";
 
 interface StackAddModalProps {
   isOpen: boolean;
@@ -38,14 +39,17 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
     if (!isOpen) setIsSaved(false);
   }, [isOpen, isSaved]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!stackName.trim()) {
       setValidationError(true);
       return;
     }
+
+    const id = Math.random().toString();
+    const resp = await saveStack(stackName, id, window.location.pathname);
     setIsSaved(true);
     onConfirm(stackName);
-    router.push("/stack");
+    router.push(`/stack/${id}`);
     onClose();
   };
 

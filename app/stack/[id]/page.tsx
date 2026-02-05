@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 const mealFilesMap: Record<string, { start: string; end: string }> = {
   daily: {
     start: "meals-pdf/per-ed.pdf",
@@ -16,21 +16,37 @@ import { PdfTitlePage } from "./components/PdfTitlePage";
 import { useStackContext } from "./components/StackContextProvider";
 import { Divider } from "@heroui/divider";
 import { ScrollToTop } from "./components/ScrollToTopButton";
-import ModalFilePreviewer from "../home/modalFilePreviewer";
+import ModalFilePreviewer from "../../home/modalFilePreviewer";
 import { getPluralForm } from "./components/GetPluralForm";
 import { EyePreviewButton } from "./components/EyePreviewButton";
 import { RemoveSongButton } from "./components/RemoveSongButton";
 import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
-import { saveStack } from "@/actions/actions";
+import { updateStack } from "@/actions/actions";
 import { holidays } from "./components/Sidebar2";
+import { useParams } from "next/navigation";
 
 export default function StackPage() {
-  const { stackSongs, removeSong, setStackSongs, mealType, programSelected } =
-    useStackContext();
+  const params = useParams<{ id: string }>();
+  const {
+    stackResponse,
+    stackSongs,
+    removeSong,
+    setStackSongs,
+    mealType,
+    setMealType,
+    programSelected,
+    setProgramSelected,
+  } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStackSongs(stackResponse.doc?.songs || []);
+    setProgramSelected(stackResponse.doc?.programSelected || []);
+    setMealType(stackResponse.doc?.mealType || null);
+  }, [stackResponse]);
 
   const handleClosePreview = () => setIsPreviewModalOpen(false);
   const handlePreview = (song) => {
@@ -39,24 +55,28 @@ export default function StackPage() {
   };
 
   const save = async () => {
-    const resp = await saveStack(
-      stackSongs,
-      false,
+    const resp = await updateStack({
+      stack: stackSongs,
       mealType,
       programSelected,
-      window.location.pathname,
-    );
+      isPublished: false,
+      currentUrl: window.location.pathname,
+      id: params.id,
+      name: stackResponse.doc?.name,
+    });
     console.log("resp", resp);
   };
 
   const publicStack = async () => {
-    const resp = await saveStack(
-      stackSongs,
-      true,
+    const resp = await updateStack({
+      stack: stackSongs,
       mealType,
       programSelected,
-      window.location.pathname,
-    );
+      isPublished: true,
+      currentUrl: window.location.pathname,
+      id: params.id,
+      name: stackResponse.doc?.name,
+    });
     console.log("resp", resp);
   };
 
@@ -71,7 +91,7 @@ export default function StackPage() {
       <Sidebar2 onPreview={handlePreview} />
 
       <p className="flex flex-col text-center justify-center font-header gap-4 mb-6">
-        Название стопки
+        Название стопки {stackResponse.doc?.name}
       </p>
 
       {stackSongs && stackSongs.length > 0 ? (
