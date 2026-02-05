@@ -335,16 +335,58 @@ export const Sidebar2 = ({ onPreview }) => {
     return text || "Песен нет";
   };
 
+  const [showButton, setShowButton] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+
+      if (currentY < lastScrollY) {
+        // прокрутка вверх
+        setShowButton(true);
+      } else if (currentY > lastScrollY) {
+        // прокрутка вниз
+        setShowButton(false);
+      }
+
+      setLastScrollY(currentY);
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastScrollY]);
+
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <Button
-          style={{ position: "fixed", left: 20, top: 86 }}
-          className=""
-          onPress={() => handleOpen()}
+        <div
+          className={`fixed left-3 top-0 z-50 transform-gpu transition-all duration-50
+          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+        `}
         >
-          <SidebarIcon />
-        </Button>
+          <Button
+            isIconOnly
+            style={{ position: "fixed", left: 20, top: 86 }}
+            className="
+        group
+        flex items-center justify-center
+        w-10 h-10
+       
+        bg-white/30
+        backdrop-blur-lg
+        border border-white/40
+        shadow-[0_4px_12px_rgba(0,0,0,0.18)]
+        transition-all duration-200
+        hover:bg-white/40
+        hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+        active:scale-95
+      "
+            onPress={() => handleOpen()}
+          >
+            <SidebarIcon />
+          </Button>
+        </div>
       </div>
       <Drawer
         isOpen={isDrawerOpen}
