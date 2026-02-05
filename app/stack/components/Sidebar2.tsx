@@ -1,20 +1,59 @@
 "use client";
-const holidays = [
+export const holidays = [
   { key: "daily", label: "Молитвы на трапезу" },
-  { key: "rozhdestvo", label: "Рождество" },
-  { key: "kreshchenie", label: "Крещение (Богоявление)" },
-  { key: "sretenie", label: "Сретение" },
-  { key: "blagoveshchenie", label: "Благовещение" },
-  { key: "vhod", label: "Вход Господень в Иерусалим" },
-  { key: "pascha", label: "Пасха" },
-  { key: "voznesenie", label: "Вознесение" },
-  { key: "troica", label: "Троица" },
-  { key: "preobrazhenie", label: "Преображение" },
-  { key: "uspenie", label: "Успение" },
-  { key: "rozhdestvoBogorodicy", label: "Рождество Богородицы" },
-  { key: "vozdvizhenie", label: "Воздвижение" },
-  { key: "vvedenie", label: "Введение" },
+  { key: "rozhdestvo", label: "Рождество", fullName: "Рождеству Христову" },
+  {
+    key: "kreshchenie",
+    label: "Крещение (Богоявление)",
+    fullName: "Крещению Господню",
+  },
+  { key: "sretenie", label: "Сретение", fullName: "Сретению Господню" },
+  {
+    key: "blagoveshchenie",
+    label: "Благовещение",
+    fullName: "Благовещению Пресвятой Богородицы",
+  },
+  {
+    key: "vhod",
+    label: "Вход Господень в Иерусалим",
+    fullName: "Входу Господню в Иерусалим",
+  },
+  { key: "pascha", label: "Пасха", fullName: "Пасхе" },
+  { key: "voznesenie", label: "Вознесение", fullName: "Вознесению Господню" },
+  { key: "troica", label: "Троица", fullName: "Святей Троице" },
+  {
+    key: "preobrazhenie",
+    label: "Преображение",
+    fullName: "Преображению Господню",
+  },
+  {
+    key: "uspenie",
+    label: "Успение",
+    fullName: "Успению Пресвятой Богородицы",
+  },
+  {
+    key: "rozhdestvoBogorodicy",
+    label: "Рождество Богородицы",
+    fullName: "Рождеству Пресвятой Богородицы",
+  },
+  {
+    key: "vozdvizhenie",
+    label: "Воздвижение",
+    fullName: "Воздвижению Креста Господня",
+  },
+  {
+    key: "vvedenie",
+    label: "Введение",
+    fullName: "Введению во храм Пресвятой Богородицы",
+  },
 ];
+
+const mealImagesMap = {
+  daily: {
+    start: "/meals-png/per-ed.png",
+    end: "/meals-png/pos-ed.png",
+  },
+};
 
 import React, { useEffect, useState, useRef } from "react";
 import { useStackContext } from "./StackContextProvider";
@@ -82,7 +121,14 @@ export const Sidebar2 = ({ onPreview }) => {
   const [songslist, setSongsList] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const { stackSongs, setStackSongs } = useStackContext();
+  const {
+    stackSongs,
+    setStackSongs,
+    mealType,
+    setMealType,
+    programSelected,
+    setProgramSelected,
+  } = useStackContext();
 
   const searchRef = useRef(null);
   const sensors = useSensors(
@@ -122,14 +168,13 @@ export const Sidebar2 = ({ onPreview }) => {
     };
     setStackSongs((prev) => [...prev, newSongEntry]);
 
-    if (programSelected.length === 1) {
-      setProgramSelected(["reserved"]);
+    // Только для песен в резерве
+    if (isReserve && !programSelected.includes("reserved")) {
+      setProgramSelected((prev) => [...prev, "reserved"]);
     }
   };
 
   const [activeTab, setActiveTab] = useState("stack"); // "stack" or "program"
-  // State for selected chips in "program" tab
-  const [programSelected, setProgramSelected] = useState([]);
 
   // --- Авто-флаг для резервного чипа: чип снимается один раз, когда резерв пуст, но доступен для повторного включения ---
   const [reserveAutoDisabled, setReserveAutoDisabled] = useState(false);
@@ -589,13 +634,18 @@ export const Sidebar2 = ({ onPreview }) => {
                                         <Select
                                           className="max-w-xs pointer-events-auto input-header"
                                           placeholder="Выберите вариант"
-                                          defaultValue="daily"
+                                          selectedKeys={
+                                            mealType ? [mealType] : []
+                                          }
+                                          onSelectionChange={(keys) => {
+                                            const value = Array.from(
+                                              keys,
+                                            )[0] as string;
+                                            setMealType(value);
+                                          }}
                                         >
                                           {holidays.map((holiday) => (
-                                            <SelectItem
-                                              className="input-header"
-                                              key={holiday.key}
-                                            >
+                                            <SelectItem key={holiday.key}>
                                               {holiday.label}
                                             </SelectItem>
                                           ))}

@@ -12,7 +12,6 @@ import {
 } from "@heroui/react";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
-import { useStackContext } from "@/app/stack/components/StackContextProvider";
 
 interface StackAddModalProps {
   isOpen: boolean;
@@ -46,7 +45,7 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
     }
     setIsSaved(true);
     onConfirm(stackName);
-    router.push("/stack"); // navigate to /stack
+    router.push("/stack");
     onClose();
   };
 

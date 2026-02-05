@@ -25,11 +25,15 @@ export async function editSong(id: string, song: Partial<Song>) {
 export async function saveStack(
   stack: StackSong[],
   isPublished: boolean,
+  mealType: string,
+  programSelected: [],
   currentUrl: string,
 ) {
   const response = await postStack(
     stack,
     isPublished,
+    mealType,
+    programSelected,
     Math.random().toString(),
   );
   revalidatePath(currentUrl);

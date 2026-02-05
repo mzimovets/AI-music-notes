@@ -3,6 +3,8 @@ import { StackSong } from "./types";
 export const postStack = async (
   data: StackSong[],
   isPublished: boolean,
+  mealType: string,
+  programSelected: [],
   id?: string,
 ) => {
   console.log("POst stack data");

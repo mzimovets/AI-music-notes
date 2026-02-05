@@ -10,6 +10,8 @@ export function StackContextProvider({
   children: React.ReactNode;
 }) {
   const [stackSongs, setStackSongs] = useState([]);
+  const [mealType, setMealType] = useState<string | null>(null);
+  const [programSelected, setProgramSelected] = useState<string[]>([]);
 
   const removeSong = (instanceId) => {
     setStackSongs((prev) =>
@@ -20,7 +22,16 @@ export function StackContextProvider({
   const clearStack = () => setStackSongs([]);
   return (
     <StackContext.Provider
-      value={{ stackSongs, setStackSongs, removeSong, clearStack }}
+      value={{
+        stackSongs,
+        setStackSongs,
+        removeSong,
+        clearStack,
+        mealType,
+        setMealType,
+        programSelected,
+        setProgramSelected,
+      }}
     >
       {children}
     </StackContext.Provider>

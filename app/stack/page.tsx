@@ -1,5 +1,16 @@
 "use client";
 import React, { useState } from "react";
+const mealFilesMap: Record<string, { start: string; end: string }> = {
+  daily: {
+    start: "meals-pdf/per-ed.pdf",
+    end: "meals-pdf/pos-ed.pdf",
+  },
+  rozhdestvo: {
+    start: "meals-pdf/trop-christm.pdf",
+    end: "meals-pdf/cond-christm.pdf",
+  },
+};
+
 import { Button } from "@heroui/button";
 import { PdfTitlePage } from "./components/PdfTitlePage";
 import { useStackContext } from "./components/StackContextProvider";
@@ -13,9 +24,11 @@ import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
 import { saveStack } from "@/actions/actions";
+import { holidays } from "./components/Sidebar2";
 
 export default function StackPage() {
-  const { stackSongs, removeSong, setStackSongs } = useStackContext();
+  const { stackSongs, removeSong, setStackSongs, mealType, programSelected } =
+    useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
@@ -26,38 +39,78 @@ export default function StackPage() {
   };
 
   const save = async () => {
-    const resp = await saveStack(stackSongs, false, window.location.pathname);
+    const resp = await saveStack(
+      stackSongs,
+      false,
+      mealType,
+      programSelected,
+      window.location.pathname,
+    );
     console.log("resp", resp);
   };
 
   const publicStack = async () => {
-    const resp = await saveStack(stackSongs, true, window.location.pathname);
+    const resp = await saveStack(
+      stackSongs,
+      true,
+      mealType,
+      programSelected,
+      window.location.pathname,
+    );
     console.log("resp", resp);
   };
 
-  // Разделяем песни на обычные и резерв
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
+
+  console.log("mainsongs: ", mainSongs);
 
   return (
     <div>
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
+
       <p className="flex flex-col text-center justify-center font-header gap-4 mb-6">
         Название стопки
       </p>
+
       {stackSongs && stackSongs.length > 0 ? (
         <>
-          {/* Основная программа */}
-          <p className="flex flex-col text-default-500  text-center justify-center font-header gap-4 mb-6">
+          <p className="flex flex-col text-default-500 text-center justify-center font-header gap-4 mb-6">
             Программа
           </p>
-          {mainSongs.length > 0 &&
-            mainSongs.map((song, index) => (
-              <div
-                key={song.instanceId || index}
-                className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm"
-              >
+
+          {mainSongs.map((song, index) => (
+            <React.Fragment key={song.instanceId || index}>
+              {index === 0 &&
+                programSelected.includes("Трапеза") &&
+                mealType &&
+                mealFilesMap[mealType]?.start && (
+                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm">
+                    <div className="flex gap-2 items-center justify-between">
+                      <div className="flex gap-2 items-center">
+                        <p className="text-bold text-sm  text-left input-header">
+                          {mealType === "daily"
+                            ? "Молитва перед вкушением пищи"
+                            : `Тропарь ${
+                                holidays.find((h) => h.key === mealType)
+                                  ?.fullName ||
+                                holidays.find((h) => h.key === mealType)
+                                  ?.label ||
+                                ""
+                              }`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative my-2">
+                      <Divider className="opacity-60" />
+                    </div>
+                    <div className="mt-2 mb-6">
+                      <PdfTitlePage fileUrl={mealFilesMap[mealType].start} />
+                    </div>
+                  </div>
+                )}
+              <div className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm">
                 <div className="flex gap-2 items-center justify-between">
                   <div className="flex gap-2 items-center">
                     <p className="text-bold text-sm capitalize text-left input-header">
@@ -68,6 +121,7 @@ export default function StackPage() {
                       {song.author}
                     </p>
                   </div>
+
                   <div className="flex gap-2">
                     <EyePreviewButton onClick={() => handlePreview(song)} />
                     <RemoveSongButton
@@ -84,11 +138,42 @@ export default function StackPage() {
                   />
                 </div>
               </div>
-            ))}
+              {/* Вставляем PDF конца трапезы */}
+              {index === mainSongs.length - 1 &&
+                programSelected.includes("Трапеза") &&
+                mealType &&
+                mealFilesMap[mealType]?.end && (
+                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-4 py-3 mb-4 transition-shadow hover:shadow-sm">
+                    <div className="flex gap-2 items-center justify-between">
+                      <div className="flex gap-2 items-center">
+                        <p className="text-bold text-sm text-left input-header">
+                          {mealType === "daily"
+                            ? "Молитва после вкушения пищи"
+                            : `Кондак ${
+                                holidays.find((h) => h.key === mealType)
+                                  ?.fullName ||
+                                holidays.find((h) => h.key === mealType)
+                                  ?.label ||
+                                ""
+                              }`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative my-2">
+                      <Divider className="opacity-60" />
+                    </div>
+                    <div className="mt-2 mb-6">
+                      <PdfTitlePage fileUrl={mealFilesMap[mealType].end} />
+                    </div>
+                  </div>
+                )}
+            </React.Fragment>
+          ))}
+
           <div className="flex justify-center mt-4 mb-14">
             <Monogram className="h-9" />
           </div>
-          {/* Резерв */}
+
           {reserveSongs.length > 0 && (
             <div className="mt-16 flex flex-col gap-2">
               <p className="flex text-default-500 flex-col text-center justify-center font-header gap-4 mb-6">
@@ -131,7 +216,6 @@ export default function StackPage() {
               </div>
             </div>
           )}
-
           <div className="flex flex-col gap-4 mt-6">
             <div className="justify-center flex gap-2">
               <p className="text-bold text-sm input-header justify-center text-default-500">
@@ -159,8 +243,7 @@ export default function StackPage() {
                 onPress={() => setStackSongs([])}
                 className="button-edit-font px-5 py-2.5 rounded-lg bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex gap-2 items-center"
               >
-                <TrashBinIcon />
-                Очистить всё
+                <TrashBinIcon /> Очистить всё
               </Button>
             </div>
           </div>
