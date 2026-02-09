@@ -1,14 +1,45 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
-import { StackViewer } from "./components/StackViewer";
 import { CloseButton } from "./components/CloseButton";
 import { SidebarButton } from "./components/SidebarButton";
 import { SideBarStack } from "./components/SideBarStack";
+import { useRouter } from "next/navigation";
+import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
+import { SongsList } from "./components/SongsList";
+import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
+import { DeleteModal } from "./components/DeleteModal";
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+
+  const {
+    stackResponse,
+    stackSongs,
+    removeSong,
+    setStackSongs,
+    mealType,
+    setMealType,
+    programSelected,
+    setProgramSelected,
+  } = useStackContext();
+
+  console.log("CONTEXT", {
+    stackResponse,
+    stackSongs,
+    removeSong,
+    setStackSongs,
+    mealType,
+    setMealType,
+    programSelected,
+    setProgramSelected,
+  });
+
+  useEffect(() => {
+    setStackSongs(stackResponse.doc?.songs || []);
+    setProgramSelected(stackResponse.doc?.programSelected || []);
+    setMealType(stackResponse.doc?.mealType || null);
+  }, [stackResponse]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -29,6 +60,9 @@ export default function Page() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
+  const mainSongs = stackSongs.filter((s) => !s.isReserve);
+  const reserveSongs = stackSongs.filter((s) => s.isReserve);
+
   return (
     <div>
       <div
@@ -47,22 +81,26 @@ export default function Page() {
         <CloseButton />
       </div>
       <p className="flex flex-col text-default-500 text-center mt-2 justify-center font-header gap-2 text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-4xl">
-        Программа
+        Программа {stackResponse.doc?.name}
       </p>
       <div className="justify-center flex gap-2  mb-2">
         <p className="text-bold text-sm input-header justify-center text-default-500">
-          {/* {mainSongs.length} {getPluralForm(mainSongs.length)} */}
+          {mainSongs.length} {getPluralForm(mainSongs.length)}
         </p>
       </div>
-      <StackViewer fileUrl="/meals-pdf/per-ed.pdf" />
-      <StackViewer fileUrl="/pdf.pdf" />
-      <StackViewer fileUrl="/meals-pdf/pos-ed.pdf" />
+      <SongsList songs={mainSongs} isReserved={false} />
+
       <p className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
         Резерв
       </p>
+      <div className="justify-center flex gap-2  mb-2">
+        <p className="text-bold text-sm input-header justify-center text-default-500">
+          {reserveSongs.length} {getPluralForm(reserveSongs.length)}
+        </p>
+      </div>
       <div className="justify-center flex gap-2 mb-6">
         <p className="text-bold text-sm input-header justify-center text-default-500">
-          {/* {reserveSongs.length} {getPluralForm(reserveSongs.length)} */}
+          <SongsList songs={reserveSongs} isReserved={true} />
         </p>
       </div>
     </div>

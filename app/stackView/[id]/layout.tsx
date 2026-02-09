@@ -1,6 +1,6 @@
 import React from "react";
-import { StackContextProvider } from "../stack/[id]/components/StackContextProvider";
 import { getStackById } from "@/lib/stack-requests";
+import { StackContextProvider } from "@/app/stack/[id]/components/StackContextProvider";
 
 export default async function StackViewLayout({ children, params }) {
   const stack = await getStackById(params.id);

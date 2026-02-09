@@ -31,7 +31,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
 
         (pdfjsLib as any).GlobalWorkerOptions.workerSrc = new URL(
           "pdfjs-dist/build/pdf.worker.min.mjs",
-          import.meta.url
+          import.meta.url,
         ).toString();
 
         let loadingTask;
@@ -152,6 +152,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
     <div
       ref={containerRef}
       style={{
+        borderRadius: "8px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

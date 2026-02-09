@@ -102,6 +102,10 @@ import DownloadIcon from "@/components/DownloadIcon";
 import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
 import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
 import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
+import { updateStack } from "@/actions/actions";
+import { useParams } from "next/navigation";
+import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
+import { DeleteModal } from "./DeleteModal";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
@@ -119,7 +123,9 @@ export const SideBarStack = ({ onPreview }) => {
   const [searchValue, setSearchValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const {
+    stackResponse,
     stackSongs,
+    removeSong,
     setStackSongs,
     mealType,
     setMealType,
@@ -354,8 +360,28 @@ export const SideBarStack = ({ onPreview }) => {
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
+  const params = useParams<{ id: string }>();
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const save = async () => {
+    const resp = await updateStack({
+      stack: stackSongs,
+      mealType,
+      programSelected,
+      isPublished: true,
+      currentUrl: window.location.pathname,
+      id: params.id,
+      name: stackResponse.doc?.name,
+    });
+    console.log("resp", resp);
+  };
+
   return (
     <>
+      <DeleteModal
+        isDeleteModalOpen={isDeleteModalOpen}
+        setIsDeleteModalOpen={setIsDeleteModalOpen}
+      />
       <div className="flex flex-wrap gap-3">
         <div
           className={`fixed left-3 top-20 z-20 transform-gpu transition-all duration-50
@@ -439,10 +465,18 @@ export const SideBarStack = ({ onPreview }) => {
                   <Button
                     radius="lg"
                     size="sm"
-                    // onPress={() => onRemove(song.instanceId)}
+                    onPress={() => setIsDeleteModalOpen(true)}
                     className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
                   >
                     <TrashBinIcon />
+                  </Button>
+                  <Button
+                    radius="lg"
+                    size="sm"
+                    onPress={save}
+                    className="min-w-0 px-3bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
+                  >
+                    <SaveIcon />
                   </Button>
                   <Button
                     isIconOnly
