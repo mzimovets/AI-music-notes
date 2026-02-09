@@ -1,11 +1,3 @@
-// export default function PageLayout({
-//   children,
-// }: {
-//   children: React.ReactNode;
-// }) {
-//   return (
-//     <section className="flex flex-col items-center justify-center gap-4">
-//       {children}
-//     </section>
-//   );
-// }
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return <div className="h-screen overflow-hidden">{children}</div>;
+}

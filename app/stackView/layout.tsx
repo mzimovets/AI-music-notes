@@ -1,14 +1,15 @@
 import React from "react";
+import { StackContextProvider } from "../stack/[id]/components/StackContextProvider";
+import { getStackById } from "@/lib/stack-requests";
 
-export default function StackViewLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default async function StackViewLayout({ children, params }) {
+  const stack = await getStackById(params.id);
   return (
-    <div className="stack-view-layout">
-      {/* Navbar здесь нет */}
-      <main>{children}</main>
-    </div>
+    <StackContextProvider stackResponse={stack}>
+      <div className="stack-view-layout">
+        {/* Navbar здесь нет */}
+        <main>{children}</main>
+      </div>
+    </StackContextProvider>
   );
 }

@@ -2,7 +2,7 @@
 
 import { postStack, putStack } from "@/lib/stack-requests";
 import { Song, StackSong } from "@/lib/types";
-import { deleteSong, postSong, putSong } from "@/lib/utils";
+import { deleteSong, deleteStack, postSong, putSong } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
 export async function addSong(song: Song, currentUrl: string) {
@@ -12,8 +12,8 @@ export async function addSong(song: Song, currentUrl: string) {
 }
 
 export async function removeSong(id: string) {
-  return await deleteSong(id);
   revalidatePath("/song");
+  return await deleteSong(id);
 }
 
 export async function editSong(id: string, song: Partial<Song>) {
@@ -57,6 +57,11 @@ export async function updateStack({
   });
   revalidatePath(currentUrl);
   return response;
+}
+
+export async function removeStack(id: string) {
+  revalidatePath("/");
+  return await deleteStack(id);
 }
 
 // "use server";

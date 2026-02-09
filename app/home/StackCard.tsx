@@ -7,11 +7,16 @@ export const StackCard = ({ stacks }) => {
   const fillCard = (stack) => (
     <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
       <Card
-        onPress={() => router.push(`/stack/${stack._id}`)}
+        onPress={() => {
+          if (stack.isPublished) {
+            router.push(`/stackView/${stack._id}`);
+          } else {
+            router.push(` /stack/${stack._id}`);
+          }
+        }}
         isPressable
         className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
       >
-        {/* Зеленая диагональная линия с блеском */}
         {!stack.isPublished ? (
           <div className="absolute top-12 -right-5 w-[120%] h-6 bg-gradient-to-r from-[#7DE392] to-[#2E7D32] origin-top-right rotate-45 transform overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-full bg-white/30 blur-sm rotate-12"></div>
@@ -24,7 +29,7 @@ export const StackCard = ({ stacks }) => {
         {/* Контент карточки */}
       </Card>
 
-      <p className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
+      <p className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
         {/* {post.name} */}
         {stack.name || "Сохраненная"}
       </p>

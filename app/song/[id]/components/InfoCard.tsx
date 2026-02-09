@@ -294,9 +294,6 @@ export const InfoCard = () => {
             <>
               <ModalHeader className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  {/* <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                    <span className="text-red-600 text-xl">⚠️</span>
-                  </div> */}
                   <h3 className="text-xl font-bold text-gray-900">
                     Удалить партитуру
                   </h3>
@@ -318,12 +315,6 @@ export const InfoCard = () => {
                       информация, включая файл партитуры.
                     </p>
                   </div>
-                  {/* <div className="flex items-center gap-2 text-sm text-gray-500">
-                    <span className="text-red-500 font-medium">ID:</span>
-                    <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                      {song.doc._id}
-                    </code>
-                  </div> */}
                 </div>
               </ModalBody>
               <ModalFooter>

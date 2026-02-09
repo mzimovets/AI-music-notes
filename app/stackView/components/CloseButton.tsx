@@ -6,7 +6,7 @@ export const CloseButton = () => {
   const router = useRouter();
   return (
     <Button
-      onPress={() => router.back()}
+      onPress={() => router.push("/")}
       isIconOnly
       type="button"
       className="

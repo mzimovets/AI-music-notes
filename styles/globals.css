@@ -85,6 +85,11 @@
   font-family: "Roboto Slab", serif;
 }
 
+.font-bold {
+  font-family: "Roboto Slab", serif;
+  font-weight: bold;
+}
+
 .font-pagination {
   font-family: "Roboto Slab", serif;
   font-weight: bold;

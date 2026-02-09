@@ -61,13 +61,18 @@ export const stacksRoutes = (app, urlencodedParser) => {
     );
   });
 
-  app.delete("/stack/:stackId", (req, res) => {
-    database.remove({ _id: req.params.stackId }, (err, numDeleted) => {
-      console.log("delete stack: ", req.params.stackId);
+  app.get("/stack/:stackId/:delete", urlencodedParser, (req, res) => {
+    console.log(
+      "deleting stack on server",
+      req.params.stackIdId,
+      req.params.delete,
+    );
+    database.remove({ _id: req.params.stackId }, (err, num) => {
+      console.log("deleting stack: ", req.params.stackId, num);
       if (err) {
         console.log("err", err);
       }
-      res.json({ status: "ok", numDeleted });
+      res.json({ status: "ok", num });
     });
   });
 };

@@ -1,7 +1,7 @@
 "use client";
 import Pdfjs from "@/app/home/pdfjs";
-import { ScrollToTop } from "@/app/stack/components/ScrollToTopButton";
-import { Sidebar2 } from "@/app/stack/components/Sidebar2";
+import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
+
 import { Card } from "@heroui/card";
 import { useState } from "react";
 

@@ -105,3 +105,14 @@ export const deleteSong = async (id: string) => {
   return posts;
 };
 
+export const deleteStack= async (id: string) => {
+  console.log("delete stack", id);
+  const data = await fetch(`http://localhost:4000/stack/${id}/true`, {
+    headers: {
+      method: "GET",
+    },
+  });
+
+  const posts = await data.json();
+  return posts;
+};

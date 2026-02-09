@@ -296,10 +296,7 @@ export default function Albums() {
                 onPress={() => router.push(`/playlist/${post.key}`)}
                 isPressable
                 className="w-50 h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
-                // sm:w-40 sm:h-40
-              >
-                {/* Контент карточки */}
-              </Card>
+              ></Card>
 
               <p className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
                 {post.name}

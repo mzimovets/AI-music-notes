@@ -49,7 +49,7 @@ export const holidays = [
 ];
 
 import React, { useEffect, useState, useRef } from "react";
-import { useStackContext } from "./StackContextProvider";
+import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import {
   Drawer,
   DrawerContent,
@@ -66,7 +66,7 @@ import {
 import { Select, SelectItem } from "@heroui/react";
 import { Input } from "@heroui/input";
 import { SearchIcon } from "@/components/icons";
-import { SortableSong } from "./SortableSong";
+import { SortableSong } from "@/app/stack/[id]/components/SortableSong";
 
 // DND Kit
 import {
@@ -88,20 +88,23 @@ import {
 } from "@dnd-kit/modifiers";
 // Removed unused imports: CSS, TrashBinIcon, EmptyIcon, EyePreviewButton, EyeIcon
 import { StackIcon } from "@/components/icons/StackIcon";
-import { ListIcon } from "./icons/ListIcon";
+import { ListIcon } from "@/app/stack/[id]/components/icons/ListIcon";
 // import { EmptyIcon } from "../../../components/icons/EmptyIcon";
+
 import { EmptyIcon } from "@/components/icons/EmptyIcon";
-import { CopyIcon } from "./icons/CopyIcon";
+import CopyIcon from "@/app/stack/[id]/components/icons/CopyIcon";
+
+import SideButton from "@/app/stack/[id]/components/icons/SideButton";
+import AddSongStackIcon from "@/app/stack/[id]/components/icons/AddSongStackIcon";
+import ReserveIcon from "@/app/stack/[id]/components/icons/ReserveIcon";
+import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
 import DownloadIcon from "@/components/DownloadIcon";
-import SideButton from "./icons/SideButton";
-import AddSongStackIcon from "./icons/AddSongStackIcon";
-import ReserveIcon from "./icons/ReserveIcon";
-import SidebarIcon from "./icons/SidebarIcon";
-import DownloadPngIcon from "./icons/DownloadPngIcon";
-import ProgramDownload from "./ProgramDownload";
+import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
+import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
+import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
 // Removed unused import: DownloadIcon
 
-export const Sidebar2 = ({ onPreview }) => {
+export const SideBarStack = ({ onPreview }) => {
   const {
     isOpen: isDrawerOpen,
     onOpen: onDrawerOpen,
@@ -432,15 +435,25 @@ export const Sidebar2 = ({ onPreview }) => {
                     </Button>
                   )}
                 </div>
-                <Button
-                  isIconOnly
-                  className="text-default-400 rotate-180"
-                  size="sm"
-                  variant="light"
-                  onPress={onClose}
-                >
-                  <SideButton />
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    radius="lg"
+                    size="sm"
+                    // onPress={() => onRemove(song.instanceId)}
+                    className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
+                  >
+                    <TrashBinIcon />
+                  </Button>
+                  <Button
+                    isIconOnly
+                    className="text-default-400 rotate-180"
+                    size="sm"
+                    variant="light"
+                    onPress={onClose}
+                  >
+                    <SideButton />
+                  </Button>
+                </div>
               </DrawerHeader>
               <DrawerBody className="flex flex-col h-[calc(100vh-60px)] overflow-hidden">
                 {/* Табы */}

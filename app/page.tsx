@@ -6,7 +6,7 @@ import { getCategoryDisplay } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
 
-import { Input, Tooltip, Pagination, Link } from "@heroui/react";
+import { Input, Tooltip, Pagination, Link, Button } from "@heroui/react";
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
 import {
@@ -21,6 +21,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LoadingCamerton } from "@/components/LoadingCamerton";
 import { EmptyIcon } from "../components/icons/EmptyIcon";
 import { StackCard } from "./home/StackCard";
+import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
+import { DownArrIcon } from "@/components/icons/DownArrIcon";
 
 export const EyeIcon = (props) => {
   return (
@@ -157,6 +159,7 @@ export default function Home() {
   const [showTable, setShowTable] = useState(false);
   const [searchValue, setSearchValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showStacks, setShowStacks] = useState(false);
 
   const tableRef = useRef(null);
   const inputRef = useRef(null);
@@ -535,12 +538,66 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-      <div className="pl-32 px-4 pb-0 flex flex-col font-header gap-4">
-        Стопки
+      {stacks.length > 0 && (
+        <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
+          {/* Оборачиваем текст в span с курсором */}
+          <div
+            onClick={() => setShowStacks((prev) => !prev)}
+            className="leading-none cursor-pointer select-none"
+          >
+            Стопки
+          </div>
+
+          {stacks.length > 4 && (
+            <Button
+              isIconOnly
+              type="button"
+              onPress={(e) => {
+                setShowStacks((prev) => !prev);
+              }}
+              className="
+      flex items-center justify-center
+      h-8 w-8 p-0
+      bg-transparent border-none shadow-none
+      text-black
+      transition-transform duration-200
+      hover:scale-110
+      focus:outline-none
+      active:outline-none
+    "
+              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+            >
+              {showStacks ? (
+                <DownArrIcon width={18} height={18} className="text-black" />
+              ) : (
+                <LeftArrIcon width={18} height={18} className="text-black" />
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
+        <AnimatePresence initial={false}>
+          {(showStacks || stacks.length <= 4) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
+                <StackCard stacks={stacks} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      <div className="pl-32 pb-0 flex flex-col font-header gap-4 mt-8">
+        Песни
       </div>
-      <StackCard stacks={stacks} />
-      <div className="pl-32 pb-0 flex flex-col font-header gap-4">Песни</div>
-      <LoadingCamerton />
+      {/* <LoadingCamerton /> */}
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
         <Suspense>
           <Albums />

@@ -1,4 +1,4 @@
-import SidebarIcon from "@/app/stack/components/icons/SidebarIcon";
+import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
 import { Button } from "@heroui/button";
 
 export const SidebarButton = () => {

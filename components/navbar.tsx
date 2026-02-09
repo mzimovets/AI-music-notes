@@ -12,17 +12,19 @@ import { Link } from "@heroui/link";
 import ModalAddScore from "@/app/home/modalAddScore";
 import StackNameModal from "@/components/modalAddStack";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
 import { useState } from "react";
 import React from "react";
 import { StackIcon } from "./icons/StackIcon";
+import ExitIcon from "./icons/ExitIcon";
 
 export const Navbar = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
 
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleOpenStack = () => setIsModalOpen(true);
 
@@ -30,6 +32,10 @@ export const Navbar = () => {
     if (stackName.trim() === "") return;
     setIsModalOpen(false);
     router.push("/stack");
+  };
+
+  const handleExit = () => {
+    router.push("/authPage");
   };
 
   return (
@@ -42,9 +48,11 @@ export const Navbar = () => {
       >
         <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
           <Link href={"/"} style={{ display: "inline" }}>
-            <div style={{ display: "flex", alignItems: "center" }}>
-              <CamertonLogo className="h-12 w-12 -translate-y-1" />
-              <p className="font-navbarBrand text-inherit">Нотная библиотека</p>
+            <div className="flex items-center">
+              <CamertonLogo className="h-10 w-10 sm:h-12 sm:w-12 -translate-y-1" />
+              <p className="font-navbarBrand text-inherit text-sm sm:text-base">
+                Нотная библиотека
+              </p>
             </div>
           </Link>
         </NavbarContent>
@@ -55,13 +63,24 @@ export const Navbar = () => {
         >
           <NavbarItem className="hidden md:flex gap-4">
             <ModalAddScore />
+            {!pathname.startsWith("/stack") &&
+              !pathname.startsWith("/stackView") && (
+                <Button
+                  onPress={handleOpenStack}
+                  radius="full"
+                  isIconOnly
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+                >
+                  <StackIcon color="white" />
+                </Button>
+              )}
             <Button
-              onPress={handleOpenStack}
+              onPress={handleExit}
               radius="full"
               isIconOnly
               className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
             >
-              <StackIcon color="white" />
+              <ExitIcon color="white" />
             </Button>
           </NavbarItem>
         </NavbarContent>
