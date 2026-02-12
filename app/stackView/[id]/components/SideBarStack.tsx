@@ -221,6 +221,7 @@ export const SideBarStack = ({ onPreview }) => {
 
   // Новый handleDragEnd для двух SortableContext
   const handleDragEnd = (event) => {
+    console.log("event drag", event);
     const { active, over } = event;
     if (!over) return;
 
@@ -229,25 +230,47 @@ export const SideBarStack = ({ onPreview }) => {
 
     // Для контейнеров (перетаскивание на div)
     // Перемещение из основной в резерв
-    if (!activeSong.isReserve && over.id === "reserve-drop") {
+    // if (!activeSong.isReserve && over.id === "reserve-drop") {
+    //   console.log("reserve-drop");
+    //   setStackSongs((prev) =>
+    //     prev.map((s) =>
+    //       s.instanceId === active.id ? { ...s, isReserve: true } : s,
+    //     ),
+    //   );
+    //   return;
+    // }
+    // // Перемещение из резерва в основную
+    // if (activeSong.isReserve && over.id === "main-drop") {
+    //   console.log("main-drop");
+    //   setStackSongs((prev) =>
+    //     prev.map((s) =>
+    //       s.instanceId === active.id ? { ...s, isReserve: false } : s,
+    //     ),
+    //   );
+    //   return;
+    // }
+
+    const overSong = stackSongs.find((s) => s.instanceId === over.id);
+
+    console.log("overSong", overSong, activeSong);
+    if (overSong.isReserve) {
+      // Делаем activeSong isReserved = true
+      // и перемещаем.
       setStackSongs((prev) =>
         prev.map((s) =>
           s.instanceId === active.id ? { ...s, isReserve: true } : s,
         ),
       );
-      return;
     }
-    // Перемещение из резерва в основную
-    if (activeSong.isReserve && over.id === "main-drop") {
+    if (!overSong.isReserve) {
+      // Делаем activeSong isReserved = true
+      // и перемещаем.
       setStackSongs((prev) =>
         prev.map((s) =>
           s.instanceId === active.id ? { ...s, isReserve: false } : s,
         ),
       );
-      return;
     }
-
-    const overSong = stackSongs.find((s) => s.instanceId === over.id);
     // Перемещение внутри основной стопки
     if (!activeSong.isReserve && overSong && !overSong.isReserve) {
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
@@ -384,6 +407,11 @@ export const SideBarStack = ({ onPreview }) => {
     });
     console.log("resp", resp);
   };
+
+  console.log(
+    "stackSongs.map((s) => s.instanceId)",
+    stackSongs.map((s) => s.instanceId),
+  );
 
   return (
     <>
@@ -707,9 +735,11 @@ export const SideBarStack = ({ onPreview }) => {
                             >
                               {/* Основная стопка */}
                               <SortableContext
-                                items={stackSongs
-                                  .filter((s) => !s.isReserve)
-                                  .map((s) => s.instanceId)}
+                                // items={stackSongs
+                                //   .filter((s) => !s.isReserve)
+                                //   .map((s) => s.instanceId)}
+                                id="sort-context-songs"
+                                items={stackSongs.map((s) => s.instanceId)}
                                 strategy={verticalListSortingStrategy}
                               >
                                 <div id="main-drop" className="mb-4">
@@ -771,7 +801,7 @@ export const SideBarStack = ({ onPreview }) => {
                                         }
                                       />
                                     ))}
-                                  {programSelected.includes("Трапеза") && (
+                                  {/* {programSelected.includes("Трапеза") && (
                                     <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl pointer-events-none w-[85%] ml-auto">
                                       <div className="flex flex-col gap-2">
                                         <p className="text-sm input-header">
@@ -789,48 +819,41 @@ export const SideBarStack = ({ onPreview }) => {
                                         )}
                                       </div>
                                     </Card>
-                                  )}
+                                  )} */}
+                                  {/* </div> */}
+                                  {/* </SortableContext> */}
+                                  {/* Резерв */}
+                                  {/* <div id="reserve-drop"> */}
+
+                                  <div className="flex items-center my-3 select-none pointer-events-none">
+                                    <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                    <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                      Резерв
+                                    </span>
+                                    <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                  </div>
+                                  {stackSongs
+                                    .filter((s) => s.isReserve)
+                                    .map((song, index) => (
+                                      <SortableSong
+                                        key={song.instanceId}
+                                        song={song}
+                                        index={index}
+                                        onPreview={onPreview}
+                                        onRemove={(id) =>
+                                          setStackSongs((prev) =>
+                                            prev.filter(
+                                              (s) => s.instanceId !== id,
+                                            ),
+                                          )
+                                        }
+                                        onClick={() =>
+                                          handleSongClick(song.instanceId)
+                                        }
+                                      />
+                                    ))}
                                 </div>
                               </SortableContext>
-                              {/* Резерв */}
-                              {stackSongs.some((s) => s.isReserve) && (
-                                <SortableContext
-                                  items={stackSongs
-                                    .filter((s) => s.isReserve)
-                                    .map((s) => s.instanceId)}
-                                  strategy={verticalListSortingStrategy}
-                                >
-                                  <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none pointer-events-none">
-                                      <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
-                                        Резерв
-                                      </span>
-                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
-                                    </div>
-                                    {stackSongs
-                                      .filter((s) => s.isReserve)
-                                      .map((song, index) => (
-                                        <SortableSong
-                                          key={song.instanceId}
-                                          song={song}
-                                          index={index}
-                                          onPreview={onPreview}
-                                          onRemove={(id) =>
-                                            setStackSongs((prev) =>
-                                              prev.filter(
-                                                (s) => s.instanceId !== id,
-                                              ),
-                                            )
-                                          }
-                                          onClick={() =>
-                                            handleSongClick(song.instanceId)
-                                          }
-                                        />
-                                      ))}
-                                  </div>
-                                </SortableContext>
-                              )}
                             </DndContext>
                           </ScrollShadow>
                         </div>
