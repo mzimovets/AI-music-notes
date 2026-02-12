@@ -1,8 +1,11 @@
 import { Card } from "@heroui/card";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export const StackCard = ({ stacks }) => {
   const router = useRouter();
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   console.log("stacks", stacks);
   const fillCard = (stack) => (
     <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
@@ -36,7 +39,11 @@ export const StackCard = ({ stacks }) => {
     </div>
   );
 
-  return stacks?.map((stack) => {
+  const filteredStacks = isRegent
+    ? stacks
+    : stacks?.filter((stack) => stack.isPublished);
+
+  return filteredStacks?.map((stack) => {
     return fillCard(stack);
   });
 

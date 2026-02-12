@@ -99,6 +99,7 @@ import ReserveIcon from "./icons/ReserveIcon";
 import SidebarIcon from "./icons/SidebarIcon";
 import DownloadPngIcon from "./icons/DownloadPngIcon";
 import ProgramDownload from "./ProgramDownload";
+import { SidebarButton } from "@/app/stackView/[id]/components/SidebarButton";
 // Removed unused import: DownloadIcon
 
 export const Sidebar2 = ({ onPreview }) => {
@@ -358,26 +359,7 @@ export const Sidebar2 = ({ onPreview }) => {
           className={`fixed left-3 top-20 z-20 transform-gpu transition-all duration-50
           `}
         >
-          <Button
-            isIconOnly
-            className={`
-        group
-        flex items-center justify-center
-        w-10 h-10
-        bg-white/30
-        backdrop-blur-lg
-        border border-white/40
-        shadow-[0_4px_12px_rgba(0,0,0,0.18)]
-        transition-all duration-200
-        hover:bg-white/40
-        hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
-        active:scale-95
-        ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
-      `}
-            onPress={() => handleOpen()}
-          >
-            <SidebarIcon />
-          </Button>
+          <SidebarButton />
         </div>
       </div>
       <Drawer

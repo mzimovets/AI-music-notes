@@ -5,12 +5,76 @@ import fs, { stat } from "fs";
 import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" }); // явно указываем путь к файлу
 
 //--------NeDB---------
 import Datastore from "nedb";
 
+import bcrypt from "bcryptjs";
+
 export const database = new Datastore("database.db");
 database.loadDatabase();
+
+// users
+
+const defaultUsers = [
+  {
+    _id: "regent",
+    username: "regent",
+    password: process.env.REGENT_PASSWORD,
+    docType: "admin",
+    role: "регент",
+  },
+  {
+    _id: "singer",
+    username: "singer",
+    password: process.env.SINGER_PASSWORD,
+    docType: "user",
+    role: "певчие",
+  },
+];
+
+// Функция для создания пользователей, если база пуста
+const createDefaultUsersIfEmpty = async () => {
+  database.count(
+    { docType: { $in: ["admin", "user"] } },
+    async (err, count) => {
+      if (err) {
+        console.error("Ошибка при подсчёте пользователей:", err);
+        return;
+      }
+      if (count === 0) {
+        for (const user of defaultUsers) {
+          if (!user.password) {
+            console.warn(
+              `Warning: Password for user ${user.username} is not set. Skipping user creation.`,
+            );
+            continue;
+          }
+          try {
+            const hashedPassword = await bcrypt.hash(user.password, 10);
+            const userWithHashedPassword = {
+              ...user,
+              password: hashedPassword,
+            };
+            database.insert(userWithHashedPassword, (err, doc) => {
+              if (err) {
+                console.log("Ошибка добавления пользователя:", err);
+              } else {
+                console.log("Добавлен пользователь:", user.username);
+              }
+            });
+          } catch (error) {
+            console.error("Ошибка хеширования пароля:", error);
+          }
+        }
+      }
+    },
+  );
+};
+
+createDefaultUsersIfEmpty();
 
 import { dirname } from "path";
 import { fileURLToPath } from "url";

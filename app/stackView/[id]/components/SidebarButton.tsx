@@ -1,11 +1,16 @@
 import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
 import { Button } from "@heroui/button";
 
-export const SidebarButton = () => {
+type SidebarButtonProps = {
+  onPress?: () => void;
+};
+
+export const SidebarButton = ({ onPress }: SidebarButtonProps) => {
   return (
     <Button
       isIconOnly
       type="button"
+      onPress={onPress}
       className="
         group
         flex items-center justify-center

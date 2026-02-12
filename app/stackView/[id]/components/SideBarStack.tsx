@@ -1,4 +1,5 @@
 "use client";
+
 export const holidays = [
   { key: "daily", label: "Молитвы на трапезу" },
   { key: "rozhdestvo", label: "Рождество", fullName: "Рождеству Христову" },
@@ -49,6 +50,7 @@ export const holidays = [
 ];
 
 import React, { useEffect, useState, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import {
   Drawer,
@@ -106,17 +108,24 @@ import { updateStack } from "@/actions/actions";
 import { useParams } from "next/navigation";
 import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
 import { DeleteModal } from "./DeleteModal";
+import { SidebarButton } from "./SidebarButton";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
-  const {
-    isOpen: isDrawerOpen,
-    onOpen: onDrawerOpen,
-    onOpenChange: onDrawerChange,
-  } = useDisclosure();
-
+  const { data: session } = useSession();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  // Функция для обработки клика по песне (основная/резервная стопка)
+  const handleSongClick = (songId: string) => {
+    setIsDrawerOpen(false);
+    setTimeout(() => {
+      const el = document.getElementById(`song-${songId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }, 200);
+  };
   const handleOpen = () => {
-    onDrawerOpen();
+    setIsDrawerOpen(true);
   };
 
   const [songslist, setSongsList] = useState([]);
@@ -384,35 +393,17 @@ export const SideBarStack = ({ onPreview }) => {
       />
       <div className="flex flex-wrap gap-3">
         <div
-          className={`fixed left-3 top-20 z-20 transform-gpu transition-all duration-50
-          `}
+          className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-50
+          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+        `}
         >
-          <Button
-            isIconOnly
-            className={`
-        group
-        flex items-center justify-center
-        w-10 h-10
-        bg-white/30
-        backdrop-blur-lg
-        border border-white/40
-        shadow-[0_4px_12px_rgba(0,0,0,0.18)]
-        transition-all duration-200
-        hover:bg-white/40
-        hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
-        active:scale-95
-        ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
-      `}
-            onPress={() => handleOpen()}
-          >
-            <SidebarIcon />
-          </Button>
+          <SidebarButton onPress={() => handleOpen()} />
         </div>
       </div>
       <Drawer
         isOpen={isDrawerOpen}
         placement="left"
-        onOpenChange={onDrawerChange}
+        onOpenChange={setIsDrawerOpen}
         isDismissable={false}
         isKeyboardDismissDisabled={true}
         hideCloseButton
@@ -420,7 +411,7 @@ export const SideBarStack = ({ onPreview }) => {
           base: "sm:data-[placement=right]:m-2 sm:data-[placement=left]:m-2  rounded-medium",
         }}
       >
-        <DrawerContent>
+        <DrawerContent onClose={() => setIsDrawerOpen(false)}>
           {(onClose) => (
             <>
               <DrawerHeader
@@ -462,22 +453,26 @@ export const SideBarStack = ({ onPreview }) => {
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <Button
-                    radius="lg"
-                    size="sm"
-                    onPress={() => setIsDeleteModalOpen(true)}
-                    className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
-                  >
-                    <TrashBinIcon />
-                  </Button>
-                  <Button
-                    radius="lg"
-                    size="sm"
-                    onPress={save}
-                    className="min-w-0 px-3bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
-                  >
-                    <SaveIcon />
-                  </Button>
+                  {session?.user?.role === "регент" && (
+                    <>
+                      <Button
+                        radius="lg"
+                        size="sm"
+                        onPress={() => setIsDeleteModalOpen(true)}
+                        className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
+                      >
+                        <TrashBinIcon />
+                      </Button>
+                      <Button
+                        radius="lg"
+                        size="sm"
+                        onPress={save}
+                        className="min-w-0 px-3bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
+                      >
+                        <SaveIcon />
+                      </Button>
+                    </>
+                  )}
                   <Button
                     isIconOnly
                     className="text-default-400 rotate-180"
@@ -494,30 +489,34 @@ export const SideBarStack = ({ onPreview }) => {
                 {activeTab === "stack" && (
                   <div
                     ref={searchRef}
-                    className="relative w-full flex flex-col flex-1 min-h-0 mt-10"
+                    className={`relative w-full flex flex-col flex-1 min-h-0 ${
+                      session?.user?.role === "регент" ? "mt-10" : "mt-13"
+                    }`}
                   >
                     <div className="relative shrink-0 z-50">
-                      <Input
-                        type="search"
-                        placeholder="Введите название или автора"
-                        value={searchValue}
-                        onChange={(e) => {
-                          setSearchValue(e.target.value);
-                          setIsOpen(true);
-                        }}
-                        isClearable
-                        onClear={() => setSearchValue("")}
-                        onFocus={() => setIsOpen(true)}
-                        startContent={
-                          <SearchIcon className="text-default-400 mr-2" />
-                        }
-                        className="mt-4 w-full text-center justify-center font-header gap-4"
-                        classNames={{
-                          inputWrapper: "bg-[#FFFAF5] rounded-md",
-                          input: "text-sm pl-2",
-                          clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
-                        }}
-                      />
+                      {session?.user?.role === "регент" && (
+                        <Input
+                          type="search"
+                          placeholder="Введите название или автора"
+                          value={searchValue}
+                          onChange={(e) => {
+                            setSearchValue(e.target.value);
+                            setIsOpen(true);
+                          }}
+                          isClearable
+                          onClear={() => setSearchValue("")}
+                          onFocus={() => setIsOpen(true)}
+                          startContent={
+                            <SearchIcon className="text-default-400 mr-2" />
+                          }
+                          className="mt-4 w-full text-center justify-center font-header gap-4"
+                          classNames={{
+                            inputWrapper: "bg-[#FFFAF5] rounded-md",
+                            input: "text-sm pl-2",
+                            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
+                          }}
+                        />
+                      )}
 
                       {searchValue.length > 0 && isOpen && (
                         <Card className="p-2 bg-white border border-default-200 shadow-sm mt-8 absolute left-0 right-0  z-50 mx-auto w-[95%] max-w-[350px] ">
@@ -620,56 +619,60 @@ export const SideBarStack = ({ onPreview }) => {
                             Ваша стопка
                           </span>
                           <div className="flex gap-2">
-                            <Chip
-                              size="sm"
-                              color="primary"
-                              variant="flat"
-                              className={`cursor-pointer input-header border 
-                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
-                                rounded-full
-                                ${programSelected.includes("Трапеза") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
-                              `}
-                              onClick={() => {
-                                setProgramSelected((prev) =>
-                                  prev.includes("Трапеза")
-                                    ? prev.filter((v) => v !== "Трапеза")
-                                    : [...prev, "Трапеза"],
-                                );
-                              }}
-                            >
-                              Трапеза
-                            </Chip>
-                            <Chip
-                              size="sm"
-                              color="primary"
-                              variant="flat"
-                              className={`cursor-pointer input-header border 
-                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
-                                rounded-full
-                                ${programSelected.includes("Резерв") || programSelected.includes("reserved") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
-                              `}
-                              onClick={() => {
-                                if (
-                                  programSelected.includes("Резерв") ||
-                                  programSelected.includes("reserved")
-                                ) {
-                                  setStackSongs((prev) =>
-                                    prev.filter((s) => !s.isReserve),
-                                  );
-                                  setProgramSelected((prev) =>
-                                    prev.filter((v) => v !== "Резерв"),
-                                  );
-                                } else {
-                                  setProgramSelected((prev) => [
-                                    ...prev,
-                                    "Резерв",
-                                  ]);
-                                  console.log("RSV добавили резерв");
-                                }
-                              }}
-                            >
-                              Резерв
-                            </Chip>
+                            {session?.user?.role === "регент" && (
+                              <>
+                                <Chip
+                                  size="sm"
+                                  color="primary"
+                                  variant="flat"
+                                  className={`cursor-pointer input-header border 
+                                    px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
+                                    rounded-full
+                                    ${programSelected.includes("Трапеза") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
+                                  `}
+                                  onClick={() => {
+                                    setProgramSelected((prev) =>
+                                      prev.includes("Трапеза")
+                                        ? prev.filter((v) => v !== "Трапеза")
+                                        : [...prev, "Трапеза"],
+                                    );
+                                  }}
+                                >
+                                  Трапеза
+                                </Chip>
+                                <Chip
+                                  size="sm"
+                                  color="primary"
+                                  variant="flat"
+                                  className={`cursor-pointer input-header border 
+                                    px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
+                                    rounded-full
+                                    ${programSelected.includes("Резерв") || programSelected.includes("reserved") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
+                                  `}
+                                  onClick={() => {
+                                    if (
+                                      programSelected.includes("Резерв") ||
+                                      programSelected.includes("reserved")
+                                    ) {
+                                      setStackSongs((prev) =>
+                                        prev.filter((s) => !s.isReserve),
+                                      );
+                                      setProgramSelected((prev) =>
+                                        prev.filter((v) => v !== "Резерв"),
+                                      );
+                                    } else {
+                                      setProgramSelected((prev) => [
+                                        ...prev,
+                                        "Резерв",
+                                      ]);
+                                      console.log("RSV добавили резерв");
+                                    }
+                                  }}
+                                >
+                                  Резерв
+                                </Chip>
+                              </>
+                            )}
                           </div>
                         </div>
                         <Divider
@@ -716,25 +719,35 @@ export const SideBarStack = ({ onPreview }) => {
                                         <p className="text-sm input-header">
                                           Трапеза (начало)
                                         </p>
-                                        <Select
-                                          className="max-w-xs pointer-events-auto input-header"
-                                          placeholder="Выберите вариант"
-                                          selectedKeys={
-                                            mealType ? [mealType] : []
-                                          }
-                                          onSelectionChange={(keys) => {
-                                            const value = Array.from(
-                                              keys,
-                                            )[0] as string;
-                                            setMealType(value);
-                                          }}
-                                        >
-                                          {holidays.map((holiday) => (
-                                            <SelectItem key={holiday.key}>
-                                              {holiday.label}
-                                            </SelectItem>
-                                          ))}
-                                        </Select>
+                                        {session?.user?.role === "регент" ? (
+                                          <Select
+                                            className="max-w-xs pointer-events-auto input-header"
+                                            placeholder="Выберите вариант"
+                                            selectedKeys={
+                                              mealType ? [mealType] : []
+                                            }
+                                            onSelectionChange={(keys) => {
+                                              const value = Array.from(
+                                                keys,
+                                              )[0] as string;
+                                              setMealType(value);
+                                            }}
+                                          >
+                                            {holidays.map((holiday) => (
+                                              <SelectItem key={holiday.key}>
+                                                {holiday.label}
+                                              </SelectItem>
+                                            ))}
+                                          </Select>
+                                        ) : (
+                                          <p className="input-header text-sm">
+                                            {mealType
+                                              ? mealType === "daily"
+                                                ? "Молитвы на трапезу"
+                                                : `Тропарь ${holidays.find((h) => h.key === mealType)?.fullName}`
+                                              : "Нет выбранного варианта"}
+                                          </p>
+                                        )}
                                       </div>
                                     </Card>
                                   )}
@@ -753,6 +766,9 @@ export const SideBarStack = ({ onPreview }) => {
                                             ),
                                           )
                                         }
+                                        onClick={() =>
+                                          handleSongClick(song.instanceId)
+                                        }
                                       />
                                     ))}
                                   {programSelected.includes("Трапеза") && (
@@ -761,6 +777,16 @@ export const SideBarStack = ({ onPreview }) => {
                                         <p className="text-sm input-header">
                                           Трапеза (конец)
                                         </p>
+                                        {session?.user?.role ===
+                                        "регент" ? null : (
+                                          <p className="input-header text-sm">
+                                            {mealType
+                                              ? mealType === "daily"
+                                                ? "Молитвы на трапезу"
+                                                : `Кондак ${holidays.find((h) => h.key === mealType)?.fullName}`
+                                              : "Нет выбранного варианта"}
+                                          </p>
+                                        )}
                                       </div>
                                     </Card>
                                   )}
@@ -796,6 +822,9 @@ export const SideBarStack = ({ onPreview }) => {
                                                 (s) => s.instanceId !== id,
                                               ),
                                             )
+                                          }
+                                          onClick={() =>
+                                            handleSongClick(song.instanceId)
                                           }
                                         />
                                       ))}
@@ -840,34 +869,36 @@ export const SideBarStack = ({ onPreview }) => {
                           </Chip>
                         ))}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          isIconOnly
-                          className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                          onClick={() => {
-                            const text = getProgramText();
-                            navigator.clipboard.writeText(text.trim());
-                          }}
-                        >
-                          <CopyIcon size={22} />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          isIconOnly
-                          className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                          onClick={() => programRef.current?.handleDownload()}
-                        >
-                          <DownloadPngIcon />
-                        </Button>
-                        <ProgramDownload
-                          ref={programRef}
-                          backgroundUrl="/ProgramCover.png"
-                          programText={getProgramText()}
-                        />
-                      </div>
+                      {session?.user?.role === "регент" && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            isIconOnly
+                            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                            onClick={() => {
+                              const text = getProgramText();
+                              navigator.clipboard.writeText(text.trim());
+                            }}
+                          >
+                            <CopyIcon size={22} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            isIconOnly
+                            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                            onClick={() => programRef.current?.handleDownload()}
+                          >
+                            <DownloadPngIcon />
+                          </Button>
+                          <ProgramDownload
+                            ref={programRef}
+                            backgroundUrl="/ProgramCover.png"
+                            programText={getProgramText()}
+                          />
+                        </div>
+                      )}
                     </div>
                     <Card
                       className="mt-0 p-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl 
@@ -896,31 +927,22 @@ export const SideBarStack = ({ onPreview }) => {
                                   {stackSongs
                                     .filter((song) => !song.isReserve)
                                     .map((song, index) => (
-                                      <div
+                                      <SortableSong
                                         key={song.instanceId}
-                                        className="flex flex-col  gap-1 p-2 rounded-md bg-white/50"
-                                      >
-                                        <span className="input-header">
-                                          {index + 1}. {song.name}
-                                        </span>
-                                        <span className="text-sm input-header text-default-500">
-                                          {programSelected.includes("Музыка") &&
-                                          song.author
-                                            ? `муз. ${song.author}`
-                                            : ""}
-                                          {programSelected.includes("Слова") &&
-                                          song.authorLyrics
-                                            ? song.author === song.authorLyrics
-                                              ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                              : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                            : ""}
-                                          {programSelected.includes(
-                                            "Аранжировка",
-                                          ) && song.authorArrange
-                                            ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                            : ""}
-                                        </span>
-                                      </div>
+                                        song={song}
+                                        index={index}
+                                        onPreview={onPreview}
+                                        onRemove={(id) =>
+                                          setStackSongs((prev) =>
+                                            prev.filter(
+                                              (s) => s.instanceId !== id,
+                                            ),
+                                          )
+                                        }
+                                        onClick={() =>
+                                          handleSongClick(song.instanceId)
+                                        }
+                                      />
                                     ))}
 
                                   {stackSongs.filter((song) => song.isReserve)
@@ -936,34 +958,22 @@ export const SideBarStack = ({ onPreview }) => {
                                       {stackSongs
                                         .filter((song) => song.isReserve)
                                         .map((song, index) => (
-                                          <div
+                                          <SortableSong
                                             key={song.instanceId}
-                                            className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
-                                          >
-                                            <span className="input-header">
-                                              {index + 1}. {song.name}
-                                            </span>
-                                            <span className="text-sm input-header text-default-500">
-                                              {programSelected.includes(
-                                                "Музыка",
-                                              ) && song.author
-                                                ? `муз. ${song.author}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Слова",
-                                              ) && song.authorLyrics
-                                                ? song.author ===
-                                                  song.authorLyrics
-                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Аранжировка",
-                                              ) && song.authorArrange
-                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                                : ""}
-                                            </span>
-                                          </div>
+                                            song={song}
+                                            index={index}
+                                            onPreview={onPreview}
+                                            onRemove={(id) =>
+                                              setStackSongs((prev) =>
+                                                prev.filter(
+                                                  (s) => s.instanceId !== id,
+                                                ),
+                                              )
+                                            }
+                                            onClick={() =>
+                                              handleSongClick(song.instanceId)
+                                            }
+                                          />
                                         ))}
                                     </>
                                   )}

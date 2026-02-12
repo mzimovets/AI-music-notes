@@ -6,6 +6,8 @@ import {
   NavbarItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
+import { signOut } from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 import { Link } from "@heroui/link";
 
@@ -20,6 +22,7 @@ import { StackIcon } from "./icons/StackIcon";
 import ExitIcon from "./icons/ExitIcon";
 
 export const Navbar = () => {
+  const { data: session, status } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
 
@@ -35,8 +38,10 @@ export const Navbar = () => {
   };
 
   const handleExit = () => {
-    router.push("/authPage");
+    signOut({ callbackUrl: "/authPage" });
   };
+
+  const showStackButtons = session?.user?.role === "регент";
 
   return (
     <>
@@ -62,8 +67,9 @@ export const Navbar = () => {
           justify="end"
         >
           <NavbarItem className="hidden md:flex gap-4">
-            <ModalAddScore />
-            {!pathname.startsWith("/stack") &&
+            {showStackButtons && <ModalAddScore />}
+            {showStackButtons &&
+              !pathname.startsWith("/stack") &&
               !pathname.startsWith("/stackView") && (
                 <Button
                   onPress={handleOpenStack}

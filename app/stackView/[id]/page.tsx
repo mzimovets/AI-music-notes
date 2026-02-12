@@ -65,13 +65,6 @@ export default function Page() {
 
   return (
     <div>
-      <div
-        className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-50
-          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
-        `}
-      >
-        <SidebarButton />
-      </div>
       <SideBarStack onPreview={undefined} />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-50 
@@ -81,7 +74,7 @@ export default function Page() {
         <CloseButton />
       </div>
       <p className="flex flex-col text-default-500 text-center mt-2 justify-center font-header gap-2 text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-4xl">
-        Программа {stackResponse.doc?.name}
+        {stackResponse.doc?.name}
       </p>
       <div className="justify-center flex gap-2  mb-2">
         <p className="text-bold text-sm input-header justify-center text-default-500">
@@ -90,19 +83,23 @@ export default function Page() {
       </div>
       <SongsList songs={mainSongs} isReserved={false} />
 
-      <p className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
-        Резерв
-      </p>
-      <div className="justify-center flex gap-2  mb-2">
-        <p className="text-bold text-sm input-header justify-center text-default-500">
-          {reserveSongs.length} {getPluralForm(reserveSongs.length)}
-        </p>
-      </div>
-      <div className="justify-center flex gap-2 mb-6">
-        <p className="text-bold text-sm input-header justify-center text-default-500">
-          <SongsList songs={reserveSongs} isReserved={true} />
-        </p>
-      </div>
+      {reserveSongs.length > 0 && (
+        <>
+          <p className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+            Резерв
+          </p>
+
+          <div className="justify-center flex gap-2 mb-2">
+            <p className="text-bold text-sm input-header justify-center text-default-500">
+              {reserveSongs.length} {getPluralForm(reserveSongs.length)}
+            </p>
+          </div>
+
+          <div className="justify-center  gap-2 mb-6">
+            <SongsList songs={reserveSongs} isReserved={true} />
+          </div>
+        </>
+      )}
     </div>
   );
 }

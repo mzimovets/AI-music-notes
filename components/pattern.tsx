@@ -2,21 +2,24 @@ import React from "react";
 
 interface PatternProps {
   className?: string;
-  size?: number | string;
+  width?: number | string;
+  height?: number | string;
   gradientStart?: string;
   gradientEnd?: string;
 }
 
 export const Pattern: React.FC<PatternProps> = ({
   className,
-  size = "140",
+  width = 140,
+  height = 140,
   gradientStart = "#BD9673",
   gradientEnd = "#7D5E42",
 }) => (
   <svg
-    width={size}
-    height="auto"
+    width={width}
+    height={height}
     viewBox="0 0 198.927 183.33278"
+    preserveAspectRatio="xMidYMid meet"
     version="1.1"
     id="svg1"
     xmlSpace="preserve"

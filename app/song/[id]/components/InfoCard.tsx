@@ -17,8 +17,10 @@ import {
 } from "@heroui/modal";
 import { editSong, removeSong } from "@/actions/actions";
 import { Song } from "@/lib/types";
+import { useSession } from "next-auth/react";
 
 export const InfoCard = () => {
+  const { data: session } = useSession();
   const [isEdit, setIsEdit] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -144,17 +146,19 @@ export const InfoCard = () => {
               Удалить
             </Button>
           )}
-          <Button
-            onPress={handleEdit}
-            endContent={isEdit ? null : null}
-            className={`button-edit-font px-5 py-2.5 rounded-lg  transition-all ${
-              isEdit
-                ? "bg-gray-100 text-gray-600 hover:bg-gray-200 border"
-                : "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:shadow-lg"
-            }`}
-          >
-            {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
-          </Button>
+          {session?.user?.role === "регент" && (
+            <Button
+              onPress={handleEdit}
+              endContent={isEdit ? null : null}
+              className={`button-edit-font px-5 py-2.5 rounded-lg  transition-all ${
+                isEdit
+                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200 border"
+                  : "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:shadow-lg"
+              }`}
+            >
+              {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
+            </Button>
+          )}
         </CardHeader>
 
         <CardBody className="p-0">

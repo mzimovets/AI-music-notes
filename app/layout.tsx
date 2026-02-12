@@ -1,5 +1,7 @@
+"use client";
+import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
-import { Metadata, Viewport } from "next";
+import { metadata, viewport } from "./metadata";
 import { Link } from "@heroui/link";
 import clsx from "clsx";
 
@@ -9,21 +11,6 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
-
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  icons: {
-    icon: "/favicon.ico",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "white" }],
-};
 
 export default function RootLayout({
   children,
@@ -36,17 +23,24 @@ export default function RootLayout({
       lang="en"
       className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
     >
-      <head />
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#F7F4F1" />
+      </head>
+
       <body
         className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
       >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          <div className="relative flex flex-col">
-            <NavbarWrapper />
-            <MainWrapper>{children}</MainWrapper>
-            <footer className="w-full flex items-center justify-center py-3"></footer>
-          </div>
-        </Providers>
+        <SessionProvider>
+          <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
+            <div className="relative flex flex-col">
+              <NavbarWrapper />
+              <MainWrapper>{children}</MainWrapper>
+              <footer className="w-full flex items-center justify-center py-3"></footer>
+            </div>
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );

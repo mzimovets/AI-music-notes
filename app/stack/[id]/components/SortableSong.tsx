@@ -7,12 +7,14 @@ import { Card, Button } from "@heroui/react";
 import { TrashBinIcon } from "./icons/TrashBinIcon";
 import { DragIcon } from "./icons/DragIcon";
 import { EyeIcon } from "./icons/EyeIcon";
+import { useSession } from "next-auth/react";
 
 interface SortableSongProps {
   song: any;
   index: number;
   onRemove: (id: string) => void;
   onPreview: (song: any) => void;
+  onClick?: () => void; // добавляем optional onClick
 }
 
 export const SortableSong: React.FC<SortableSongProps> = ({
@@ -20,7 +22,11 @@ export const SortableSong: React.FC<SortableSongProps> = ({
   index,
   onRemove,
   onPreview,
+  onClick,
 }) => {
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
+
   const {
     attributes,
     listeners,
@@ -40,9 +46,15 @@ export const SortableSong: React.FC<SortableSongProps> = ({
   return (
     <div ref={setNodeRef} style={style} className="touch-none select-none">
       <Card
+        onClick={(e) => {
+          // Игнорируем клики по кнопкам (Eye, Trash, Drag) у регента
+          if ((e.target as HTMLElement).closest("button, div.cursor-grab"))
+            return;
+          if (onClick) onClick();
+        }}
         className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${
           isDragging ? "shadow-xl opacity-50" : "shadow-sm"
-        }`}
+        } cursor-pointer`}
       >
         <div className="flex flex-col overflow-hidden">
           <p className="text-bold text-sm capitalize text-left input-header truncate">
@@ -55,29 +67,33 @@ export const SortableSong: React.FC<SortableSongProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            radius="lg"
-            size="sm"
-            onClick={() => onPreview(song)}
-            className="min-w-0 px-3 bg-blue-50 text-blue-400 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-none"
-          >
-            <EyeIcon />
-          </Button>
-          <Button
-            radius="lg"
-            size="sm"
-            onPress={() => onRemove(song.instanceId)}
-            className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
-          >
-            <TrashBinIcon />
-          </Button>
-          <div
-            {...attributes}
-            {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-default-400 hover:text-default-600"
-          >
-            <DragIcon />
-          </div>
+          {isRegent && (
+            <>
+              <Button
+                radius="lg"
+                size="sm"
+                onClick={() => onPreview(song)}
+                className="min-w-0 px-3 bg-blue-50 text-blue-400 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-none"
+              >
+                <EyeIcon />
+              </Button>
+              <Button
+                radius="lg"
+                size="sm"
+                onPress={() => onRemove(song.instanceId)}
+                className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
+              >
+                <TrashBinIcon />
+              </Button>
+              <div
+                {...attributes}
+                {...listeners}
+                className="cursor-grab active:cursor-grabbing p-1 text-default-400 hover:text-default-600"
+              >
+                <DragIcon />
+              </div>
+            </>
+          )}
         </div>
       </Card>
     </div>
