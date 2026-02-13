@@ -109,6 +109,7 @@ import { useParams } from "next/navigation";
 import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
 import { DeleteModal } from "./DeleteModal";
 import { SidebarButton } from "./SidebarButton";
+import { socket } from "@/lib/socket";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
@@ -178,7 +179,17 @@ export const SideBarStack = ({ onPreview }) => {
       instanceId: `${Date.now()}-${Math.random()}`,
       isReserve: !!isReserve,
     };
-    setStackSongs((prev) => [...prev, newSongEntry]);
+    setStackSongs((prev) => {
+      const newStack = [...prev, newSongEntry];
+
+      // Отправка обновленного стека через socket
+      socket.emit("stack-updated", {
+        stackId: stackResponse.doc._id,
+        songs: newStack,
+      });
+
+      return newStack;
+    });
 
     // Только для песен в резерве
     if (isReserve && !programSelected.includes("reserved")) {
@@ -235,6 +246,7 @@ export const SideBarStack = ({ onPreview }) => {
           s.instanceId === active.id ? { ...s, isReserve: true } : s,
         ),
       );
+
       return;
     }
     // Перемещение из резерва в основную
@@ -256,7 +268,14 @@ export const SideBarStack = ({ onPreview }) => {
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(mainSongs, oldIndex, newIndex);
       const reserveSongs = stackSongs.filter((s) => s.isReserve);
-      setStackSongs([...moved, ...reserveSongs]);
+      const newOrder = [...moved, ...reserveSongs];
+      setStackSongs(newOrder);
+
+      socket.emit("stack-updated", {
+        stackId: stackResponse.doc?.id,
+        songs: newOrder,
+      });
+
       return;
     }
     // Перемещение внутри резерва
@@ -269,7 +288,15 @@ export const SideBarStack = ({ onPreview }) => {
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(reserveSongs, oldIndex, newIndex);
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
-      setStackSongs([...mainSongs, ...moved]);
+      const newOrder = [...mainSongs, ...moved];
+      setStackSongs(newOrder);
+
+      console.log("EMIT stack-updated", newOrder);
+      socket.emit("stack-updated", {
+        stackId: stackResponse.doc?.id,
+        songs: newOrder,
+      });
+
       return;
     }
   };
