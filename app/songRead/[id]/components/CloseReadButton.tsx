@@ -1,12 +1,22 @@
+"use client";
 import { Button } from "@heroui/button";
-import { CloseIcon } from "./icon/CloseIcon";
+import { CloseIcon } from "@/app/stackView/[id]/components/icon/CloseIcon";
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
-export const CloseButton = () => {
+export const CloseReadButton = () => {
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
+  console.log("id:", id);
   return (
     <Button
-      onPress={() => router.push("/")}
+      onPress={() => {
+        if (window.history.length > 1) {
+          router.back();
+        } else {
+          router.push("/song"); // или на страницу списка песен
+        }
+      }}
       isIconOnly
       type="button"
       className="

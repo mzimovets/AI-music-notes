@@ -494,7 +494,7 @@ export const SideBarStack = ({ onPreview }) => {
                         radius="lg"
                         size="sm"
                         onPress={save}
-                        className="min-w-0 px-3bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
+                        className="min-w-0 px-3 bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
                       >
                         <SaveIcon />
                       </Button>
