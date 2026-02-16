@@ -13,7 +13,7 @@ export default function Page() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
 
-  const toggleVisibility = () => setShowPassword(!showPassword);
+  const toggleVisibility = () => setShowPassword((prev) => !prev);
 
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -93,10 +93,11 @@ export default function Page() {
             errorMessage="Пожалуйста, введите пароль"
             className="input-header w-full max-w-sm"
             labelPlacement="outside"
+            classNames={{ endContent: "pointer-events-auto" }}
             endContent={
               <button
                 aria-label="toggle password visibility"
-                className="focus:outline-solid outline-transparent"
+                className="focus:outline-none"
                 type="button"
                 onClick={toggleVisibility}
               >
@@ -134,7 +135,7 @@ export default function Page() {
             </Button>
           </div>
         </Form>
-        <div className="absolute bottom-3 right-2 z-50">
+        <div className="absolute bottom-3 right-2 z-0 pointer-events-none">
           <Pattern
             width={124}
             height={120}

@@ -6,11 +6,12 @@ import { Link } from "@heroui/link";
 import clsx from "clsx";
 
 import { Providers } from "./providers";
-
+import "devextreme/dist/css/dx.fluent.blue.light.css";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
+import MyChat from "@/components/MyChat";
 
 export default function RootLayout({
   children,
@@ -38,6 +39,7 @@ export default function RootLayout({
               <NavbarWrapper />
               <MainWrapper>{children}</MainWrapper>
               <footer className="w-full flex items-center justify-center py-3"></footer>
+              <MyChat />
             </div>
           </Providers>
         </SessionProvider>
