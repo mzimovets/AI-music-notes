@@ -11,6 +11,7 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
+import AdaptedChatButton from "@/components/AdaptedChatButton";
 
 export default function RootLayout({
   children,
@@ -38,6 +39,7 @@ export default function RootLayout({
               <NavbarWrapper />
               <MainWrapper>{children}</MainWrapper>
               <footer className="w-full flex items-center justify-center py-3"></footer>
+              <AdaptedChatButton />
             </div>
           </Providers>
         </SessionProvider>
