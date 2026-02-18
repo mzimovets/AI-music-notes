@@ -1,13 +1,12 @@
 "use client";
-import ModalAddScore from "./home/modalAddScore";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState, useRef, useCallback } from "react";
+
 import React from "react";
-import { getData } from "@/lib/utils";
+import { getCategoryDisplay } from "@/lib/utils";
 import Albums from "./home/albums";
 import { SongsLibraryContextProvider } from "./providers";
-import { PdfViewer } from "./home/pdfViewer";
-import { Input, Tooltip, Chip, User } from "@heroui/react";
-import { Skeleton } from "@heroui/skeleton";
+
+import { Input, Tooltip, Pagination, Link, Button } from "@heroui/react";
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
 import {
@@ -19,66 +18,11 @@ import {
   TableCell,
 } from "@heroui/table";
 import { motion, AnimatePresence } from "framer-motion";
-
-export const columns = [
-  { name: "НАЗВАНИЕ", uid: "name" },
-  { name: "АВТОР, ОБРАБОТКА, АРАНЖИРОВКА", uid: "role" },
-  { name: "ACTIONS", uid: "actions" },
-];
-
-export const users = [
-  {
-    id: 1,
-    name: "В землянке",
-    role: "К. Листов",
-    type: "Военные песни",
-    team: "Т. Мезинова",
-    status: "active",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026024d",
-    email: "tony.reichert@example.com",
-  },
-  {
-    id: 2,
-    name: "Христос Воскрес",
-    role: "-",
-    type: "Пасхальные песни",
-    team: "Я. Яциневич",
-    status: "paused",
-    avatar: "https://i.pravatar.cc/150?u=a042581f4e29026704d",
-    email: "zoey.lang@example.com",
-  },
-  {
-    id: 3,
-    name: "Виноградная косточка",
-    role: "Б. Окуджава",
-    type: "Советские песни",
-    team: "Т. Мезинова",
-    status: "active",
-    avatar: "https://i.pravatar.cc/150?u=a04258114e29026702d",
-    email: "jane.fisher@example.com",
-  },
-  {
-    id: 4,
-    name: "Вот полк прошёл",
-    role: "-",
-    type: "Народные песни",
-    team: "Т. Мезинова",
-    status: "vacation",
-    avatar: "https://i.pravatar.cc/150?u=a048581f4e29026701d",
-    email: "william.howard@example.com",
-  },
-  {
-    id: 5,
-    name: "Колядочка",
-    role: "М. Цололо",
-    type: "Колядки",
-    team: "",
-    status: "active",
-
-    avatar: "https://i.pravatar.cc/150?u=a092581d4ef9026700d",
-    email: "kristen.cooper@example.com",
-  },
-];
+import { LoadingCamerton } from "@/components/LoadingCamerton";
+import { EmptyIcon } from "../components/icons/EmptyIcon";
+import { StackCard } from "./home/StackCard";
+import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
+import { DownArrIcon } from "@/components/icons/DownArrIcon";
 
 export const EyeIcon = (props) => {
   return (
@@ -201,120 +145,388 @@ export const EditIcon = (props) => {
   );
 };
 
-const statusColorMap = {
-  active: "success",
-  paused: "danger",
-  vacation: "warning",
-};
+export const columns = [
+  { name: "НАЗВАНИЕ", uid: "name", align: "start" },
+  { name: "АВТОР", uid: "role", align: "center" },
+  { name: "ДЕЙСТВИЯ", uid: "actions", align: "end" },
+];
 
 export default function Home() {
-  const albumsPromise = getData();
+  const albumsPromise = new Promise((resolve) => resolve(null));
+  const [allSongs, setAllSongs] = useState([]);
+  const [stacks, setStacks] = useState([]);
+  const [filteredSongs, setFilteredSongs] = useState([]);
   const [showTable, setShowTable] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [showStacks, setShowStacks] = useState(false);
 
-  const handleInputClick = () => {
-    setShowTable(true);
+  const tableRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        showTable &&
+        tableRef.current &&
+        !tableRef.current.contains(event.target) &&
+        inputRef.current &&
+        !inputRef.current.contains(event.target)
+      ) {
+        setShowTable(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTable]);
+
+  useEffect(() => {
+    const fetchAllSongs = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch("http://localhost:4000/songs");
+        const data = await response.json();
+
+        if (data.status === "ok" && data.docs) {
+          const songs = data.docs
+            .filter((song) => song.docType === "song")
+            .map((song) => ({
+              _id: song._id,
+              name: song.doc?.name || song.name || "",
+              author: song.doc?.author || song.author || "",
+              authorLyrics: song.doc?.authorLyrics || song.authorLyrics || "",
+              authorArrange:
+                song.doc?.authorArrange || song.authorArrange || "",
+              category: song.doc?.category || song.category || "",
+              file: song.doc?.file || song.file || {},
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+          setAllSongs(songs);
+          setFilteredSongs(songs);
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке песен:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const fetchAllStacks = async () => {
+      try {
+        const response = await fetch("http://localhost:4000/stacks");
+        const data = await response.json();
+
+        if (data.status === "ok" && data.docs) {
+          console.log("stacks", data.docs);
+          setStacks(data.docs);
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке stacks:", error);
+      } finally {
+        // setIsLoading(false);
+      }
+    };
+
+    fetchAllSongs();
+    fetchAllStacks();
+  }, []);
+
+  const searchSongs = (searchText) => {
+    if (!searchText.trim()) {
+      setFilteredSongs(allSongs);
+      return;
+    }
+
+    const lowerSearch = searchText.toLowerCase().trim();
+
+    const results = allSongs.filter((song) => {
+      const nameMatch = song.name.toLowerCase().includes(lowerSearch);
+
+      const authorMatch =
+        song.author && song.author.toLowerCase().includes(lowerSearch);
+
+      return nameMatch || authorMatch;
+    });
+
+    results.sort((a, b) => {
+      const aNameLower = a.name.toLowerCase();
+      const bNameLower = b.name.toLowerCase();
+      const aAuthorLower = a.author ? a.author.toLowerCase() : "";
+      const bAuthorLower = b.author ? b.author.toLowerCase() : "";
+
+      const aNameStartsWith = aNameLower.startsWith(lowerSearch);
+      const bNameStartsWith = bNameLower.startsWith(lowerSearch);
+      if (aNameStartsWith && !bNameStartsWith) return -1;
+      if (!aNameStartsWith && bNameStartsWith) return 1;
+
+      const aAuthorStartsWith = aAuthorLower.startsWith(lowerSearch);
+      const bAuthorStartsWith = bAuthorLower.startsWith(lowerSearch);
+      if (aAuthorStartsWith && !bAuthorStartsWith) return -1;
+      if (!aAuthorStartsWith && bAuthorStartsWith) return 1;
+
+      const aNameIncludes = aNameLower.includes(lowerSearch);
+      const bNameIncludes = bNameLower.includes(lowerSearch);
+      if (aNameIncludes && !bNameIncludes) return -1;
+      if (!aNameIncludes && bNameIncludes) return 1;
+
+      const aAuthorIncludes = aAuthorLower.includes(lowerSearch);
+      const bAuthorIncludes = bAuthorLower.includes(lowerSearch);
+      if (aAuthorIncludes && !bAuthorIncludes) return -1;
+      if (!aAuthorIncludes && bAuthorIncludes) return 1;
+
+      return aNameLower.localeCompare(bNameLower, "ru");
+    });
+
+    setFilteredSongs(results);
   };
 
-  const renderCell = React.useCallback((user, columnKey) => {
-    const cellValue = user[columnKey];
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchValue(value);
 
+    searchSongs(value);
+
+    setShowTable(value.trim().length > 0);
+  };
+
+  const handleInputClick = () => {
+    if (searchValue.trim().length > 0) {
+      setShowTable(true);
+    }
+  };
+  const downloadFile = (song) => {
+    if (!song.file?.filename) {
+      console.error("Файл не найден");
+      return;
+    }
+
+    const fileUrl = `/scores/${song.file.filename}`;
+
+    const link = document.createElement("a");
+    link.href = fileUrl;
+    link.download = song.file.filename || `песня_${song.name}.pdf`;
+    link.target = "_blank";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const renderCell = useCallback((song, columnKey) => {
     switch (columnKey) {
       case "name":
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{cellValue}</p>
-            <p className="text-bold text-sm capitalize text-default-400">
-              {user.type}
-            </p>
-          </div>
+          <Link href={`/song/${song._id}`} className="text-foreground">
+            <div className="flex flex-col">
+              <p className="text-bold text-sm capitalize text-left">
+                {song.name}
+              </p>
+              <p className="text-bold text-sm capitalize text-default-400 text-left">
+                {getCategoryDisplay(song.category, "full")}
+              </p>
+            </div>
+          </Link>
         );
       case "role":
         return (
-          <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize">{cellValue}</p>
-            <p className="text-bold text-sm capitalize text-default-400">
-              {user.team}
-            </p>
-          </div>
-        );
-      case "status":
-        return (
-          <Chip
-            className="capitalize"
-            color={statusColorMap[user.status]}
-            size="sm"
-            variant="flat"
-          >
-            {cellValue}
-          </Chip>
+          <Link href={`/song/${song._id}`} className="text-foreground">
+            <div className="flex flex-col items-center justify-center">
+              <p className="text-bold text-sm capitalize text-center">
+                {song.author || "-"}
+              </p>
+            </div>
+          </Link>
         );
       case "actions":
         return (
-          <div className="relative flex items-center gap-2">
-            <Tooltip content="Details">
+          <div className="relative flex items-center justify-end gap-4">
+            <Tooltip content="Share">
               <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <EyeIcon />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"
+                  />
+                </svg>
               </span>
             </Tooltip>
-            {/* <Tooltip content="Edit user">
-              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
-                <EditIcon />
+            <Tooltip content="Download">
+              <span
+                className="text-lg text-default-400 cursor-pointer active:opacity-50"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  downloadFile(song);
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"
+                  />
+                </svg>
               </span>
-            </Tooltip> */}
-            <Tooltip color="danger" content="Delete user">
-              <span className="text-lg text-danger cursor-pointer active:opacity-50">
-                <DeleteIcon />
+            </Tooltip>
+            <Tooltip content="Print">
+              <span className="text-lg text-default-400 cursor-pointer active:opacity-50">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="size-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z"
+                  />
+                </svg>
               </span>
             </Tooltip>
           </div>
         );
       default:
-        return cellValue;
+      // return cellValue;
     }
   }, []);
 
+  const [page, setPage] = React.useState(1);
+  const rowsPerPage = 4;
+
+  const pages = Math.ceil(filteredSongs.length / rowsPerPage);
+
+  const items = React.useMemo(() => {
+    const start = (page - 1) * rowsPerPage;
+    const end = start + rowsPerPage;
+
+    return filteredSongs.slice(start, end);
+  }, [page, filteredSongs, rowsPerPage]);
+
   return (
     <SongsLibraryContextProvider albumsPromise={albumsPromise}>
-      <div className="flex flex-col text-center justify-center font-header gap-4">
-        Заголовок
+      <div className="flex flex-col text-center justify-center font-header gap-4 relative mt-4">
         <Input
+          ref={inputRef}
           type="search"
           placeholder="Поиск"
-          endContent={<SearchIcon className="text-default-400" />}
+          value={searchValue}
+          onChange={handleSearchChange}
+          onClick={handleInputClick}
+          isClearable
+          onClear={() => {
+            setSearchValue("");
+            setFilteredSongs(allSongs);
+            setShowTable(false);
+          }}
+          startContent={
+            <div className="mr-2">
+              {" "}
+              <SearchIcon className="text-default-400" />
+            </div>
+          }
           className="w-100 mx-auto"
           classNames={{
             inputWrapper: "bg-[#FFFAF5] rounded-md",
             input: "text-sm",
+            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
           }}
-          onClick={handleInputClick}
         />
         <Monogram className="h-6 w-auto" />
         <AnimatePresence>
           {showTable && (
             <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
+              ref={tableRef}
+              initial={{ opacity: 0, scale: 0.95, y: -20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
+              className="rounded-xl absolute top-1/7 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-8 z-50"
             >
               <Table
+                isStriped
                 aria-label="Example table with custom cells"
-                className="mt-4 w-144 w-auto"
+                className="mt-4 w-150 m-3 bg-white rounded-lg shadow-xl p-1"
+                bottomContent={
+                  pages > 1 ? (
+                    <Pagination
+                      onChange={(page) => setPage(page)}
+                      total={pages}
+                      page={page}
+                      className="pb-4"
+                      classNames={{
+                        wrapper: "font-header",
+                        item: [
+                          "font-pagination",
+                          "text-gray-700",
+                          "data-[hover=true]:text-white",
+                          "data-[hover=true]:bg-gradient-to-r",
+                          "data-[hover=true]:from-[#BD9673]",
+                          "data-[hover=true]:to-[#7D5E42]",
+                          "transition-colors duration-200",
+                        ].join(" "),
+                        cursor: [
+                          "font-pagination",
+                          "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                          "text-white",
+                          "font-bold",
+                          "shadow-lg",
+                        ].join(" "),
+                      }}
+                    />
+                  ) : null
+                }
               >
                 <TableHeader columns={columns}>
                   {(column) => (
                     <TableColumn
                       key={column.uid}
-                      align={column.uid === "actions" ? "center" : "start"}
+                      align={column.align || "start"}
+                      className="w-1/3"
                     >
                       {column.name}
                     </TableColumn>
                   )}
                 </TableHeader>
-                <TableBody items={users}>
+                <TableBody
+                  items={items}
+                  emptyContent={
+                    <div className="py-10 text-center">
+                      <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
+                        <EmptyIcon />
+                      </div>
+                      <p className="text-gray-500 text-lg font-medium mb-2">
+                        Ничего не найдено
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        Попробуйте изменить запрос
+                      </p>
+                    </div>
+                  }
+                >
                   {(item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item._id}>
                       {(columnKey) => (
                         <TableCell>{renderCell(item, columnKey)}</TableCell>
                       )}
@@ -326,17 +538,67 @@ export default function Home() {
           )}
         </AnimatePresence>
       </div>
-      <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
-        Стопки (?)
-      </div>
-      <div className="pl-68 pb-0 flex flex-col font-header gap-4 md:py-6">
+      {stacks.length > 0 && (
+        <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
+          {/* Оборачиваем текст в span с курсором */}
+          <div
+            onClick={() => setShowStacks((prev) => !prev)}
+            className="leading-none cursor-pointer select-none"
+          >
+            Стопки
+          </div>
+
+          {stacks.length > 4 && (
+            <Button
+              isIconOnly
+              type="button"
+              onPress={(e) => {
+                setShowStacks((prev) => !prev);
+              }}
+              className="
+      flex items-center justify-center
+      h-8 w-8 p-0
+      bg-transparent border-none shadow-none
+      text-black
+      transition-transform duration-200
+      hover:scale-110
+      focus:outline-none
+      active:outline-none
+    "
+              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+            >
+              {showStacks ? (
+                <DownArrIcon width={18} height={18} className="text-black" />
+              ) : (
+                <LeftArrIcon width={18} height={18} className="text-black" />
+              )}
+            </Button>
+          )}
+        </div>
+      )}
+      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
+        <AnimatePresence initial={false}>
+          {(showStacks || stacks.length <= 4) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
+                <StackCard stacks={stacks} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </section>
+
+      <div className="pl-32 pb-0 flex flex-col font-header gap-4 mt-8">
         Песни
       </div>
+      {/* <LoadingCamerton /> */}
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
-        <div className="inline-block max-w-xl text-center justify-center">
-          {/* <ModalAddScore /> */}
-        </div>
-
         <Suspense>
           <Albums />
         </Suspense>

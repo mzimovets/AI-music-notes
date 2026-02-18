@@ -1,13 +1,24 @@
 import { database } from "../index.js";
 
-export const usersRoutes = (app) => {
-  app.get("/user/:userId", (req, res) => {
-    database.findOne({ _id: req.params.userId }, (err, doc) => {
-      console.log("getting user: ", req.params.userId);
+export const usersRoutes = (app, urlencodedParser) => {
+  app.get("/user/:username", (req, res) => {
+    const identifier = req.params.username;
+    console.log("GET /user/:username called with username:", identifier);
+    const query = { username: identifier };
+    database.findOne(query, (err, doc) => {
       if (err) {
-        console.log("no find", err);
+        console.log("Error finding user:", err);
+        return res.status(500).json({ error: err });
       }
-      res.json({ status: "ok", doc });
+      if (doc) {
+        if (!doc.role) {
+          doc.role = "user";
+        }
+        console.log("Found user:", doc);
+      } else {
+        console.log("User not found for username:", identifier);
+      }
+      res.json({ doc }); // doc должен содержать password (хеш) и role
     });
   });
 
@@ -21,7 +32,7 @@ export const usersRoutes = (app) => {
     });
   });
 
-  app.post("/user/:userId", (req, res) => {
+  app.post("/user/:userId", urlencodedParser, (req, res) => {
     database.insert({ _id: req.params.userId, ...req.body }, (err, doc) => {
       console.log("adding user: ", req.params.userId);
       if (err) {
@@ -31,7 +42,7 @@ export const usersRoutes = (app) => {
     });
   });
 
-  app.put("/user/:userId", (req, res) => {
+  app.put("/user/:userId", urlencodedParser, (req, res) => {
     database.update({ _id: req.params.userId, ...req.body }, (err, doc) => {
       console.log("edited user: ", req.params.userId);
       if (err) {

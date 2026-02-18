@@ -13,12 +13,26 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
 
   app.get("/songs", (req, res) => {
     database.find({ docType: "song" }, (err, docs) => {
-      console.log("getting songs: ", docs);
+      // console.log("getting songs: ", docs);
       if (err) {
         console.log("err", err);
       }
       res.json({ status: "ok", docs });
     });
+  });
+
+  app.get("/songs/:category", (req, res) => {
+    console.log("GET songs category", req.params);
+    database.find(
+      { docType: "song", category: req.params.category },
+      (err, docs) => {
+        console.log("getting songs: ", docs);
+        if (err) {
+          console.log("err", err);
+        }
+        res.json({ status: "ok", docs });
+      },
+    );
   });
 
   // Add Multer middleware
@@ -36,16 +50,47 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
         }
         res.json({ status: "ok", doc });
       });
-    }
+    },
   );
 
-  app.put("/song/:songId", urlencodedParser, (req, res) => {
-    database.update({ _id: req.params.songId, ...req.body }, (err, doc) => {
-      console.log("edited song: ", req.params.songId);
+  app.post(
+    "/song/:songId/:update",
+    urlencodedParser,
+    upload.single("file"),
+    (req, res) => {
+      const serverSong = { ...req.body };
+      if (req.file && typeof req.file !== "string") {
+        serverSong.file = req.file;
+        console.log("req.file", req.file);
+      }
+      console.log(req.params._id);
+      database.update(
+        { _id: req.params.songId },
+        { $set: { ...serverSong } },
+        (err, doc) => {
+          console.log("edited song: ", req.params.songId);
+          if (err) {
+            console.log("err", err);
+          }
+          res.json({ status: "ok", doc });
+        },
+      );
+    },
+  );
+
+  app.get("/song/:songId/:delete", urlencodedParser, (req, res) => {
+    console.log(
+      "deleting song on server",
+      req.params.songId,
+      req.params.delete,
+    );
+    database.remove({ _id: req.params.songId }, (err, num) => {
+      console.log("deleting song: ", req.params.songId, num);
       if (err) {
         console.log("err", err);
       }
-      res.json({ status: "ok", doc });
+      // Добавить удаление файла
+      res.json({ status: "ok", num });
     });
   });
 };

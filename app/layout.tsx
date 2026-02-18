@@ -1,5 +1,7 @@
+"use client";
+import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
-import { Metadata, Viewport } from "next";
+import { metadata, viewport } from "./metadata";
 import { Link } from "@heroui/link";
 import clsx from "clsx";
 
@@ -7,22 +9,8 @@ import { Providers } from "./providers";
 
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
-import { Navbar } from "@/components/navbar";
-
-export const metadata: Metadata = {
-  title: {
-    default: siteConfig.name,
-    template: `%s - ${siteConfig.name}`,
-  },
-  description: siteConfig.description,
-  icons: {
-    icon: "/favicon.ico",
-  },
-};
-
-export const viewport: Viewport = {
-  themeColor: [{ media: "(prefers-color-scheme: light)", color: "white" }],
-};
+import { NavbarWrapper } from "./NavbarWrapper";
+import { MainWrapper } from "./MainWrapper";
 
 export default function RootLayout({
   children,
@@ -30,24 +18,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html suppressHydrationWarning lang="en">
-      <head />
+    <html
+      suppressHydrationWarning
+      lang="en"
+      className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
+    >
+      <head>
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#F7F4F1" />
+      </head>
+
       <body
-        className={clsx(
-          "min-h-screen text-foreground font-sans antialiased bg-page",
-          fontSans.variable
-        )}
+        className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
       >
-        <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
-          <div className="relative flex flex-col h-screen">
-            <Navbar />
-            <div className="h-[1px] w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42]"></div>
-            <main className="container mx-auto max-w-7xl pt-4 px-6 flex-grow">
-              {children}
-            </main>
-            <footer className="w-full flex items-center justify-center py-3"></footer>
-          </div>
-        </Providers>
+        <SessionProvider>
+          <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
+            <div className="relative flex flex-col">
+              <NavbarWrapper />
+              <MainWrapper>{children}</MainWrapper>
+              <footer className="w-full flex items-center justify-center py-3"></footer>
+            </div>
+          </Providers>
+        </SessionProvider>
       </body>
     </html>
   );
