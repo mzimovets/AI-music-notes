@@ -1,3 +1,4 @@
+"use client";
 import { Button } from "@heroui/button";
 import {
   Modal,
@@ -6,13 +7,16 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
-import { CloseIcon } from "./icon/CloseIcon";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { CloseIcon } from "@/app/stackView/[id]/components/icon/CloseIcon";
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 
-export const CloseButton = () => {
+export const CloseReadButton = () => {
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
   const [isOpen, setIsOpen] = useState(false);
+  console.log("id:", id);
   return (
     <>
       <Button
@@ -51,7 +55,7 @@ export const CloseButton = () => {
               </ModalHeader>
 
               <ModalBody className="text-center">
-                Вы уверены, что хотите выйти?
+                Вы уверены, что хотите выйти из просмотра?
               </ModalBody>
 
               <ModalFooter className="flex justify-center gap-4">
@@ -64,7 +68,11 @@ export const CloseButton = () => {
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                   onPress={() => {
                     onClose();
-                    router.push("/");
+                    if (window.history.length > 1) {
+                      router.back();
+                    } else {
+                      router.push("/song");
+                    }
                   }}
                 >
                   Закрыть

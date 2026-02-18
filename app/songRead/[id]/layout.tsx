@@ -2,7 +2,7 @@ import React from "react";
 import { getStackById } from "@/lib/stack-requests";
 import { StackContextProvider } from "@/app/stack/[id]/components/StackContextProvider";
 
-export default async function StackViewLayout({ children, params }) {
+export default async function SongReadLayout({ children, params }) {
   const { id } = await params; // <-- обязательно await
   const stack = await getStackById(id);
 

@@ -1,5 +1,6 @@
 import React from "react";
 import { Card } from "@heroui/card";
+import { Button } from "@heroui/button";
 import { Monogram } from "@/components/monogram";
 import { InfoCard } from "./components/InfoCard";
 import { DocViewer } from "./components/DocViewer";
@@ -9,6 +10,8 @@ import { SongContextProvider } from "./SongContextProvider";
 
 import { SongActions } from "./components/SongActions";
 import { NavBackButton } from "@/app/playlist/[category]/components/NavBackButton";
+import { EyeIcon } from "@/components/icons/EyeIcon";
+import { EyeSongPageView } from "@/components/EyeSongPageView";
 
 export default async function PricingPage({
   params,
@@ -32,9 +35,15 @@ export default async function PricingPage({
           </p>
           <p className="font-pheader text-center">{song.doc.author}</p>
           {song.doc.file?.filename && (
-            <DocViewer
-              fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
-            />
+            <div className="relative inline-block">
+              <DocViewer
+                fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
+              />
+              <EyeSongPageView
+                songId={id}
+                className="absolute top-4 right-2 z-10"
+              />
+            </div>
           )}
         </div>
         <Card className="fixed items-center justify-center gap-6 left-0 top-70 h-50 w-20 p-2 shadow-lg rounded-tr-lg rounded-br-lg rounded-tl-none rounded-bl-none rounded-r-2xl">
