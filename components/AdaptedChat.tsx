@@ -19,30 +19,30 @@ export default function AdaptedChat({ userId }: ChatProps) {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
 
-  useEffect(() => {
-    const s = io("http://localhost:3001");
-    setSocket(s);
+  // useEffect(() => {
+  //   const s = io("http://localhost:3001");
+  //   setSocket(s);
 
-    s.on("connect", () => console.log("Connected to Socket.IO"));
-    s.on("chat message", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
+  //   s.on("connect", () => console.log("Connected to Socket.IO"));
+  //   s.on("chat message", (msg) => {
+  //     setMessages((prev) => [...prev, msg]);
+  //   });
 
-    return () => s.disconnect();
-  }, []);
+  //   return () => s.disconnect();
+  // }, []);
 
-  function sendMessage(text: string) {
-    if (!socket || !text.trim()) return;
+  // function sendMessage(text: string) {
+  //   if (!socket || !text.trim()) return;
 
-    const msg = {
-      message: text,
-      sender: userId,
-      timestamp: new Date().toISOString(),
-    };
+  //   const msg = {
+  //     message: text,
+  //     sender: userId,
+  //     timestamp: new Date().toISOString(),
+  //   };
 
-    socket.emit("chat message", msg);
-    setMessages((prev) => [...prev, msg]);
-  }
+  //   socket.emit("chat message", msg);
+  //   setMessages((prev) => [...prev, msg]);
+  // }
 
   return (
     <MainContainer style={{ height: 400, width: 360 }}>

@@ -37,6 +37,6 @@ io.on("connection", (socket) => {
   socket.on("error", (err) => console.error("Socket error:", err));
 });
 
-server.listen(3001, () =>
-  console.log("Socket.IO server running on http://localhost:3001"),
-);
+// server.listen(3001, () =>
+//   console.log("Socket.IO server running on http://localhost:3001"),
+// );
