@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { SaveIcon } from "./components/icons/SaveIcon";
 import { PublishIcon } from "./components/icons/PublishIcon";
 import { mealFilesMap } from "./constants";
+import { StackName } from "./components/StackName";
 
 type ActionButtonProps = {
   children: React.ReactNode;
@@ -65,6 +66,7 @@ export default function StackPage() {
     setMealType,
     programSelected,
     setProgramSelected,
+    stackName,
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export default function StackPage() {
       isPublished: false,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackResponse.doc?.name,
+      name: stackName,
     });
 
     router.push(`/`);
@@ -126,7 +128,7 @@ export default function StackPage() {
       isPublished: true,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackResponse.doc?.name,
+      name: stackName,
     });
 
     router.push(`/`);
@@ -141,7 +143,7 @@ export default function StackPage() {
       <Sidebar2 onPreview={handlePreview} />
 
       <p className="flex flex-col text-center justify-center font-header gap-2 mb-2 text-lg sm:text-xl md:text-2xl">
-        {stackResponse.doc?.name}
+        <StackName />
       </p>
 
       <div className="mt-2 mb-4 flex justify-center">

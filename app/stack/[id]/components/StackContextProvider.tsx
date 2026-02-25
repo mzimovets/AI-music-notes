@@ -14,6 +14,7 @@ export function StackContextProvider({
   children: React.ReactNode;
   stackResponse: { status: string; doc: StackSong };
 }) {
+  const [stackName, setStackName] = useState("");
   const [stackSongs, setStackSongs] = useState([]);
   const [mealType, setMealType] = useState<string | null>(null);
   const [programSelected, setProgramSelected] = useState<string[]>([]);
@@ -37,6 +38,8 @@ export function StackContextProvider({
         setMealType,
         programSelected,
         setProgramSelected,
+        stackName,
+        setStackName,
       }}
     >
       {children}
