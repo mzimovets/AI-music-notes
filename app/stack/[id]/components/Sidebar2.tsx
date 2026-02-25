@@ -174,11 +174,6 @@ export const Sidebar2 = ({ onPreview }) => {
   // --- Авто-флаг для резервного чипа: чип снимается один раз, когда резерв пуст, но доступен для повторного включения ---
   const [reserveAutoDisabled, setReserveAutoDisabled] = useState(false);
   useEffect(() => {
-    console.log(
-      "RSV programSelected, stackSongs: ",
-      programSelected,
-      stackSongs,
-    );
     const reserveSongsExist = stackSongs.some((s) => s.isReserve);
 
     // Если резерв пуст и чип включен и авто-снятие ещё не выполнено
@@ -187,7 +182,6 @@ export const Sidebar2 = ({ onPreview }) => {
       (programSelected.includes("reserved") && programSelected.length === 1);
 
     if (programSelected.includes("reserved") && !reserveSongsExist) {
-      console.log("RSV ejrgnkjengr");
       setProgramSelected((prev) => {
         return prev.filter((v) => v !== "reserved");
       });
@@ -259,7 +253,7 @@ export const Sidebar2 = ({ onPreview }) => {
 
   const filteredSongs = songslist?.filter((song) => {
     const search = searchValue.toLowerCase();
-    console.log("song: ", song.authorArrange);
+
     return (
       song.name.toLowerCase().includes(search) ||
       song.author.toLowerCase().includes(search)
@@ -600,7 +594,6 @@ export const Sidebar2 = ({ onPreview }) => {
                                     ...prev,
                                     "Резерв",
                                   ]);
-                                  console.log("RSV добавили резерв");
                                 }
                               }}
                             >

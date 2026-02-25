@@ -22,7 +22,7 @@ export default function ModalFilePreviewer({
       setPageNum(1);
     }
   }, [isOpen]);
-  console.log("Viewer: ", Viewer);
+
   return (
     <Modal
       isOpen={isOpen}

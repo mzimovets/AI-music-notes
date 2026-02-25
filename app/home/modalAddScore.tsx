@@ -411,7 +411,6 @@ export default function ModalAddScore() {
     setIsSaved(true);
 
     const response = await addSong(data, window.location.pathname);
-    console.log("addSongWin: ", window.location.pathname);
 
     addToast({
       title: <span className="font-bold text-white">Партитура добавлена</span>,
@@ -571,7 +570,6 @@ export default function ModalAddScore() {
                   <div className="mt-4">
                     <MyDropzone
                       onFileSelect={(file) => {
-                        console.log("TER file: ", file);
                         setSelectedFile(file);
                         if (validationErrors.file)
                           setValidationErrors((prev) => ({

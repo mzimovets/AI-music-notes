@@ -25,29 +25,16 @@ export default function Page() {
     setProgramSelected,
   } = useStackContext();
 
-  console.log("CONTEXT", {
-    stackResponse,
-    stackSongs,
-    removeSong,
-    setStackSongs,
-    mealType,
-    setMealType,
-    programSelected,
-    setProgramSelected,
-  });
-
   const [joined, setJoined] = useState(false);
 
   useEffect(() => {
     if (!stackResponse?.doc?._id || joined) return;
 
     const stackId = stackResponse.doc._id;
-    console.log("JOIN ROOM:", stackId);
 
     socket.emit("join-stack", stackId);
 
     const handleUpdate = (updatedSongs) => {
-      console.log("RECEIVED:", updatedSongs);
       setStackSongs(updatedSongs);
     };
 

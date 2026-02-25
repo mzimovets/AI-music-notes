@@ -63,16 +63,12 @@ export const InfoCard = () => {
       data.file = selectedFile;
     }
 
-    console.log("dataNew: ", data);
     const editSaveSong = await editSong(song.doc._id, data);
-    console.log("editSong:", editSaveSong);
     setIsEdit(false);
-    console.log("selectedFile: ", selectedFile);
   };
 
   const handleFileSelect = (file: File | null) => {
     setSelectedFile(file);
-    console.log("file: ", file);
   };
   const handleClosePreview = () => setIsPreviewModalOpen(false);
 
@@ -86,7 +82,7 @@ export const InfoCard = () => {
       setIsDeleting(true);
       // Здесь добавьте запрос на удаление песни
       const response = await removeSong(song.doc._id);
-      console.log("response", response);
+
       if (response) {
         router.push(`/playlist/${song.doc.category}`);
         router.refresh();

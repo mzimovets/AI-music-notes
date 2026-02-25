@@ -12,7 +12,6 @@ export const NavBackButton = () => {
     <div>
       <Button
         onPress={() => {
-          console.log("click nav");
           router.push("/");
         }}
         isIconOnly

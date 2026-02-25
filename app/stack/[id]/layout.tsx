@@ -5,7 +5,7 @@ import { getStackById } from "@/lib/stack-requests";
 
 export default async function StackLayout({ children, params }) {
   const stack = await getStackById(params.id);
-  console.log("GET Stack", params.id, stack);
+
   return (
     <StackContextProvider stackResponse={stack}>
       <div>

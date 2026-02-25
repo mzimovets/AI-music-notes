@@ -6,7 +6,7 @@ export const StackCard = ({ stacks }) => {
   const router = useRouter();
   const { data: session } = useSession();
   const isRegent = session?.user?.role === "регент";
-  console.log("stacks", stacks);
+
   const fillCard = (stack) => (
     <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
       <Card

@@ -202,11 +202,6 @@ export const SideBarStack = ({ onPreview }) => {
   // --- Авто-флаг для резервного чипа: чип снимается один раз, когда резерв пуст, но доступен для повторного включения ---
   const [reserveAutoDisabled, setReserveAutoDisabled] = useState(false);
   useEffect(() => {
-    console.log(
-      "RSV programSelected, stackSongs: ",
-      programSelected,
-      stackSongs,
-    );
     const reserveSongsExist = stackSongs.some((s) => s.isReserve);
 
     // Если резерв пуст и чип включен и авто-снятие ещё не выполнено
@@ -215,7 +210,6 @@ export const SideBarStack = ({ onPreview }) => {
       (programSelected.includes("reserved") && programSelected.length === 1);
 
     if (programSelected.includes("reserved") && !reserveSongsExist) {
-      console.log("RSV ejrgnkjengr");
       setProgramSelected((prev) => {
         return prev.filter((v) => v !== "reserved");
       });
@@ -232,7 +226,6 @@ export const SideBarStack = ({ onPreview }) => {
 
   // Новый handleDragEnd для двух SortableContext
   const handleDragEnd = (event) => {
-    console.log("event drag", event);
     const { active, over } = event;
     if (!over) return;
 
@@ -263,7 +256,6 @@ export const SideBarStack = ({ onPreview }) => {
 
     const overSong = stackSongs.find((s) => s.instanceId === over.id);
 
-    console.log("overSong", overSong, activeSong);
     if (overSong.isReserve) {
       // Делаем activeSong isReserved = true
       // и перемещаем.
@@ -315,7 +307,6 @@ export const SideBarStack = ({ onPreview }) => {
       const newOrder = [...mainSongs, ...moved];
       setStackSongs(newOrder);
 
-      console.log("EMIT stack-updated", newOrder);
       socket.emit("stack-updated", {
         stackId: stackResponse.doc?.id,
         songs: newOrder,
@@ -327,7 +318,7 @@ export const SideBarStack = ({ onPreview }) => {
 
   const filteredSongs = songslist?.filter((song) => {
     const search = searchValue.toLowerCase();
-    console.log("song: ", song.authorArrange);
+
     return (
       song.name.toLowerCase().includes(search) ||
       song.author.toLowerCase().includes(search)
@@ -433,13 +424,7 @@ export const SideBarStack = ({ onPreview }) => {
       id: params.id,
       name: stackResponse.doc?.name,
     });
-    console.log("resp", resp);
   };
-
-  console.log(
-    "stackSongs.map((s) => s.instanceId)",
-    stackSongs.map((s) => s.instanceId),
-  );
 
   return (
     <>
@@ -721,7 +706,6 @@ export const SideBarStack = ({ onPreview }) => {
                                         ...prev,
                                         "Резерв",
                                       ]);
-                                      console.log("RSV добавили резерв");
                                     }
                                   }}
                                 >

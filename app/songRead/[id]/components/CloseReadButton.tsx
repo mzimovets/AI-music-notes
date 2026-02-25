@@ -16,7 +16,7 @@ export const CloseReadButton = () => {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
   const [isOpen, setIsOpen] = useState(false);
-  console.log("id:", id);
+
   return (
     <>
       <Button

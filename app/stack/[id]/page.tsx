@@ -172,7 +172,7 @@ export default function StackPage() {
       id: params.id,
       name: stackResponse.doc?.name,
     });
-    console.log("resp", resp);
+
     router.push(`/`);
   };
 
@@ -186,15 +186,12 @@ export default function StackPage() {
       id: params.id,
       name: stackResponse.doc?.name,
     });
-    console.log("resp", resp);
+
     router.push(`/`);
   };
 
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
-
-  console.log("mainsongs: ", mainSongs);
-  console.log("mealFilesMap: ", mealFilesMap[mealType]);
 
   return (
     <>

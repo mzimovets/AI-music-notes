@@ -13,7 +13,7 @@ export const useTableCell = () => {
   // const { handleShare } = useShareSong();
   const tableCell = useCallback((song: ServerSong, columnKey) => {
     const cellValue = song[columnKey];
-    console.log("song: ", song);
+
     switch (columnKey) {
       case "name":
         return (

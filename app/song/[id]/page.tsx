@@ -20,7 +20,6 @@ export default async function PricingPage({
 }) {
   const { id } = await params;
   const song = await getSongById(id);
-  console.log(song);
 
   return (
     <SongContextProvider songResponse={song}>

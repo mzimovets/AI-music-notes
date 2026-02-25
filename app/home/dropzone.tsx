@@ -257,7 +257,6 @@ export default function MyDropzone({
     if (dropzoneInitialized.current) {
       return;
     }
-    console.log("dropzoneInitialized.current", dropzoneInitialized.current);
 
     Dropzone.autoDiscover = false;
 
@@ -275,8 +274,6 @@ export default function MyDropzone({
       maxFiles: 1,
     });
 
-    console.log("ERW currentFile, selectedFile: ", currentFile, selectedFile);
-
     // Добавьте обработчик для отклонения не-PDF файлов
     dz.on("error", (file, message) => {
       if (message.includes("You can't upload files of this type")) {
@@ -288,13 +285,11 @@ export default function MyDropzone({
     dz.on("addedfile", (file) => {
       setSelectedFile(file);
       if (onFileSelect) onFileSelect(file);
-      console.log("UIE addedfile", file);
     });
 
     dz.on("success", (file, response) => {
       const fileId = response?.id || null;
       if (onFileSelect) onFileSelect(file, fileId);
-      console.log("addedfile", file, fileId);
     });
 
     dz.on("dragenter", () => setIsDragActive(true));
@@ -304,14 +299,12 @@ export default function MyDropzone({
     dzRef.current = dz;
     dropzoneInitialized.current = true;
 
-    console.log("dropzoneId: ", dropzoneId);
     return () => {
       if (dzRef.current) {
         dzRef.current.destroy();
         dzRef.current = null;
       }
       dropzoneInitialized.current = false;
-      console.log("ERW: ", currentFile);
     };
   }, [dropzoneId]);
   // , onFileSelect
