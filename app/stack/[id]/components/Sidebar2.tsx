@@ -546,7 +546,8 @@ export const Sidebar2 = ({ onPreview }) => {
                       )}
                     </div>
 
-                    {stackSongs && stackSongs.length > 0 && (
+                    {(stackSongs.length > 0 ||
+                      programSelected.includes("Трапеза")) && (
                       <Card
                         className="mt-8 p-2 pt-4 flex-1 min-h-0 flex flex-col mb-4
       bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl"
@@ -703,41 +704,43 @@ export const Sidebar2 = ({ onPreview }) => {
                                 </div>
                               </SortableContext>
                               {/* Резерв */}
-                              {stackSongs.some((s) => s.isReserve) && (
-                                <SortableContext
-                                  items={stackSongs
-                                    .filter((s) => s.isReserve)
-                                    .map((s) => s.instanceId)}
-                                  strategy={verticalListSortingStrategy}
-                                >
-                                  <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none pointer-events-none">
-                                      <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
-                                        Резерв
-                                      </span>
-                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
-                                    </div>
-                                    {stackSongs
+                              {stackSongs.some((s) => s.isReserve) &&
+                                (programSelected.includes("Резерв") ||
+                                  programSelected.includes("reserved")) && (
+                                  <SortableContext
+                                    items={stackSongs
                                       .filter((s) => s.isReserve)
-                                      .map((song, index) => (
-                                        <SortableSong
-                                          key={song.instanceId}
-                                          song={song}
-                                          index={index}
-                                          onPreview={onPreview}
-                                          onRemove={(id) =>
-                                            setStackSongs((prev) =>
-                                              prev.filter(
-                                                (s) => s.instanceId !== id,
-                                              ),
-                                            )
-                                          }
-                                        />
-                                      ))}
-                                  </div>
-                                </SortableContext>
-                              )}
+                                      .map((s) => s.instanceId)}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    <div id="reserve-drop">
+                                      <div className="flex items-center my-3 select-none pointer-events-none">
+                                        <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                        <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                          Резерв
+                                        </span>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                      </div>
+                                      {stackSongs
+                                        .filter((s) => s.isReserve)
+                                        .map((song, index) => (
+                                          <SortableSong
+                                            key={song.instanceId}
+                                            song={song}
+                                            index={index}
+                                            onPreview={onPreview}
+                                            onRemove={(id) =>
+                                              setStackSongs((prev) =>
+                                                prev.filter(
+                                                  (s) => s.instanceId !== id,
+                                                ),
+                                              )
+                                            }
+                                          />
+                                        ))}
+                                    </div>
+                                  </SortableContext>
+                                )}
                             </DndContext>
                           </ScrollShadow>
                         </div>
@@ -860,49 +863,51 @@ export const Sidebar2 = ({ onPreview }) => {
                                     ))}
 
                                   {stackSongs.filter((song) => song.isReserve)
-                                    .length > 0 && (
-                                    <>
-                                      <div className="flex items-center my-3 select-none pointer-events-none">
-                                        <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                        <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
-                                          Резерв
-                                        </span>
-                                        <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
-                                      </div>
-                                      {stackSongs
-                                        .filter((song) => song.isReserve)
-                                        .map((song, index) => (
-                                          <div
-                                            key={song.instanceId}
-                                            className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
-                                          >
-                                            <span className="input-header">
-                                              {index + 1}. {song.name}
-                                            </span>
-                                            <span className="text-sm input-header text-default-500">
-                                              {programSelected.includes(
-                                                "Музыка",
-                                              ) && song.author
-                                                ? `муз. ${song.author}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Слова",
-                                              ) && song.authorLyrics
-                                                ? song.author ===
-                                                  song.authorLyrics
-                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Аранжировка",
-                                              ) && song.authorArrange
-                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                                : ""}
-                                            </span>
-                                          </div>
-                                        ))}
-                                    </>
-                                  )}
+                                    .length > 0 &&
+                                    (programSelected.includes("Резерв") ||
+                                      programSelected.includes("reserved")) && (
+                                      <>
+                                        <div className="flex items-center my-3 select-none pointer-events-none">
+                                          <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                          <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                            Резерв
+                                          </span>
+                                          <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                        </div>
+                                        {stackSongs
+                                          .filter((song) => song.isReserve)
+                                          .map((song, index) => (
+                                            <div
+                                              key={song.instanceId}
+                                              className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
+                                            >
+                                              <span className="input-header">
+                                                {index + 1}. {song.name}
+                                              </span>
+                                              <span className="text-sm input-header text-default-500">
+                                                {programSelected.includes(
+                                                  "Музыка",
+                                                ) && song.author
+                                                  ? `муз. ${song.author}`
+                                                  : ""}
+                                                {programSelected.includes(
+                                                  "Слова",
+                                                ) && song.authorLyrics
+                                                  ? song.author ===
+                                                    song.authorLyrics
+                                                    ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
+                                                    : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
+                                                  : ""}
+                                                {programSelected.includes(
+                                                  "Аранжировка",
+                                                ) && song.authorArrange
+                                                  ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
+                                                  : ""}
+                                              </span>
+                                            </div>
+                                          ))}
+                                      </>
+                                    )}
                                 </>
                               ) : (
                                 <p className="text-gray-500 text-center">

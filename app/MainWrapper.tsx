@@ -12,7 +12,7 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
       className={
         isStackView || isSongRead
           ? "flex-grow" // без ограничений
-          : "container mx-auto max-w-7xl pt-4 px-6 flex-grow"
+          : "container mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
       }
     >
       {children}
