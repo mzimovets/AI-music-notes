@@ -76,3 +76,9 @@ export const stacksRoutes = (app, urlencodedParser) => {
     });
   });
 };
+
+// global.io.on("connection", (socket) => {
+//   socket.on("stack-updated", (data) => {
+//     socket.broadcast.emit("stack-updated", data);
+//   });
+// });

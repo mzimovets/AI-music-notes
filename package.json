@@ -9,6 +9,8 @@
     "lint": "eslint --fix"
   },
   "dependencies": {
+    "@chatscope/chat-ui-kit-react": "^2.1.1",
+    "@chatscope/chat-ui-kit-styles": "^1.4.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
     "@dnd-kit/sortable": "^10.0.0",
@@ -55,11 +57,14 @@
     "@heroui/tooltip": "2.2.23",
     "@heroui/user": "2.2.21",
     "@hugeicons/react": "^1.1.4",
+    "@openai/chatkit-react": "^1.5.0",
     "@react-aria/ssr": "3.9.10",
     "@react-aria/visually-hidden": "3.8.27",
     "@react-pdf/renderer": "^4.3.1",
     "bcryptjs": "^3.0.3",
     "clsx": "2.1.1",
+    "devextreme": "^25.2.4",
+    "devextreme-react": "^25.2.4",
     "dom-to-image-more": "^3.7.2",
     "dotenv": "^17.2.4",
     "dropzone": "^6.0.0-beta.2",
@@ -76,7 +81,10 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-pdf": "^10.2.0",
-    "react-toastify": "^11.0.5"
+    "react-toastify": "^11.0.5",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
+    "ws": "^8.19.0"
   },
   "devDependencies": {
     "@next/eslint-plugin-next": "15.3.4",

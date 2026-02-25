@@ -29,12 +29,60 @@ import { PublishIcon } from "./components/icons/PublishIcon";
 
 const mealFilesMap: Record<string, { start: string; end: string }> = {
   daily: {
-    start: "meals-pdf/per-ed.pdf",
-    end: "meals-pdf/pos-ed.pdf",
+    start: "meals-pdf/daily-per.pdf",
+    end: "meals-pdf/daily-pos.pdf",
   },
   rozhdestvo: {
-    start: "meals-pdf/trop-christm.pdf",
-    end: "meals-pdf/cond-christm.pdf",
+    start: "meals-pdf/rozhdestvo-trop.pdf",
+    end: "meals-pdf/rozhdestvo-cond.pdf",
+  },
+  kreshchenie: {
+    start: "meals-pdf/kreshchenie-trop.pdf",
+    end: "meals-pdf/kreshchenie-cond.pdf",
+  },
+  sretenie: {
+    start: "meals-pdf/sretenie-trop.pdf",
+    end: "meals-pdf/sretenie-cond.pdf",
+  },
+  blagoveshchenie: {
+    start: "meals-pdf/blagoveshchenie-trop.pdf",
+    end: "meals-pdf/blagoveshchenie-cond.pdf",
+  },
+  vhod: {
+    start: "meals-pdf/vhod-trop.pdf",
+    end: "meals-pdf/vhod-cond.pdf",
+  },
+  pascha: {
+    start: "meals-pdf/pascha-trop.pdf",
+    end: "meals-pdf/pascha-cond.pdf",
+  },
+  voznesenie: {
+    start: "meals-pdf/voznesenie-trop.pdf",
+    end: "meals-pdf/voznesenie-cond.pdf",
+  },
+  troica: {
+    start: "meals-pdf/troica-trop.pdf",
+    end: "meals-pdf/troica-cond.pdf",
+  },
+  preobrazhenie: {
+    start: "meals-pdf/preobrazhenie-trop.pdf",
+    end: "meals-pdf/preobrazhenie-cond.pdf",
+  },
+  uspenie: {
+    start: "meals-pdf/uspenie-trop.pdf",
+    end: "meals-pdf/uspenie-cond.pdf",
+  },
+  rozhdestvoBogorodicy: {
+    start: "meals-pdf/rozhdestvoBogorodicy-trop.pdf",
+    end: "meals-pdf/rozhdestvoBogorodicy-cond.pdf",
+  },
+  vozdvizhenie: {
+    start: "meals-pdf/vozdvizhenie-trop.pdf",
+    end: "meals-pdf/vozdvizhenie-cond.pdf",
+  },
+  vvedenie: {
+    start: "meals-pdf/vvedenie-trop.pdf",
+    end: "meals-pdf/vvedenie-cond.pdf",
   },
 };
 

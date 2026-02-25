@@ -6,6 +6,13 @@ import {
   NavbarItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+} from "@heroui/modal";
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
@@ -25,6 +32,7 @@ export const Navbar = () => {
   const { data: session, status } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
+  const [isExitModalOpen, setIsExitModalOpen] = useState(false);
 
   const router = useRouter();
   const pathname = usePathname();
@@ -38,6 +46,10 @@ export const Navbar = () => {
   };
 
   const handleExit = () => {
+    setIsExitModalOpen(true);
+  };
+
+  const confirmExit = () => {
     signOut({ callbackUrl: "/authPage" });
   };
 
@@ -98,6 +110,39 @@ export const Navbar = () => {
         setStackName={setStackName}
         onConfirm={handleConfirmStack}
       />
+      <Modal
+        isOpen={isExitModalOpen}
+        onOpenChange={setIsExitModalOpen}
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex justify-center">
+                Выйти из аккаунта?
+              </ModalHeader>
+
+              <ModalBody className="text-center">
+                Вы действительно хотите выйти?
+              </ModalBody>
+
+              <ModalFooter className="flex justify-center gap-4">
+                <Button variant="bordered" radius="full" onPress={onClose}>
+                  Отмена
+                </Button>
+
+                <Button
+                  radius="full"
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                  onPress={confirmExit}
+                >
+                  Выйти
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </>
   );
 };
