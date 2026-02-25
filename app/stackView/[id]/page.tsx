@@ -9,6 +9,8 @@ import { SongsList } from "./components/SongsList";
 import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
 import { DeleteModal } from "./components/DeleteModal";
 import { socket } from "@/lib/socket";
+import { StackViewer } from "./components/StackViewer";
+import { mealFilesMap } from "@/app/stack/[id]/constants";
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
@@ -92,6 +94,16 @@ export default function Page() {
           {mainSongs.length} {getPluralForm(mainSongs.length)}
         </p>
       </div>
+      {/* Тропарь */}
+      {stackResponse.doc?.programSelected.includes("Трапеза") && (
+        <StackViewer
+          fileUrl={
+            `http://localhost:4000/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
+            ""
+          }
+        />
+      )}
+
       <SongsList songs={mainSongs} isReserved={false} />
 
       {reserveSongs.length > 0 && (
@@ -110,6 +122,15 @@ export default function Page() {
             <SongsList songs={reserveSongs} isReserved={true} />
           </div>
         </>
+      )}
+      {/* Кондак */}
+      {stackResponse.doc?.programSelected.includes("Трапеза") && (
+        <StackViewer
+          fileUrl={
+            `http://localhost:4000/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
+            ""
+          }
+        />
       )}
     </div>
   );
