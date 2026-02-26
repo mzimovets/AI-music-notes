@@ -1,14 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/modal";
 
-import { Button } from "@heroui/button";
 import { PdfTitlePage } from "./components/PdfTitlePage";
 import { useStackContext } from "./components/StackContextProvider";
 import { Divider } from "@heroui/divider";
@@ -20,7 +12,7 @@ import { RemoveSongButton } from "./components/RemoveSongButton";
 import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
-import { removeStack, updateStack } from "@/actions/actions";
+import { updateStack } from "@/actions/actions";
 import { holidays } from "./components/Sidebar2";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -28,31 +20,8 @@ import { SaveIcon } from "./components/icons/SaveIcon";
 import { PublishIcon } from "./components/icons/PublishIcon";
 import { mealFilesMap } from "./constants";
 import { StackName } from "./components/StackName";
-
-type ActionButtonProps = {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant: "green" | "brown" | "red";
-};
-
-const ActionButton = ({ children, onClick, variant }: ActionButtonProps) => {
-  const baseClass =
-    "button-edit-font px-3 py-1.5 text-sm rounded-full border transition-all flex gap-1.5 items-center";
-
-  const variants = {
-    green:
-      "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:border-green-300",
-    brown:
-      "bg-[#FFFAF5] text-[#7D5E42] border-[#E6D3C2] hover:bg-[#F3E8DE] hover:border-[#BD9673]",
-    red: "bg-red-50 text-red-400 border-red-200 hover:bg-red-100 hover:border-red-300",
-  };
-
-  return (
-    <button onClick={onClick} className={`${baseClass} ${variants[variant]}`}>
-      {children}
-    </button>
-  );
-};
+import { ActionButton } from "./components/ActionButton";
+import { DeleteStackModal } from "./components/DeleteStackModal";
 
 export default function StackPage() {
   const router = useRouter();
@@ -67,11 +36,10 @@ export default function StackPage() {
     programSelected,
     setProgramSelected,
     stackName,
+    setIsDeleteModalOpen,
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
@@ -87,23 +55,6 @@ export default function StackPage() {
 
   const handleDeleteStack = () => {
     setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    try {
-      setIsDeleting(true);
-      const response = await removeStack(params.id);
-      if (response) {
-        router.push(`/`);
-        router.refresh();
-      } else {
-        setIsDeleting(false);
-        console.error("Ошибка при удалении стопки");
-      }
-    } catch (error) {
-      console.error("Ошибка при удалении стопки:", error);
-      setIsDeleting(false);
-    }
   };
 
   const save = async () => {
@@ -142,9 +93,7 @@ export default function StackPage() {
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
 
-      <p className="flex flex-col text-center justify-center font-header gap-2 mb-2 text-lg sm:text-xl md:text-2xl">
-        <StackName />
-      </p>
+      <StackName />
 
       <div className="mt-2 mb-4 flex justify-center">
         <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
@@ -331,52 +280,7 @@ export default function StackPage() {
         onClose={handleClosePreview}
         selectedFile={selectedFile}
       />
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        placement="center"
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Удалить стопку
-                </h3>
-              </ModalHeader>
-              <ModalBody>
-                <div className="space-y-4">
-                  <p className="text-gray-600">
-                    Вы уверены, что хотите удалить стопку
-                    <br />
-                    <span className="font-semibold text-gray-900 ml-1">
-                      "{stackResponse.doc?.name}"
-                    </span>
-                    ?
-                  </p>
-                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <p className="text-sm text-red-700 font-medium">
-                      ⚠️ Это действие невозможно отменить
-                    </p>
-                  </div>
-                </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose} disabled={isDeleting}>
-                  Отмена
-                </Button>
-                <Button
-                  onPress={handleConfirmDelete}
-                  className="bg-gradient-to-r from-red-400 to-red-500 text-white"
-                  isLoading={isDeleting}
-                >
-                  {isDeleting ? "Удаление..." : "Да, удалить"}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      <DeleteStackModal />
     </>
   );
 }

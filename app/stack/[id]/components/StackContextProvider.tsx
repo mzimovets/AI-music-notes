@@ -18,6 +18,7 @@ export function StackContextProvider({
   const [stackSongs, setStackSongs] = useState([]);
   const [mealType, setMealType] = useState<string | null>(null);
   const [programSelected, setProgramSelected] = useState<string[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const removeSong = (instanceId) => {
     setStackSongs((prev) =>
@@ -40,6 +41,8 @@ export function StackContextProvider({
         setProgramSelected,
         stackName,
         setStackName,
+        isDeleteModalOpen,
+        setIsDeleteModalOpen,
       }}
     >
       {children}

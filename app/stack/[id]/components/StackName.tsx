@@ -12,7 +12,6 @@ export const StackName = () => {
   });
 
   const onChangeStackName = (e) => {
-    console.log("stackResponse", e);
     setStackName(e.target.value);
   };
 
