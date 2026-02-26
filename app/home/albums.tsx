@@ -276,7 +276,7 @@
 
 "use client";
 
-import { Card, Button } from "@heroui/react";
+import { Card, Button, Image } from "@heroui/react";
 import { useContext } from "react";
 import { SongsLibraryContext } from "../providers";
 import { useRouter } from "next/navigation";
@@ -296,7 +296,17 @@ export default function Albums() {
                 onPress={() => router.push(`/playlist/${post.key}`)}
                 isPressable
                 className="w-50 h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
-              ></Card>
+              >
+                {" "}
+                <Image
+                  alt="Album cover"
+                  className="object-cover"
+                  height={200}
+                  shadow="md"
+                  src={post.image}
+                  width="100%"
+                />
+              </Card>
 
               <p className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
                 {post.name}

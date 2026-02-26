@@ -40,6 +40,8 @@ export const CategoryHeader = () => {
     setSearchValue(event.target.value);
   };
 
+  const categoryObj = categorySongs.find((ctg) => ctg.key == category);
+
   return (
     <div className="flex items-start gap-8 font-header w-full">
       <Card className="h-47.5 flex-shrink-0">
@@ -48,17 +50,14 @@ export const CategoryHeader = () => {
           alt="album cover"
           className="object-cover"
           height={200}
-          src="/cover.png"
+          src={`http://localhost:3000/${categoryObj?.image}`}
           width={200}
         />
       </Card>{" "}
       <div className="flex flex-col gap-4 flex-grow">
         <Card className="py-4">
           <CardHeader className="py-0 flex-col items-start">
-            <p className="font-header ">
-              {categorySongs.find((ctg) => ctg.key == category)?.name ||
-                category}
-            </p>
+            <p className="font-header ">{categoryObj?.name || category}</p>
             <small className="text-default-500">
               {songs.length} {getSongWord(songs.length)}
             </small>
