@@ -60,7 +60,7 @@ export const Navbar = () => {
       <HeroUINavbar
         maxWidth="xl"
         position="sticky"
-        className="bg-navbar"
+        className="z-50 bg-navbar"
         style={{ borderBottom: "1px solid #7D5E42" }}
       >
         <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
