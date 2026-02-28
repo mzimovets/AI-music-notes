@@ -9,7 +9,7 @@
       "type": "image/png"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/app_icon.png",
       "sizes": "512x512",
       "type": "image/png"
     }
