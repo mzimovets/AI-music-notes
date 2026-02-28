@@ -150,6 +150,7 @@ export const SideBarStack = ({ onPreview }) => {
 
   const programRef = useRef<{ handleDownload: () => void }>(null);
 
+  // TODO: выенсти
   const getSongs = async () => {
     try {
       const response = await fetch("http://localhost:4000/songs");
@@ -160,10 +161,12 @@ export const SideBarStack = ({ onPreview }) => {
     }
   };
 
+  // TODO: выенсти
   useEffect(() => {
     getSongs();
   }, []);
 
+  // TODO: выенсти
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target))
@@ -747,11 +750,9 @@ export const SideBarStack = ({ onPreview }) => {
                             >
                               {/* Основная стопка */}
                               <SortableContext
-                                // items={stackSongs
-                                //   .filter((s) => !s.isReserve)
-                                //   .map((s) => s.instanceId)}
-                                id="sort-context-songs"
-                                items={stackSongs.map((s) => s.instanceId)}
+                                items={stackSongs
+                                  .filter((s) => !s.isReserve)
+                                  .map((s) => s.instanceId)}
                                 strategy={verticalListSortingStrategy}
                               >
                                 <div id="main-drop" className="mb-4">
@@ -808,64 +809,58 @@ export const SideBarStack = ({ onPreview }) => {
                                             ),
                                           )
                                         }
-                                        onClick={() =>
-                                          handleSongClick(song.instanceId)
-                                        }
                                       />
                                     ))}
-                                  {/* {programSelected.includes("Трапеза") && (
+                                  {programSelected.includes("Трапеза") && (
                                     <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl pointer-events-none w-[85%] ml-auto">
                                       <div className="flex flex-col gap-2">
                                         <p className="text-sm input-header">
                                           Трапеза (конец)
                                         </p>
-                                        {session?.user?.role ===
-                                        "регент" ? null : (
-                                          <p className="input-header text-sm">
-                                            {mealType
-                                              ? mealType === "daily"
-                                                ? "Молитвы на трапезу"
-                                                : `Кондак ${holidays.find((h) => h.key === mealType)?.fullName}`
-                                              : "Нет выбранного варианта"}
-                                          </p>
-                                        )}
                                       </div>
                                     </Card>
-                                  )} */}
-                                  {/* </div> */}
-                                  {/* </SortableContext> */}
-                                  {/* Резерв */}
-                                  {/* <div id="reserve-drop"> */}
-
-                                  <div className="flex items-center my-3 select-none pointer-events-none">
-                                    <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                    <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
-                                      Резерв
-                                    </span>
-                                    <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
-                                  </div>
-                                  {stackSongs
-                                    .filter((s) => s.isReserve)
-                                    .map((song, index) => (
-                                      <SortableSong
-                                        key={song.instanceId}
-                                        song={song}
-                                        index={index}
-                                        onPreview={onPreview}
-                                        onRemove={(id) =>
-                                          setStackSongs((prev) =>
-                                            prev.filter(
-                                              (s) => s.instanceId !== id,
-                                            ),
-                                          )
-                                        }
-                                        onClick={() =>
-                                          handleSongClick(song.instanceId)
-                                        }
-                                      />
-                                    ))}
+                                  )}
                                 </div>
                               </SortableContext>
+                              {/* Резерв */}
+                              {stackSongs.some((s) => s.isReserve) && (
+                                <SortableContext
+                                  items={stackSongs
+                                    .filter((s) => s.isReserve)
+                                    .map((s) => s.instanceId)}
+                                  strategy={verticalListSortingStrategy}
+                                >
+                                  <div id="reserve-drop">
+                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                      <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
+                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                        Резерв
+                                      </span>
+                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                    </div>
+                                    {stackSongs
+                                      .filter((s) => s.isReserve)
+                                      .map((song, index) => (
+                                        <SortableSong
+                                          key={song.instanceId}
+                                          song={song}
+                                          index={index}
+                                          onPreview={onPreview}
+                                          onClick={() =>
+                                            handleSongClick(song.instanceId)
+                                          }
+                                          onRemove={(id) =>
+                                            setStackSongs((prev) =>
+                                              prev.filter(
+                                                (s) => s.instanceId !== id,
+                                              ),
+                                            )
+                                          }
+                                        />
+                                      ))}
+                                  </div>
+                                </SortableContext>
+                              )}
                             </DndContext>
                           </ScrollShadow>
                         </div>
@@ -937,7 +932,7 @@ export const SideBarStack = ({ onPreview }) => {
                     </div>
                     <Card
                       className="mt-0 p-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl 
-               flex-1 min-h-0 flex flex-col mb-4 pt-2"
+                                   flex-1 min-h-0 flex flex-col mb-4 pt-2"
                     >
                       <div className="flex flex-col gap-3 text-left flex-1 min-h-0">
                         <div className="flex-1 relative min-h-0 mt-2">
@@ -962,22 +957,31 @@ export const SideBarStack = ({ onPreview }) => {
                                   {stackSongs
                                     .filter((song) => !song.isReserve)
                                     .map((song, index) => (
-                                      <SortableSong
+                                      <div
                                         key={song.instanceId}
-                                        song={song}
-                                        index={index}
-                                        onPreview={onPreview}
-                                        onRemove={(id) =>
-                                          setStackSongs((prev) =>
-                                            prev.filter(
-                                              (s) => s.instanceId !== id,
-                                            ),
-                                          )
-                                        }
-                                        onClick={() =>
-                                          handleSongClick(song.instanceId)
-                                        }
-                                      />
+                                        className="flex flex-col  gap-1 p-2 rounded-md bg-white/50"
+                                      >
+                                        <span className="input-header">
+                                          {index + 1}. {song.name}
+                                        </span>
+                                        <span className="text-sm input-header text-default-500">
+                                          {programSelected.includes("Музыка") &&
+                                          song.author
+                                            ? `муз. ${song.author}`
+                                            : ""}
+                                          {programSelected.includes("Слова") &&
+                                          song.authorLyrics
+                                            ? song.author === song.authorLyrics
+                                              ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
+                                              : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
+                                            : ""}
+                                          {programSelected.includes(
+                                            "Аранжировка",
+                                          ) && song.authorArrange
+                                            ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
+                                            : ""}
+                                        </span>
+                                      </div>
                                     ))}
 
                                   {stackSongs.filter((song) => song.isReserve)
@@ -993,22 +997,34 @@ export const SideBarStack = ({ onPreview }) => {
                                       {stackSongs
                                         .filter((song) => song.isReserve)
                                         .map((song, index) => (
-                                          <SortableSong
+                                          <div
                                             key={song.instanceId}
-                                            song={song}
-                                            index={index}
-                                            onPreview={onPreview}
-                                            onRemove={(id) =>
-                                              setStackSongs((prev) =>
-                                                prev.filter(
-                                                  (s) => s.instanceId !== id,
-                                                ),
-                                              )
-                                            }
-                                            onClick={() =>
-                                              handleSongClick(song.instanceId)
-                                            }
-                                          />
+                                            className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
+                                          >
+                                            <span className="input-header">
+                                              {index + 1}. {song.name}
+                                            </span>
+                                            <span className="text-sm input-header text-default-500">
+                                              {programSelected.includes(
+                                                "Музыка",
+                                              ) && song.author
+                                                ? `муз. ${song.author}`
+                                                : ""}
+                                              {programSelected.includes(
+                                                "Слова",
+                                              ) && song.authorLyrics
+                                                ? song.author ===
+                                                  song.authorLyrics
+                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
+                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
+                                                : ""}
+                                              {programSelected.includes(
+                                                "Аранжировка",
+                                              ) && song.authorArrange
+                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
+                                                : ""}
+                                            </span>
+                                          </div>
                                         ))}
                                     </>
                                   )}

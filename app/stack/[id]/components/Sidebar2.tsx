@@ -132,6 +132,7 @@ export const Sidebar2 = ({ onPreview }) => {
 
   const programRef = useRef<{ handleDownload: () => void }>(null);
 
+  // TODO: выенсти
   const getSongs = async () => {
     try {
       const response = await fetch("http://localhost:4000/songs");
@@ -142,10 +143,12 @@ export const Sidebar2 = ({ onPreview }) => {
     }
   };
 
+  // TODO: выенсти
   useEffect(() => {
     getSongs();
   }, []);
 
+  // TODO: выенсти
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target))
