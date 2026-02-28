@@ -754,6 +754,10 @@ export const SideBarStack = ({ onPreview }) => {
                                         key={song.instanceId}
                                         song={song}
                                         index={index}
+                                        onClick={() => {
+                                          console.log("song", song);
+                                          handleSongClick(song._id);
+                                        }}
                                         onPreview={onPreview}
                                         onRemove={(id) =>
                                           setStackSongs((prev) =>

@@ -24,9 +24,11 @@ export const SongsList = ({
           <StackViewer fileUrl={`/${mealFilesMap[mealType].start}`} />
         )}
 
-      <StackViewer
-        fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
-      />
+      <div id={song._id}>
+        <StackViewer
+          fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+        />
+      </div>
 
       {/* Вставляем PDF конца трапезы */}
       {index === songs.length - 1 &&
