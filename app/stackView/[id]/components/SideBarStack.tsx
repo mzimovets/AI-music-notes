@@ -244,50 +244,8 @@ export const SideBarStack = ({ onPreview }) => {
     const activeSong = stackSongs.find((s) => s.instanceId === active.id);
     if (!activeSong) return;
 
-    // Для контейнеров (перетаскивание на div)
-    // Перемещение из основной в резерв
-    // if (!activeSong.isReserve && over.id === "reserve-drop") {
-    //   console.log("reserve-drop");
-    //   setStackSongs((prev) =>
-    //     prev.map((s) =>
-    //       s.instanceId === active.id ? { ...s, isReserve: true } : s,
-    //     ),
-    //   );
-    //   return;
-    // }
-    // // Перемещение из резерва в основную
-    // if (activeSong.isReserve && over.id === "main-drop") {
-    //   console.log("main-drop");
-    //   setStackSongs((prev) =>
-    //     prev.map((s) =>
-    //       s.instanceId === active.id ? { ...s, isReserve: false } : s,
-    //     ),
-    //   );
-    //   return;
-    // }
-
     const overSong = stackSongs.find((s) => s.instanceId === over.id);
 
-    if (overSong.isReserve) {
-      // Делаем activeSong isReserved = true
-      // и перемещаем.
-      setStackSongs((prev) =>
-        prev.map((s) =>
-          s.instanceId === active.id ? { ...s, isReserve: true } : s,
-        ),
-      );
-
-      return;
-    }
-    if (!overSong.isReserve) {
-      // Делаем activeSong isReserved = true
-      // и перемещаем.
-      setStackSongs((prev) =>
-        prev.map((s) =>
-          s.instanceId === active.id ? { ...s, isReserve: false } : s,
-        ),
-      );
-    }
     // Перемещение внутри основной стопки
     if (!activeSong.isReserve && overSong && !overSong.isReserve) {
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
@@ -296,14 +254,7 @@ export const SideBarStack = ({ onPreview }) => {
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(mainSongs, oldIndex, newIndex);
       const reserveSongs = stackSongs.filter((s) => s.isReserve);
-      const newOrder = [...moved, ...reserveSongs];
-      setStackSongs(newOrder);
-
-      socket.emit("stack-updated", {
-        stackId: stackResponse.doc?.id,
-        songs: newOrder,
-      });
-
+      setStackSongs([...moved, ...reserveSongs]);
       return;
     }
     // Перемещение внутри резерва
@@ -316,14 +267,7 @@ export const SideBarStack = ({ onPreview }) => {
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(reserveSongs, oldIndex, newIndex);
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
-      const newOrder = [...mainSongs, ...moved];
-      setStackSongs(newOrder);
-
-      socket.emit("stack-updated", {
-        stackId: stackResponse.doc?.id,
-        songs: newOrder,
-      });
-
+      setStackSongs([...mainSongs, ...moved]);
       return;
     }
   };
