@@ -15,6 +15,7 @@ export function StackContextProvider({
   stackResponse: { status: string; doc: StackSong };
 }) {
   const [stackName, setStackName] = useState("");
+  const [stackCover, setStackCover] = useState("");
   const [stackSongs, setStackSongs] = useState([]);
   const [mealType, setMealType] = useState<string | null>(null);
   const [programSelected, setProgramSelected] = useState<string[]>([]);
@@ -41,6 +42,8 @@ export function StackContextProvider({
         setProgramSelected,
         stackName,
         setStackName,
+        stackCover,
+        setStackCover,
         isDeleteModalOpen,
         setIsDeleteModalOpen,
       }}

@@ -25,6 +25,8 @@ import { DeleteStackModal } from "./components/DeleteStackModal";
 import { ColorIcon } from "./components/icons/ColorIcon";
 import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
 import { Button } from "@heroui/button";
+import { StackCover } from "./components/StackCover";
+import { StackCoverColorSelector } from "./components/StackCoverColorSelector";
 
 export default function StackPage() {
   const router = useRouter();
@@ -39,11 +41,11 @@ export default function StackPage() {
     programSelected,
     setProgramSelected,
     stackName,
+    stackCover,
     setIsDeleteModalOpen,
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
@@ -89,6 +91,7 @@ export default function StackPage() {
       isPublished: false,
       currentUrl: window.location.pathname,
       id: params.id,
+      cover: stackCover,
       name: finalName,
     });
 
@@ -103,6 +106,7 @@ export default function StackPage() {
       isPublished: true,
       currentUrl: window.location.pathname,
       id: params.id,
+      cover: stackCover,
       name: stackNameToSave,
     });
 
@@ -117,6 +121,7 @@ export default function StackPage() {
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
 
+      <StackCover />
       <StackName />
 
       <div className="mt-2 mb-4 flex justify-center">
@@ -129,50 +134,7 @@ export default function StackPage() {
             <PublishIcon />
           </ActionButton>
 
-          <Popover placement="bottom" showArrow={true}>
-            <PopoverTrigger>
-              <ActionButton variant="yellow" onClick={() => {}}>
-                <ColorIcon />
-              </ActionButton>
-            </PopoverTrigger>
-            <PopoverContent>
-              <div className="px-1 py-2">
-                <div className="text-small font-bold">
-                  Выберите цвет обложки стопки
-                </div>
-                <div className="grid grid-cols-4 gap-3 mt-3 justify-center">
-                  {[
-                    "6b352d",
-                    "88799a",
-                    "485110",
-                    "2b4659",
-                    "3c3d38",
-                    "cc671f",
-                    "744624",
-                    "9bad4a",
-                    "d1a600",
-                    "cacbbd",
-                    "6b8caf",
-                    "554454",
-                  ].map((color) => (
-                    <Button
-                      key={color}
-                      isIconOnly
-                      radius="full"
-                      disableRipple
-                      onPress={() => setSelectedColor(color)}
-                      className="!w-8 !h-8 min-w-0 p-0 flex items-center justify-center hover:scale-110 transition-transform"
-                      style={{ backgroundColor: `#${color}` }}
-                    >
-                      {selectedColor === color && (
-                        <span className="w-3 h-3 rounded-full bg-white" />
-                      )}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
+          <StackCoverColorSelector />
 
           <ActionButton variant="red" onClick={handleDeleteStack}>
             <TrashBinIcon />

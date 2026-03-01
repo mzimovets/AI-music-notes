@@ -39,7 +39,7 @@ export const StackCard = ({ stacks }) => {
           alt="Album cover"
           height={200}
           shadow="md"
-          src={`http://localhost:3000/stacks/stack-cover-${getRandomColor()}.jpg`}
+          src={`http://localhost:3000/stacks/cover/${stack.cover}.png`}
           width="100%"
         />
       </Card>
