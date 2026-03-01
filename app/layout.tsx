@@ -24,8 +24,27 @@ export default function RootLayout({
       className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
     >
       <head>
+        {/* <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/icon-192.png" />
+        <meta name="theme-color" content="#F7F4F1" /> */}
+
+        {/* Основная иконка для iOS */}
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+        {/* Фавикон для старых и современных браузеров */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link
+          rel="icon"
+          type="image/png"
+          href="/favicon-96x96.png"
+          sizes="96x96"
+        />
+
+        {/* Манифест для PWA */}
+        <link rel="manifest" href="/manifest.json" />
+
         <meta name="theme-color" content="#F7F4F1" />
       </head>
 

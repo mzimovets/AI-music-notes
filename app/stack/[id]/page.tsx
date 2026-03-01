@@ -61,15 +61,35 @@ export default function StackPage() {
     setIsDeleteModalOpen(true);
   };
 
+  // Use a simplified helper for stack name
+  const stackNameToSave = stackName?.trim() || "Стопка";
+
+  // const save = async () => {
+  //   const resp = await updateStack({
+  //     stack: stackSongs,
+  //     mealType,
+  //     programSelected,
+  //     isPublished: false,
+  //     currentUrl: window.location.pathname,
+  //     id: params.id,
+  //     name: stackNameToSave,
+  //   });
+
+  //   router.push(`/`);
+  // };
+
+  // ИИ ниже
   const save = async () => {
-    const resp = await updateStack({
+    const finalName = stackName?.trim() ? stackName : "Стопка";
+
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
       isPublished: false,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackName,
+      name: finalName,
     });
 
     router.push(`/`);
@@ -83,7 +103,7 @@ export default function StackPage() {
       isPublished: true,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackName,
+      name: stackNameToSave,
     });
 
     router.push(`/`);
@@ -116,11 +136,11 @@ export default function StackPage() {
               </ActionButton>
             </PopoverTrigger>
             <PopoverContent>
-              <div className="px-1 py-2 flex flex-col items-center">
-                <div className="text-small font-bold text-center">
+              <div className="px-1 py-2">
+                <div className="text-small font-bold">
                   Выберите цвет обложки стопки
                 </div>
-                <div className="grid grid-cols-4 gap-3 mt-3">
+                <div className="grid grid-cols-4 gap-3 mt-3 justify-center">
                   {[
                     "6b352d",
                     "88799a",

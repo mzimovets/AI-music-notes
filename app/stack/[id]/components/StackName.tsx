@@ -5,11 +5,17 @@ import { useEffect } from "react";
 
 export const StackName = () => {
   const { stackResponse, stackName, setStackName } = useStackContext();
+  // useEffect(() => {
+  //   if (stackName === "") {
+  //     setStackName(stackResponse.doc?.name);
+  //   }
+  // });
+
   useEffect(() => {
-    if (stackName === "") {
-      setStackName(stackResponse.doc?.name);
+    if (stackResponse.doc?.name) {
+      setStackName(stackResponse.doc.name);
     }
-  });
+  }, [stackResponse.doc?.name]);
 
   const onChangeStackName = (e) => {
     setStackName(e.target.value);
