@@ -434,7 +434,7 @@ export const SideBarStack = ({ onPreview }) => {
       />
       <div className="flex flex-wrap gap-3">
         <div
-          className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-50
+          className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-200
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
         >

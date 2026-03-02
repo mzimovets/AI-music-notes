@@ -44,12 +44,15 @@ export const StackName = () => {
         innerWrapper: "bg-transparent",
         inputWrapper: [
           "bg-transparent",
-          "shadow-none", // убирает тень у обертки инпута
-          "focus:shadow-none",
+          "shadow-none",
+          "hover:bg-transparent",
           "hover:shadow-none",
-          "data-[hover=true]:shadow-none", // для Hero UI
-          "data-[focus=true]:shadow-none", // для Hero UI
-          "!shadow-none", // !important на всякий случай
+          "data-[hover=true]:bg-transparent",
+          "data-[hover=true]:shadow-none",
+          "data-[focus=true]:bg-transparent",
+          "data-[focus=true]:shadow-none",
+          "!bg-transparent",
+          "!shadow-none",
         ],
       }}
       style={{

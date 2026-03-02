@@ -21,7 +21,7 @@ export const StackCover = () => {
   return (
     <div className="flex justify-center">
       <Image
-        style={{ width: "180px", height: "auto" }}
+        style={{ width: "280px", height: "auto" }}
         src={`/stacks/preview/${stackCover || stackResponse.doc?.cover || "white"}.png`}
       />
     </div>

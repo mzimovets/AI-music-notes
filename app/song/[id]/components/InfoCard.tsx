@@ -292,12 +292,10 @@ export const InfoCard = () => {
         <ModalContent>
           {(onClose) => (
             <>
-              <ModalHeader className="flex flex-col gap-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-xl font-bold text-gray-900">
-                    Удалить партитуру
-                  </h3>
-                </div>
+              <ModalHeader className="flex flex-col items-center text-center gap-2">
+                <h3 className="text-2xl font-bold text-gray-900">
+                  Удалить партитуру
+                </h3>
               </ModalHeader>
               <ModalBody>
                 <div className="space-y-4">
@@ -309,10 +307,13 @@ export const InfoCard = () => {
                     </span>
                     ?
                   </p>
-                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <p className="text-sm text-red-700 font-medium">
-                      ⚠️ Это действие невозможно отменить. Будет удалена вся
-                      информация, включая файл партитуры.
+                  <div className="p-5 bg-gradient-to-r from-red-50 to-red-100 rounded-xl border border-red-200 shadow-sm">
+                    <p className="text-sm font-semibold text-red-800 flex items-center gap-2">
+                      <span className="text-red-500 text-base">⚠️</span>
+                      Это действие невозможно отменить
+                    </p>
+                    <p className="text-sm text-red-700 mt-2">
+                      Будет удалена вся информация, включая файл партитуры
                     </p>
                   </div>
                 </div>

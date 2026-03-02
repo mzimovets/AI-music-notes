@@ -19,7 +19,7 @@ export const StackCoverColorSelector = () => {
           <div className="text-small font-bold">
             Выберите цвет обложки стопки
           </div>
-          <div className="grid grid-cols-4 gap-3 mt-3 justify-center">
+          <div className="grid grid-cols-4 gap-3 mt-3 justify-items-center">
             {[
               { hex: "6b352d", name: "red" },
               { hex: "88799a", name: "purple" },

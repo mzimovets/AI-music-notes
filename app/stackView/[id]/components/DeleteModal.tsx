@@ -11,6 +11,7 @@ import {
 } from "@heroui/react";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
+import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
 
 export const DeleteModal = (props) => {
   const router = useRouter();
@@ -41,39 +42,38 @@ export const DeleteModal = (props) => {
       isOpen={isDeleteModalOpen}
       onOpenChange={setIsDeleteModalOpen}
       placement="center"
+      backdrop="blur"
+      classNames={{ backdrop: "bg-black/40" }}
     >
-      <ModalContent>
+      <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
         {(onClose) => (
           <>
-            <ModalHeader className="flex flex-col gap-1">
-              <h3 className="text-xl font-bold text-gray-900">
-                Удалить стопку
-              </h3>
-            </ModalHeader>
-            <ModalBody>
-              <div className="space-y-4">
-                <p className="text-gray-600">
-                  Вы уверены, что хотите удалить стопку
-                  <br />
-                  <span className="font-semibold text-gray-900 ml-1">
-                    "{stackResponse.doc?.name}"
-                  </span>
-                  ?
-                </p>
-                <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                  <p className="text-sm text-red-700 font-medium">
-                    ⚠️ Это действие невозможно отменить
-                  </p>
+            <ModalHeader className="flex flex-col items-center text-center gap-2 pt-6">
+              <div className="w-16 h-16 text-white rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-lg">
+                <div className="scale-140">
+                  <TrashBinIcon />
                 </div>
               </div>
-            </ModalBody>
-            <ModalFooter>
-              <Button variant="light" onPress={onClose} disabled={isDeleting}>
+              <h3 className="text-2xl font-bold text-gray-900 mt-2">
+                Удалить стопку?
+              </h3>
+              <p className="text-gray-600 text-base input-header max-w-xs">
+                Несохранённые изменения будут потеряны
+              </p>
+            </ModalHeader>
+
+            <ModalFooter className="flex justify-center gap-4 pb-6">
+              <Button
+                variant="bordered"
+                onPress={onClose}
+                disabled={isDeleting}
+                className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
+              >
                 Отмена
               </Button>
               <Button
                 onPress={handleConfirmDelete}
-                className="bg-gradient-to-r from-red-400 to-red-500 text-white"
+                className="bg-gradient-to-r from-red-400 to-red-500 text-white shadow-md hover:shadow-lg transition-all input-header"
                 isLoading={isDeleting}
               >
                 {isDeleting ? "Удаление..." : "Да, удалить"}

@@ -350,7 +350,7 @@ export const Sidebar2 = ({ onPreview }) => {
     <>
       <div className="flex flex-wrap gap-3">
         <div
-          className={`fixed left-3 z-20 transform-gpu transition-all duration-50
+          className={`fixed left-3 z-20 transform-gpu transition-all duration-200
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
         >

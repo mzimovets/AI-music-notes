@@ -219,6 +219,8 @@ interface MyDropzoneProps {
     size: number;
     id?: string;
   };
+  className?: string; // new prop for top-level wrapper
+  cardClassName?: string; // new prop for Card container
 }
 
 export default function MyDropzone({
@@ -226,6 +228,8 @@ export default function MyDropzone({
   onPreview,
   hasError = false,
   currentFile,
+  className,
+  cardClassName,
 }: MyDropzoneProps) {
   // ← исправляем параметры
   const [isDragActive, setIsDragActive] = useState(false);
@@ -332,9 +336,9 @@ export default function MyDropzone({
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className || ""}`}>
       <Card
-        className="w-full h-48 flex items-center justify-center p-6 relative overflow-hidden border border-gray-100 rounded-xl shadow-lg"
+        className={`w-full h-48 flex items-center justify-center p-6 relative overflow-hidden border border-gray-100 rounded-xl shadow-lg ${cardClassName || ""}`}
         style={hasError ? { backgroundColor: "#fee7ef" } : {}}
       >
         <form
@@ -383,7 +387,7 @@ export default function MyDropzone({
                       >
                         {selectedFile.name}
                       </p>
-                      <p className="text-base text-gray-600 mt-1">
+                      <p className="text-base text-gray-600 mt-1 input-header">
                         {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
@@ -411,9 +415,9 @@ export default function MyDropzone({
       {selectedFile && selectedFile.size > 0 && onPreview && (
         <Button
           onPress={onPreview}
-          className="w-full px-5 py-2.5 rounded-lg border button-safe-font bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white-400  hover:opacity-90 transition-all"
+          className="w-full px-5 py-2.5 rounded-lg text-base input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] !text-white hover:opacity-90 transition-all"
         >
-          <span className="font-semibold">Предпросмотр файла</span>
+          <span>Предпросмотр файла</span>
         </Button>
       )}
 
