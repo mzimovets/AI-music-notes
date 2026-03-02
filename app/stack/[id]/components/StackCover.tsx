@@ -4,19 +4,7 @@ import { useEffect } from "react";
 import { Image } from "@heroui/react";
 
 export const StackCover = () => {
-  const { stackResponse, stackCover, setStackCover } = useStackContext();
-  //   useEffect(() => {
-  //     if (stackCover === "") {
-  //       setStackCover(stackResponse.doc?.cover);
-  //     }
-  //     // return () => {
-  //     //   setStackCover("");
-  //     // };
-  //   });
-
-  //   const onChangeStackName = (e) => {
-  //     setStackName(e.target.value);
-  //   };
+  const { stackResponse, stackCover } = useStackContext();
 
   return (
     <div className="flex justify-center">

@@ -22,9 +22,6 @@ import { mealFilesMap } from "./constants";
 import { StackName } from "./components/StackName";
 import { ActionButton } from "./components/ActionButton";
 import { DeleteStackModal } from "./components/DeleteStackModal";
-import { ColorIcon } from "./components/icons/ColorIcon";
-import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
-import { Button } from "@heroui/button";
 import { StackCover } from "./components/StackCover";
 import { StackCoverColorSelector } from "./components/StackCoverColorSelector";
 import { CloseButton } from "@/app/stackView/[id]/components/CloseButton";
@@ -69,20 +66,6 @@ export default function StackPage() {
 
   // Use a simplified helper for stack name
   const stackNameToSave = stackName?.trim() || "Стопка";
-
-  // const save = async () => {
-  //   const resp = await updateStack({
-  //     stack: stackSongs,
-  //     mealType,
-  //     programSelected,
-  //     isPublished: false,
-  //     currentUrl: window.location.pathname,
-  //     id: params.id,
-  //     name: stackNameToSave,
-  //   });
-
-  //   router.push(`/`);
-  // };
 
   // ИИ ниже
   const save = async () => {
