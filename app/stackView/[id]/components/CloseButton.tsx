@@ -5,12 +5,11 @@ import { CloseIcon } from "./icon/CloseIcon";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
-import { updateStack } from "@/actions/actions";
+import { removeStack, updateStack } from "@/actions/actions";
 
 export const CloseButton = () => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const { stackSongs, stackName, stackCover } = useStackContext();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -27,20 +26,7 @@ export const CloseButton = () => {
   }, [lastScrollY]);
 
   const handleCloseStack = async () => {
-    // Гарантируем, что stack всегда массив
-    const safeStack = Array.isArray(stackSongs) ? stackSongs : [];
-
-    // Определяем флаг удаления только если стопка пустая
-    const shouldDelete = safeStack.length === 0;
-
-    await updateStack({
-      stack: safeStack, // всегда массив
-      isPublished: false,
-      id: params.id,
-      cover: stackCover,
-      name: stackName || "Стопка",
-      delete: shouldDelete,
-    });
+    await removeStack(params.id);
 
     setIsOpen(false);
     router.push("/");
