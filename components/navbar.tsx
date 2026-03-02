@@ -60,8 +60,7 @@ export const Navbar = () => {
       <HeroUINavbar
         maxWidth="xl"
         position="sticky"
-        className="z-50 bg-navbar"
-        style={{ borderBottom: "1px solid #7D5E42" }}
+        className="z-50 bg-navbar relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-gradient-to-r after:from-[#BD9673] after:to-[#7D5E42]"
       >
         <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
           <Link href={"/"} style={{ display: "inline" }}>
@@ -114,26 +113,32 @@ export const Navbar = () => {
         isOpen={isExitModalOpen}
         onOpenChange={setIsExitModalOpen}
         placement="center"
+        backdrop="blur"
       >
-        <ModalContent>
+        <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (
             <>
-              <ModalHeader className="flex justify-center">
-                Выйти из аккаунта?
+              <ModalHeader className="flex flex-col items-center text-center gap-4 pt-6">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg">
+                  <ExitIcon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">Выйти</h3>
+                <p className="text-gray-600 text-base max-w-xs input-header">
+                  Вы действительно хотите выйти из аккаунта?
+                </p>
               </ModalHeader>
 
-              <ModalBody className="text-center">
-                Вы действительно хотите выйти?
-              </ModalBody>
-
-              <ModalFooter className="flex justify-center gap-4">
-                <Button variant="bordered" radius="full" onPress={onClose}>
+              <ModalFooter className="flex justify-center gap-4 pb-6">
+                <Button
+                  variant="bordered"
+                  onPress={onClose}
+                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
+                >
                   Отмена
                 </Button>
 
                 <Button
-                  radius="full"
-                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md hover:shadow-lg transition-all input-header"
                   onPress={confirmExit}
                 >
                   Выйти

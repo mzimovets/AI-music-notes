@@ -22,6 +22,14 @@ import { mealFilesMap } from "./constants";
 import { StackName } from "./components/StackName";
 import { ActionButton } from "./components/ActionButton";
 import { DeleteStackModal } from "./components/DeleteStackModal";
+import { ColorIcon } from "./components/icons/ColorIcon";
+import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
+import { Button } from "@heroui/button";
+import { StackCover } from "./components/StackCover";
+import { StackCoverColorSelector } from "./components/StackCoverColorSelector";
+import { CloseButton } from "@/app/stackView/[id]/components/CloseButton";
+import EmptyStackIcon from "./components/icons/EmptyStackIcon";
+import SidebarIcon from "./components/icons/SidebarIcon";
 
 export default function StackPage() {
   const router = useRouter();
@@ -36,10 +44,12 @@ export default function StackPage() {
     programSelected,
     setProgramSelected,
     stackName,
+    stackCover,
     setIsDeleteModalOpen,
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [showButton, setShowButton] = useState(true);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
@@ -57,15 +67,36 @@ export default function StackPage() {
     setIsDeleteModalOpen(true);
   };
 
+  // Use a simplified helper for stack name
+  const stackNameToSave = stackName?.trim() || "Стопка";
+
+  // const save = async () => {
+  //   const resp = await updateStack({
+  //     stack: stackSongs,
+  //     mealType,
+  //     programSelected,
+  //     isPublished: false,
+  //     currentUrl: window.location.pathname,
+  //     id: params.id,
+  //     name: stackNameToSave,
+  //   });
+
+  //   router.push(`/`);
+  // };
+
+  // ИИ ниже
   const save = async () => {
-    const resp = await updateStack({
+    const finalName = stackName?.trim() ? stackName : "Стопка";
+
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
       isPublished: false,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackName,
+      cover: stackCover,
+      name: finalName,
     });
 
     router.push(`/`);
@@ -79,7 +110,8 @@ export default function StackPage() {
       isPublished: true,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackName,
+      cover: stackCover,
+      name: stackNameToSave,
     });
 
     router.push(`/`);
@@ -92,24 +124,37 @@ export default function StackPage() {
     <>
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
-
-      <StackName />
-
-      <div className="mt-2 mb-4 flex justify-center">
-        <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
-          <ActionButton variant="green" onClick={save}>
-            <SaveIcon />
-          </ActionButton>
-
-          <ActionButton variant="brown" onClick={publicStack}>
-            <PublishIcon />
-          </ActionButton>
-
-          <ActionButton variant="red" onClick={handleDeleteStack}>
-            <TrashBinIcon />
-          </ActionButton>
-        </div>
+      <div
+        className={`fixed right-3 z-20 transform-gpu transition-all duration-200
+          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+        `}
+      >
+        <CloseButton />
       </div>
+      {stackSongs && stackSongs.length > 0 && (
+        <>
+          <StackCover />
+          <StackName />
+
+          <div className="mt-2 mb-4 flex justify-center">
+            <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
+              <ActionButton variant="green" onClick={save}>
+                <SaveIcon />
+              </ActionButton>
+
+              <ActionButton variant="brown" onClick={publicStack}>
+                <PublishIcon />
+              </ActionButton>
+
+              <StackCoverColorSelector />
+
+              <ActionButton variant="red" onClick={handleDeleteStack}>
+                <TrashBinIcon />
+              </ActionButton>
+            </div>
+          </div>
+        </>
+      )}
 
       {stackSongs && stackSongs.length > 0 ? (
         <>
@@ -273,7 +318,16 @@ export default function StackPage() {
             </div>
           )}
         </>
-      ) : null}
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center text-gray-500">
+          <EmptyStackIcon className="w-32 h-32 text-gray-400" />
+
+          <p className="text-center text-gray-400 text-xl input-header font-medium leading-snug max-w-md">
+            В этой стопке пока нет песен — добавьте песню через боковое меню{" "}
+            <SidebarIcon className="inline" />
+          </p>
+        </div>
+      )}
 
       <ModalFilePreviewer
         isOpen={isPreviewModalOpen}

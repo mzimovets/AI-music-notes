@@ -5,6 +5,7 @@ import { getSongById } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { CloseReadButton } from "./components/CloseReadButton";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
+import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 
 export default function SongReadPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,8 +46,9 @@ export default function SongReadPage() {
 
   return (
     <div>
+      <ScrollToTop />
       <div
-        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-50 
+        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
       >

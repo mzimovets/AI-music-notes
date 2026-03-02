@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CloseButton } from "./components/CloseButton";
+
 import { SidebarButton } from "./components/SidebarButton";
 import { SideBarStack } from "./components/SideBarStack";
 import { useRouter } from "next/navigation";
@@ -11,10 +11,13 @@ import { DeleteModal } from "./components/DeleteModal";
 import { socket } from "@/lib/socket";
 import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
+import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
+import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [hasSavedChanges, setHasSavedChanges] = useState(false);
 
   const {
     stackResponse,
@@ -78,13 +81,14 @@ export default function Page() {
 
   return (
     <div>
+      <ScrollToTop />
       <SideBarStack onPreview={undefined} />
       <div
-        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-50 
+        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
       >
-        <CloseButton />
+        <CloseReadButton />
       </div>
       <p className="flex flex-col text-default-500 text-center mt-2 justify-center font-header gap-2 text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-4xl">
         {stackResponse.doc?.name}

@@ -5,11 +5,17 @@ import { useEffect } from "react";
 
 export const StackName = () => {
   const { stackResponse, stackName, setStackName } = useStackContext();
+  // useEffect(() => {
+  //   if (stackName === "") {
+  //     setStackName(stackResponse.doc?.name);
+  //   }
+  // });
+
   useEffect(() => {
-    if (stackName === "") {
-      setStackName(stackResponse.doc?.name);
+    if (stackResponse.doc?.name) {
+      setStackName(stackResponse.doc.name);
     }
-  });
+  }, [stackResponse.doc?.name]);
 
   const onChangeStackName = (e) => {
     setStackName(e.target.value);
@@ -38,12 +44,15 @@ export const StackName = () => {
         innerWrapper: "bg-transparent",
         inputWrapper: [
           "bg-transparent",
-          "shadow-none", // убирает тень у обертки инпута
-          "focus:shadow-none",
+          "shadow-none",
+          "hover:bg-transparent",
           "hover:shadow-none",
-          "data-[hover=true]:shadow-none", // для Hero UI
-          "data-[focus=true]:shadow-none", // для Hero UI
-          "!shadow-none", // !important на всякий случай
+          "data-[hover=true]:bg-transparent",
+          "data-[hover=true]:shadow-none",
+          "data-[focus=true]:bg-transparent",
+          "data-[focus=true]:shadow-none",
+          "!bg-transparent",
+          "!shadow-none",
         ],
       }}
       style={{

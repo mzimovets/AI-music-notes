@@ -23,6 +23,7 @@ export const putStack = async ({
   mealType,
   programSelected,
   name,
+  cover,
   id,
 }: {
   stack: StackSong[];
@@ -30,22 +31,27 @@ export const putStack = async ({
   mealType: string;
   programSelected: [];
   name: string;
+  cover: string;
   id?: string;
 }) => {
+  const updateData = {
+    songs: stack,
+    isPublished,
+    mealType,
+    programSelected,
+    name,
+    _id: id,
+    docType: "stack",
+  };
+  if (cover) {
+    updateData.cover = cover;
+  }
   const resp = await fetch(`http://localhost:4000/stack/${id}/update`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      songs: stack,
-      isPublished,
-      mealType,
-      programSelected,
-      name,
-      _id: id,
-      docType: "stack",
-    }),
+    body: JSON.stringify(updateData),
   });
 
   const respBody = await resp.json();
