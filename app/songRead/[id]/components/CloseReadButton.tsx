@@ -73,7 +73,7 @@ shadow-[0_4px_12px_rgba(0,0,0,0.18)]
                   onPress={() => {
                     onClose();
                     if (window.history.length > 1) {
-                      router.back();
+                      router.push("/");
                     } else {
                       router.push("/song");
                     }
