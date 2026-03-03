@@ -118,6 +118,10 @@ export const SideBarStack = ({ onPreview }) => {
   const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   // Функция для обработки клика по песне (основная/резервная стопка)
+  // const handleSongClick = (songId: string) => {
+  //   setIsDrawerOpen(false);
+  //   router.push(`#${songId}`);
+  // };
   const handleSongClick = (songId: string) => {
     setIsDrawerOpen(false);
 
