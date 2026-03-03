@@ -19,6 +19,14 @@ export default function Page() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [hasSavedChanges, setHasSavedChanges] = useState(false);
 
+  const scrollToReserveSong = (songId: string) => {
+    const el = document.getElementById(songId);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.pageYOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
   const {
     stackResponse,
     stackSongs,
@@ -123,7 +131,11 @@ export default function Page() {
           </div>
 
           <div className="justify-center  gap-2 mb-6">
-            <SongsList songs={reserveSongs} isReserved={true} />
+            <SongsList
+              songs={reserveSongs}
+              isReserved={true}
+              onSongClick={scrollToReserveSong}
+            />
           </div>
         </>
       )}

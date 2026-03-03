@@ -48,6 +48,22 @@ export default function StackPage() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [showButton, setShowButton] = useState(true);
 
+  // Автопрокрутка к песне по ее instanceId с учетом фиксированного header
+  const scrollToSong = (songId: string) => {
+    const el = document.getElementById(songId);
+    if (el) {
+      // Высота фиксированного header, который может перекрывать контент
+      const headerOffset = 120;
+      const elementPosition =
+        el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
+
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
     setProgramSelected(stackResponse.doc?.programSelected || []);
@@ -182,7 +198,10 @@ export default function StackPage() {
                     </div>
                   </div>
                 )}
-              <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+              <div
+                id={song.instanceId}
+                className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+              >
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                     <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
@@ -262,6 +281,7 @@ export default function StackPage() {
               </div>
               {reserveSongs.map((song, index) => (
                 <div
+                  id={song.instanceId}
                   key={song.instanceId || index}
                   className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
                 >

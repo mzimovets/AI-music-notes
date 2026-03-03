@@ -118,9 +118,25 @@ export const SideBarStack = ({ onPreview }) => {
   const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   // Функция для обработки клика по песне (основная/резервная стопка)
+  // const handleSongClick = (songId: string) => {
+  //   setIsDrawerOpen(false);
+  //   router.push(`#${songId}`);
+  // };
   const handleSongClick = (songId: string) => {
     setIsDrawerOpen(false);
-    router.push(`#${songId}`);
+
+    // небольшая задержка, чтобы drawer успел закрыться
+    setTimeout(() => {
+      const el = document.getElementById(songId);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.pageYOffset;
+
+        window.scrollTo({
+          top: y,
+          behavior: "smooth",
+        });
+      }
+    }, 250); // время должно совпадать с анимацией закрытия Drawer
   };
   const handleOpen = () => {
     setIsDrawerOpen(true);

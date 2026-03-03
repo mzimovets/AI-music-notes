@@ -32,6 +32,7 @@ export const SortableSong: React.FC<SortableSongProps> = ({
 
   return (
     <Card
+      id={song.instanceId}
       className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${
         isDragging ? "shadow-xl opacity-50" : "shadow-sm"
       } cursor-pointer`}
