@@ -110,20 +110,29 @@ import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
 import { DeleteModal } from "./DeleteModal";
 import { SidebarButton } from "./SidebarButton";
 import { socket } from "@/lib/socket";
+import { useRouter } from "next/navigation";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
+  const router = useRouter();
   const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   // Функция для обработки клика по песне (основная/резервная стопка)
   const handleSongClick = (songId: string) => {
     setIsDrawerOpen(false);
+
+    // небольшая задержка, чтобы drawer успел закрыться
     setTimeout(() => {
-      const el = document.getElementById(`song-${songId}`);
+      const el = document.getElementById(songId);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        const y = el.getBoundingClientRect().top + window.pageYOffset;
+
+        window.scrollTo({
+          top: y,
+          behavior: "smooth",
+        });
       }
-    }, 200);
+    }, 250); // время должно совпадать с анимацией закрытия Drawer
   };
   const handleOpen = () => {
     setIsDrawerOpen(true);

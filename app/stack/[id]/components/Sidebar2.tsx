@@ -113,6 +113,24 @@ export const Sidebar2 = ({ onPreview }) => {
     onDrawerOpen();
   };
 
+  const handleSongClick = (instanceId: string) => {
+    // закрываем Drawer
+    onDrawerChange(false);
+
+    // небольшая задержка, чтобы Drawer успел закрыться
+    setTimeout(() => {
+      const el = document.getElementById(instanceId);
+      if (el) {
+        const y = el.getBoundingClientRect().top + window.pageYOffset;
+
+        window.scrollTo({
+          top: y,
+          behavior: "smooth",
+        });
+      }
+    }, 250);
+  };
+
   const [songslist, setSongsList] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -675,6 +693,9 @@ export const Sidebar2 = ({ onPreview }) => {
                                         song={song}
                                         index={index}
                                         onPreview={onPreview}
+                                        onClick={() =>
+                                          handleSongClick(song.instanceId)
+                                        }
                                         onRemove={(id) =>
                                           setStackSongs((prev) =>
                                             prev.filter(
@@ -719,6 +740,9 @@ export const Sidebar2 = ({ onPreview }) => {
                                           song={song}
                                           index={index}
                                           onPreview={onPreview}
+                                          onClick={() =>
+                                            handleSongClick(song.instanceId)
+                                          }
                                           onRemove={(id) =>
                                             setStackSongs((prev) =>
                                               prev.filter(
