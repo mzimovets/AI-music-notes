@@ -191,7 +191,10 @@ export default function StackPage() {
                     <div className="relative my-2">
                       <Divider className="opacity-60" />
                     </div>
-                    <div className="mt-1 mb-1  sm:mb-6 sm:mt-2">
+                    <div
+                      id={`meal_start`}
+                      className="mt-1 mb-1  sm:mb-6 sm:mt-2"
+                    >
                       <PdfTitlePage
                         fileUrl={`/${mealFilesMap[mealType].start}`}
                       />
@@ -199,7 +202,8 @@ export default function StackPage() {
                   </div>
                 )}
               <div
-                id={song.instanceId}
+                id={`${song._id}_${index}`}
+                xw
                 className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
               >
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
@@ -255,7 +259,7 @@ export default function StackPage() {
                     <div className="relative my-2">
                       <Divider className="opacity-60" />
                     </div>
-                    <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
+                    <div id={`meal_end`} className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                       <PdfTitlePage
                         fileUrl={`/${mealFilesMap[mealType].end}`}
                       />
@@ -281,7 +285,7 @@ export default function StackPage() {
               </div>
               {reserveSongs.map((song, index) => (
                 <div
-                  id={song.instanceId}
+                  id={`${song._id}_${index}_reserved`}
                   key={song.instanceId || index}
                   className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
                 >

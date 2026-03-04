@@ -826,7 +826,7 @@ export const SideBarStack = ({ onPreview }) => {
                                           onPreview={onPreview}
                                           onClick={() =>
                                             handleSongClick(
-                                              `${song._id}_${index}`,
+                                              `${song._id}_${index}_reserved`,
                                             )
                                           }
                                           onRemove={(id) =>
