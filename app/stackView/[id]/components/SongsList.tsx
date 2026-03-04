@@ -21,10 +21,12 @@ export const SongsList = ({
         mealType &&
         mealFilesMap[mealType]?.start &&
         !isReserved && (
-          <StackViewer fileUrl={`/${mealFilesMap[mealType].start}`} />
+          <div id={`meal_start`}>
+            <StackViewer fileUrl={`/${mealFilesMap[mealType].start}`} />
+          </div>
         )}
 
-      <div id={song._id}>
+      <div id={`${song._id}_${index}`}>
         <StackViewer
           fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
         />
@@ -36,7 +38,9 @@ export const SongsList = ({
         mealType &&
         mealFilesMap[mealType]?.end &&
         !isReserved && (
-          <StackViewer fileUrl={`/${mealFilesMap[mealType].end}`} />
+          <div id={`meal_end`}>
+            <StackViewer fileUrl={`/${mealFilesMap[mealType].end}`} />
+          </div>
         )}
     </Fragment>
   ));
