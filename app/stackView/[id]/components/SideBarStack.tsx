@@ -714,11 +714,18 @@ export const SideBarStack = ({ onPreview }) => {
                               >
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
-                                    <Card className="p-3 mt-1 mb-3 shadow-sm bg-white border border-default-200 rounded-xl pointer-events-none w-[85%] ml-auto">
+                                    <Card className="p-3 mt-1 mb-3 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
                                       <div className="flex flex-col gap-2">
-                                        <p className="text-sm input-header">
-                                          Трапеза (начало)
-                                        </p>
+                                        <Button
+                                          className="touch-none select-none w-full bg-transparent"
+                                          onPress={() =>
+                                            handleSongClick(`meal_start`)
+                                          }
+                                        >
+                                          <p className="text-sm input-header">
+                                            Трапеза (начало)
+                                          </p>
+                                        </Button>
                                         {session?.user?.role === "регент" ? (
                                           <Select
                                             className="max-w-xs pointer-events-auto input-header"
@@ -760,7 +767,9 @@ export const SideBarStack = ({ onPreview }) => {
                                         index={index}
                                         onClick={() => {
                                           console.log("song", song);
-                                          handleSongClick(song._id);
+                                          handleSongClick(
+                                            `${song._id}_${index}`,
+                                          );
                                         }}
                                         onPreview={onPreview}
                                         onRemove={(id) =>
@@ -773,12 +782,20 @@ export const SideBarStack = ({ onPreview }) => {
                                       />
                                     ))}
                                   {programSelected.includes("Трапеза") && (
-                                    <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl pointer-events-none w-[85%] ml-auto">
-                                      <div className="flex flex-col gap-2">
+                                    // pointer-events-none
+                                    <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
+                                      {/* <div className="flex flex-col gap-2"> */}
+                                      <Button
+                                        className="touch-none select-none w-full bg-transparent"
+                                        onPress={() =>
+                                          handleSongClick(`meal_end`)
+                                        }
+                                      >
                                         <p className="text-sm input-header">
                                           Трапеза (конец)
                                         </p>
-                                      </div>
+                                      </Button>
+                                      {/* </div> */}
                                     </Card>
                                   )}
                                 </div>
@@ -808,7 +825,9 @@ export const SideBarStack = ({ onPreview }) => {
                                           index={index}
                                           onPreview={onPreview}
                                           onClick={() =>
-                                            handleSongClick(song.instanceId)
+                                            handleSongClick(
+                                              `${song._id}_${index}`,
+                                            )
                                           }
                                           onRemove={(id) =>
                                             setStackSongs((prev) =>

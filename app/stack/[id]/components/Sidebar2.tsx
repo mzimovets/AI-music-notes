@@ -697,7 +697,9 @@ export const Sidebar2 = ({ onPreview }) => {
                                         index={index}
                                         onPreview={onPreview}
                                         onClick={() =>
-                                          handleSongClick(song.instanceId)
+                                          handleSongClick(
+                                            `${song._id}_${index}`,
+                                          )
                                         }
                                         onRemove={(id) =>
                                           setStackSongs((prev) =>
@@ -711,9 +713,16 @@ export const Sidebar2 = ({ onPreview }) => {
                                   {programSelected.includes("Трапеза") && (
                                     <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl pointer-events-none w-[85%] ml-auto">
                                       <div className="flex flex-col gap-2">
-                                        <p className="text-sm input-header">
-                                          Трапеза (конец)
-                                        </p>
+                                        <Button
+                                          className="touch-none select-none w-full bg-transparent"
+                                          onPress={() =>
+                                            handleSongClick(`meal_end`)
+                                          }
+                                        >
+                                          <p className="text-sm input-header">
+                                            Трапеза (конец)
+                                          </p>
+                                        </Button>
                                       </div>
                                     </Card>
                                   )}
@@ -744,7 +753,9 @@ export const Sidebar2 = ({ onPreview }) => {
                                           index={index}
                                           onPreview={onPreview}
                                           onClick={() =>
-                                            handleSongClick(song.instanceId)
+                                            handleSongClick(
+                                              `${song._id}_${index}`,
+                                            )
                                           }
                                           onRemove={(id) =>
                                             setStackSongs((prev) =>
