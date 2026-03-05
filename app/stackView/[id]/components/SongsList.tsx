@@ -26,7 +26,7 @@ export const SongsList = ({
           </div>
         )}
 
-      <div id={`${song._id}_${index}_reserved`}>
+      <div id={`${song._id}_${index}${isReserved ? "_reserved" : ""}`}>
         <StackViewer
           fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
         />
