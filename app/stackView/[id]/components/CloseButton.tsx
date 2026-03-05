@@ -10,6 +10,7 @@ import { removeStack, updateStack } from "@/actions/actions";
 export const CloseButton = () => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
+  const { stackResponse } = useStackContext();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
@@ -26,7 +27,9 @@ export const CloseButton = () => {
   }, [lastScrollY]);
 
   const handleCloseStack = async () => {
-    await removeStack(params.id);
+    if (!stackResponse?.doc?.songs?.length) {
+      await removeStack(params.id);
+    }
 
     setIsOpen(false);
     router.push("/");
