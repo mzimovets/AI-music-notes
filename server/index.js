@@ -83,9 +83,10 @@ import multer from "multer";
 
 import cors from "cors";
 
+// CORS configuration – allow frontend apps to access the API
 app.use(
   cors({
-    origin: "http://localhost:3000", // адрес фронтенда
+    origin: ["http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }),
@@ -94,8 +95,6 @@ app.use(
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 app.use(express.static(__dirname + "/build"));
-
-app.use(express.static(__dirname + "/uploads"));
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -178,4 +177,5 @@ const deleteOldFiles = (fileName) => {
 //   res.json({ status: "ok" });
 // });
 
-app.use("/uploads", express.static("uploads"));
+// Serve uploaded files (PDF, PNG, etc.)
+app.use("/uploads", express.static(__dirname + "/uploads"));

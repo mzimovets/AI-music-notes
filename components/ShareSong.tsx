@@ -1,5 +1,5 @@
 "use client";
-import { useSongContext } from "../SongContextProvider";
+import { useSongContext } from "../app/song/[id]/SongContextProvider";
 import { addToast } from "@heroui/react";
 import { LinkIcon } from "@/components/icons/LinkIcon";
 

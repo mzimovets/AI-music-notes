@@ -298,26 +298,28 @@ export const SideBarStack = ({ onPreview }) => {
     const reserveSongs = stackSongs.filter((song) => song.isReserve);
 
     const songInfoText = (song) => {
-      let lines = [];
+      const musicSelected = programSelected.includes("Музыка") && song.author;
+      const lyricsSelected =
+        programSelected.includes("Слова") && song.authorLyrics;
+      const arrangeSelected =
+        programSelected.includes("Аранжировка") && song.authorArrange;
 
-      if (programSelected.includes("Музыка") && song.author) {
-        lines.push(`муз. ${song.author}`);
+      let parts: string[] = [];
+
+      if (
+        musicSelected &&
+        lyricsSelected &&
+        song.author === song.authorLyrics
+      ) {
+        parts.push(`сл. и муз. ${song.author}`);
+      } else {
+        if (musicSelected) parts.push(`муз. ${song.author}`);
+        if (lyricsSelected) parts.push(`сл. ${song.authorLyrics}`);
       }
-      if (programSelected.includes("Слова") && song.authorLyrics) {
-        if (song.author === song.authorLyrics) {
-          lines.push(`сл. и муз. ${song.author}`);
-        } else {
-          // добавляем автора музыки только если чип "Музыка" активен
-          lines.push(
-            `сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`,
-          );
-        }
-      }
-      // больше не добавляем автора музыки по умолчанию
-      if (programSelected.includes("Аранжировка") && song.authorArrange) {
-        lines.push(`аранж. ${song.authorArrange}`);
-      }
-      return lines;
+
+      if (arrangeSelected) parts.push(`аранж. ${song.authorArrange}`);
+
+      return parts;
     };
 
     let text = "";
@@ -684,11 +686,14 @@ export const SideBarStack = ({ onPreview }) => {
                             className="absolute inset-0 px-1"
                             size={40}
                           >
-                            <div className="flex items-center my-3 select-none pointer-events-none">
+                            <div className="flex items-center my-3 select-none">
                               <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                              <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                              <button
+                                onClick={() => handleSongClick(`program`)}
+                                className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                              >
                                 Программа
-                              </span>
+                              </button>
                               <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                             </div>
                             <DndContext
@@ -710,49 +715,37 @@ export const SideBarStack = ({ onPreview }) => {
                               >
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
-                                    <Card className="p-3 mt-1 mb-3 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
-                                      <div className="flex flex-col gap-2">
-                                        <Button
-                                          className="touch-none select-none w-full bg-transparent"
-                                          onPress={() =>
-                                            handleSongClick(`meal_start`)
+                                    <div
+                                      className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer"
+                                      onClick={() =>
+                                        handleSongClick(`meal_start`)
+                                      }
+                                    >
+                                      <p className="text-sm input-header m-0 text-left">
+                                        Трапеза (начало)
+                                      </p>
+                                      {session?.user?.role === "регент" && (
+                                        <Select
+                                          className="max-w-xs pointer-events-auto input-header"
+                                          placeholder="Выберите вариант"
+                                          selectedKeys={
+                                            mealType ? [mealType] : []
                                           }
+                                          onSelectionChange={(keys) => {
+                                            const value = Array.from(
+                                              keys,
+                                            )[0] as string;
+                                            setMealType(value);
+                                          }}
                                         >
-                                          <p className="text-sm input-header">
-                                            Трапеза (начало)
-                                          </p>
-                                        </Button>
-                                        {session?.user?.role === "регент" ? (
-                                          <Select
-                                            className="max-w-xs pointer-events-auto input-header"
-                                            placeholder="Выберите вариант"
-                                            selectedKeys={
-                                              mealType ? [mealType] : []
-                                            }
-                                            onSelectionChange={(keys) => {
-                                              const value = Array.from(
-                                                keys,
-                                              )[0] as string;
-                                              setMealType(value);
-                                            }}
-                                          >
-                                            {holidays.map((holiday) => (
-                                              <SelectItem key={holiday.key}>
-                                                {holiday.label}
-                                              </SelectItem>
-                                            ))}
-                                          </Select>
-                                        ) : (
-                                          <p className="input-header text-sm">
-                                            {mealType
-                                              ? mealType === "daily"
-                                                ? "Молитвы на трапезу"
-                                                : `Тропарь ${holidays.find((h) => h.key === mealType)?.fullName}`
-                                              : "Нет выбранного варианта"}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </Card>
+                                          {holidays.map((holiday) => (
+                                            <SelectItem key={holiday.key}>
+                                              {holiday.label}
+                                            </SelectItem>
+                                          ))}
+                                        </Select>
+                                      )}
+                                    </div>
                                   )}
                                   {stackSongs
                                     .filter((s) => !s.isReserve)
@@ -778,21 +771,16 @@ export const SideBarStack = ({ onPreview }) => {
                                       />
                                     ))}
                                   {programSelected.includes("Трапеза") && (
-                                    // pointer-events-none
-                                    <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
-                                      {/* <div className="flex flex-col gap-2"> */}
-                                      <Button
-                                        className="touch-none select-none w-full bg-transparent"
-                                        onPress={() =>
-                                          handleSongClick(`meal_end`)
-                                        }
-                                      >
-                                        <p className="text-sm input-header">
-                                          Трапеза (конец)
-                                        </p>
-                                      </Button>
-                                      {/* </div> */}
-                                    </Card>
+                                    <div
+                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer"
+                                      onClick={() =>
+                                        handleSongClick(`meal_end`)
+                                      }
+                                    >
+                                      <p className="text-sm input-header m-0">
+                                        Трапеза (конец)
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               </SortableContext>
@@ -805,11 +793,16 @@ export const SideBarStack = ({ onPreview }) => {
                                   strategy={verticalListSortingStrategy}
                                 >
                                   <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                    <div className="flex items-center my-3 select-none">
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                      <button
+                                        onClick={() =>
+                                          handleSongClick(`reserve`)
+                                        }
+                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                      >
                                         Резерв
-                                      </span>
+                                      </button>
                                       <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                                     </div>
                                     {stackSongs
@@ -922,7 +915,7 @@ export const SideBarStack = ({ onPreview }) => {
                                 <>
                                   {stackSongs.filter((song) => !song.isReserve)
                                     .length > 0 && (
-                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                    <div className="flex items-center my-3 select-none">
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                       <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
                                         Программа
@@ -941,21 +934,49 @@ export const SideBarStack = ({ onPreview }) => {
                                           {index + 1}. {song.name}
                                         </span>
                                         <span className="text-sm input-header text-default-500">
-                                          {programSelected.includes("Музыка") &&
-                                          song.author
-                                            ? `муз. ${song.author}`
-                                            : ""}
-                                          {programSelected.includes("Слова") &&
-                                          song.authorLyrics
-                                            ? song.author === song.authorLyrics
-                                              ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                              : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                            : ""}
-                                          {programSelected.includes(
-                                            "Аранжировка",
-                                          ) && song.authorArrange
-                                            ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                            : ""}
+                                          {(() => {
+                                            const musicSelected =
+                                              programSelected.includes(
+                                                "Музыка",
+                                              ) && song.author;
+                                            const lyricsSelected =
+                                              programSelected.includes(
+                                                "Слова",
+                                              ) && song.authorLyrics;
+                                            const arrangeSelected =
+                                              programSelected.includes(
+                                                "Аранжировка",
+                                              ) && song.authorArrange;
+
+                                            let parts: string[] = [];
+
+                                            if (
+                                              musicSelected &&
+                                              lyricsSelected &&
+                                              song.author === song.authorLyrics
+                                            ) {
+                                              parts.push(
+                                                `сл. и муз. ${song.author}`,
+                                              );
+                                            } else {
+                                              if (musicSelected)
+                                                parts.push(
+                                                  `муз. ${song.author}`,
+                                                );
+                                              if (lyricsSelected)
+                                                parts.push(
+                                                  `сл. ${song.authorLyrics}`,
+                                                );
+                                            }
+
+                                            if (arrangeSelected) {
+                                              parts.push(
+                                                `аранж. ${song.authorArrange}`,
+                                              );
+                                            }
+
+                                            return parts.join(", ");
+                                          })()}
                                         </span>
                                       </div>
                                     ))}
@@ -963,7 +984,7 @@ export const SideBarStack = ({ onPreview }) => {
                                   {stackSongs.filter((song) => song.isReserve)
                                     .length > 0 && (
                                     <>
-                                      <div className="flex items-center my-3 select-none pointer-events-none">
+                                      <div className="flex items-center my-3 select-none">
                                         <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                         <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
                                           Резерв
@@ -981,24 +1002,50 @@ export const SideBarStack = ({ onPreview }) => {
                                               {index + 1}. {song.name}
                                             </span>
                                             <span className="text-sm input-header text-default-500">
-                                              {programSelected.includes(
-                                                "Музыка",
-                                              ) && song.author
-                                                ? `муз. ${song.author}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Слова",
-                                              ) && song.authorLyrics
-                                                ? song.author ===
-                                                  song.authorLyrics
-                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Аранжировка",
-                                              ) && song.authorArrange
-                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                                : ""}
+                                              {(() => {
+                                                const musicSelected =
+                                                  programSelected.includes(
+                                                    "Музыка",
+                                                  ) && song.author;
+                                                const lyricsSelected =
+                                                  programSelected.includes(
+                                                    "Слова",
+                                                  ) && song.authorLyrics;
+                                                const arrangeSelected =
+                                                  programSelected.includes(
+                                                    "Аранжировка",
+                                                  ) && song.authorArrange;
+
+                                                let parts: string[] = [];
+
+                                                if (
+                                                  musicSelected &&
+                                                  lyricsSelected &&
+                                                  song.author ===
+                                                    song.authorLyrics
+                                                ) {
+                                                  parts.push(
+                                                    `сл. и муз. ${song.author}`,
+                                                  );
+                                                } else {
+                                                  if (musicSelected)
+                                                    parts.push(
+                                                      `муз. ${song.author}`,
+                                                    );
+                                                  if (lyricsSelected)
+                                                    parts.push(
+                                                      `сл. ${song.authorLyrics}`,
+                                                    );
+                                                }
+
+                                                if (arrangeSelected) {
+                                                  parts.push(
+                                                    `аранж. ${song.authorArrange}`,
+                                                  );
+                                                }
+
+                                                return parts.join(", ");
+                                              })()}
                                             </span>
                                           </div>
                                         ))}

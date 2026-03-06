@@ -1,8 +1,9 @@
 "use client";
 import { useSongContext } from "../SongContextProvider";
-import { useShareSong } from "./ShareSong";
-import { useDownloadSong } from "./DownloadSong";
-import { usePrintSong } from "./PrintSong";
+import { useShareSong } from "../../../../components/ShareSong";
+import { useDownloadSong } from "../../../../components/DownloadSong";
+
+import { usePrintSong } from "@/components/PrintSong";
 import ShareIcon from "@/components/ShareIcon";
 import PrinterIcon from "@/components/PrinterIcon";
 import DownloadIcon from "@/components/DownloadIcon";

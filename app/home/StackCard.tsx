@@ -51,11 +51,14 @@ export const StackCard = ({ stacks }) => {
     </div>
   );
 
-  const filteredStacks = (isRegent ? stacks : stacks)?.slice().sort((a, b) => {
-    // Published first
-    if (a.isPublished === b.isPublished) return 0;
-    return a.isPublished ? -1 : 1;
-  });
+  const filteredStacks = (
+    isRegent ? stacks : stacks.filter((stack) => stack.isPublished)
+  )
+    ?.slice()
+    .sort((a, b) => {
+      if (a.isPublished === b.isPublished) return 0;
+      return a.isPublished ? -1 : 1;
+    });
 
   return filteredStacks?.map((stack) => {
     return fillCard(stack);

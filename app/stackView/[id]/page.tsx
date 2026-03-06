@@ -98,10 +98,16 @@ export default function Page() {
       >
         <CloseReadButton />
       </div>
-      <p className="flex flex-col text-default-500 text-center mt-2 justify-center font-header gap-2 text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-4xl">
+      <p className="flex justify-center text-center font-header text-sm sm:text-base md:text-lg font-bold mt-4 mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[#BD9673] to-[#7D5E42] tracking-wide">
         {stackResponse.doc?.name}
       </p>
-      <div className="justify-center flex gap-2  mb-2">
+      <p
+        id={`program`}
+        className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+      >
+        Программа
+      </p>
+      <div className="justify-center flex gap-2 ">
         <p className="text-bold text-sm input-header justify-center text-default-500">
           {mainSongs.length} {getPluralForm(mainSongs.length)}
         </p>
@@ -120,7 +126,10 @@ export default function Page() {
 
       {reserveSongs.length > 0 && (
         <>
-          <p className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+          <p
+            id={`reserve`}
+            className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+          >
             Резерв
           </p>
 

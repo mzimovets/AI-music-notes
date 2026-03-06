@@ -93,7 +93,7 @@
 // };
 
 "use client";
-import { useSongContext } from "../SongContextProvider";
+import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 import { useRef, useState, useCallback } from "react";
 
 export const usePrintSong = () => {
@@ -105,7 +105,7 @@ export const usePrintSong = () => {
     const filename = context?.songResponse?.doc?.file?.filename;
     if (!filename) return;
 
-    const fileUrl = `http://localhost:4000/uploads/${filename}`;
+    const fileUrl = `/uploads/${filename}`;
 
     if (iframeRef.current) {
       setIsLoading(true);

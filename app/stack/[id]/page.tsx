@@ -157,7 +157,10 @@ export default function StackPage() {
 
       {stackSongs && stackSongs.length > 0 ? (
         <>
-          <p className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+          <p
+            id={`program`}
+            className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+          >
             Программа
           </p>
           <div className="justify-center flex gap-2 mb-6">
@@ -172,7 +175,10 @@ export default function StackPage() {
                 programSelected.includes("Трапеза") &&
                 mealType &&
                 mealFilesMap[mealType]?.start && (
-                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+                  <div
+                    id={`meal_start`}
+                    className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                  >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
                         <p className="text-bold text-sm  text-left input-header">
@@ -191,10 +197,7 @@ export default function StackPage() {
                     <div className="relative my-2">
                       <Divider className="opacity-60" />
                     </div>
-                    <div
-                      id={`meal_start`}
-                      className="mt-1 mb-1  sm:mb-6 sm:mt-2"
-                    >
+                    <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                       <PdfTitlePage
                         fileUrl={`/${mealFilesMap[mealType].start}`}
                       />
@@ -203,7 +206,6 @@ export default function StackPage() {
                 )}
               <div
                 id={`${song._id}_${index}`}
-                xw
                 className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
               >
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
@@ -211,12 +213,15 @@ export default function StackPage() {
                     <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
                       <p className="text-bold text-sm capitalize input-header">
                         {index + 1}. {song.name}
+                        {song.author && (
+                          <>
+                            <span className="text-black"> —</span>{" "}
+                            <span className="text-default-500">
+                              {song.author}
+                            </span>
+                          </>
+                        )}
                       </p>
-                      {song.author && (
-                        <p className="text-bold text-sm capitalize input-header text-default-500 sm:ml-2">
-                          {song.author}
-                        </p>
-                      )}
                     </div>
                     <div className="flex justify-center sm:justify-end gap-2 mt-2 sm:mt-0">
                       <EyePreviewButton onClick={() => handlePreview(song)} />
@@ -240,7 +245,10 @@ export default function StackPage() {
                 programSelected.includes("Трапеза") &&
                 mealType &&
                 mealFilesMap[mealType]?.end && (
-                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+                  <div
+                    id={`meal_end`}
+                    className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                  >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
                         <p className="text-bold text-sm text-left input-header">
@@ -259,7 +267,7 @@ export default function StackPage() {
                     <div className="relative my-2">
                       <Divider className="opacity-60" />
                     </div>
-                    <div id={`meal_end`} className="mt-1 mb-1 sm:mb-6 sm:mt-2">
+                    <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                       <PdfTitlePage
                         fileUrl={`/${mealFilesMap[mealType].end}`}
                       />
@@ -275,7 +283,10 @@ export default function StackPage() {
 
           {reserveSongs.length > 0 && (
             <div className="mt-16 flex flex-col">
-              <p className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+              <p
+                id={`reserve`}
+                className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+              >
                 Резерв
               </p>
               <div className="justify-center flex gap-2 mb-6">
@@ -294,12 +305,15 @@ export default function StackPage() {
                       <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
                         <p className="text-bold text-sm capitalize input-header">
                           {index + 1}. {song.name}
+                          {song.author && (
+                            <>
+                              <span className="text-black"> —</span>{" "}
+                              <span className="text-default-500">
+                                {song.author}
+                              </span>
+                            </>
+                          )}
                         </p>
-                        {song.author && (
-                          <p className="text-bold text-sm capitalize input-header text-default-500 sm:ml-2">
-                            {song.author}
-                          </p>
-                        )}
                       </div>
                       <div className="flex justify-center sm:justify-end gap-2 mt-2 sm:mt-0">
                         <EyePreviewButton onClick={() => handlePreview(song)} />

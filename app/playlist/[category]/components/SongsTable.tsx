@@ -13,6 +13,7 @@ import { useTableCell } from "./useTableCell";
 import { usePlaylistContext } from "../PlaylistContextProvider";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 
 export const SongsTable = () => {
   const renderCell = useTableCell();
@@ -67,9 +68,9 @@ export const SongsTable = () => {
           base: "max-h-[520px] overflow-scroll",
           table: "min-h-[200px]",
         }}
-        onRowAction={(key) => {
-          router.push(`/song/${key}`);
-        }}
+        // onRowAction={(key) => {
+        //   router.push(`/song/${key}`);
+        // }}
         bottomContent={
           pages > 1 ? (
             <Pagination

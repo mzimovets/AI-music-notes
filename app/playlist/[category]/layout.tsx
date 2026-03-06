@@ -1,3 +1,4 @@
+import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 import { NavBackButton } from "./components/NavBackButton";
 
 export default function PlaylistLayout({
@@ -6,9 +7,13 @@ export default function PlaylistLayout({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col justify-center gap-4  container">
+    <>
       <NavBackButton />
-      {children}
-    </section>
+      <SongContextProvider>
+        <section className="flex flex-col justify-center gap-4  container">
+          {children}
+        </section>
+      </SongContextProvider>
+    </>
   );
 }

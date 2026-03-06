@@ -635,11 +635,14 @@ export const Sidebar2 = ({ onPreview }) => {
                             className="absolute inset-0 px-1"
                             size={40}
                           >
-                            <div className="flex items-center my-3 select-none pointer-events-none">
+                            <div className="flex items-center my-3 select-none">
                               <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                              <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                              <button
+                                onClick={() => handleSongClick(`program`)}
+                                className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                              >
                                 Программа
-                              </span>
+                              </button>
                               <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                             </div>
                             <DndContext
@@ -661,39 +664,35 @@ export const Sidebar2 = ({ onPreview }) => {
                               >
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
-                                    <Card className="p-3 mt-1 mb-3 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
-                                      <div className="flex flex-col gap-2">
-                                        <Button
-                                          className="touch-none select-none w-full bg-transparent"
-                                          onPress={() =>
-                                            handleSongClick(`meal_start`)
-                                          }
-                                        >
-                                          <p className="text-sm input-header">
-                                            Трапеза (начало)
-                                          </p>
-                                        </Button>
-                                        <Select
-                                          className="max-w-xs pointer-events-auto input-header"
-                                          placeholder="Выберите вариант"
-                                          selectedKeys={
-                                            mealType ? [mealType] : []
-                                          }
-                                          onSelectionChange={(keys) => {
-                                            const value = Array.from(
-                                              keys,
-                                            )[0] as string;
-                                            setMealType(value);
-                                          }}
-                                        >
-                                          {holidays.map((holiday) => (
-                                            <SelectItem key={holiday.key}>
-                                              {holiday.label}
-                                            </SelectItem>
-                                          ))}
-                                        </Select>
-                                      </div>
-                                    </Card>
+                                    <div
+                                      className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer"
+                                      onClick={() =>
+                                        handleSongClick(`meal_start`)
+                                      }
+                                    >
+                                      <p className="text-sm input-header m-0 text-left">
+                                        Трапеза (начало)
+                                      </p>
+                                      <Select
+                                        className="max-w-xs pointer-events-auto input-header"
+                                        placeholder="Выберите вариант"
+                                        selectedKeys={
+                                          mealType ? [mealType] : []
+                                        }
+                                        onSelectionChange={(keys) => {
+                                          const value = Array.from(
+                                            keys,
+                                          )[0] as string;
+                                          setMealType(value);
+                                        }}
+                                      >
+                                        {holidays.map((holiday) => (
+                                          <SelectItem key={holiday.key}>
+                                            {holiday.label}
+                                          </SelectItem>
+                                        ))}
+                                      </Select>
+                                    </div>
                                   )}
                                   {stackSongs
                                     .filter((s) => !s.isReserve)
@@ -718,20 +717,16 @@ export const Sidebar2 = ({ onPreview }) => {
                                       />
                                     ))}
                                   {programSelected.includes("Трапеза") && (
-                                    <Card className="p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl w-[85%] ml-auto">
-                                      <div className="flex flex-col gap-2">
-                                        <Button
-                                          className="touch-none select-none w-full bg-transparent"
-                                          onPress={() =>
-                                            handleSongClick(`meal_end`)
-                                          }
-                                        >
-                                          <p className="text-sm input-header">
-                                            Трапеза (конец)
-                                          </p>
-                                        </Button>
-                                      </div>
-                                    </Card>
+                                    <div
+                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer"
+                                      onClick={() =>
+                                        handleSongClick(`meal_end`)
+                                      }
+                                    >
+                                      <p className="text-sm input-header m-0">
+                                        Трапеза (конец)
+                                      </p>
+                                    </div>
                                   )}
                                 </div>
                               </SortableContext>
@@ -744,11 +739,16 @@ export const Sidebar2 = ({ onPreview }) => {
                                   strategy={verticalListSortingStrategy}
                                 >
                                   <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none pointer-events-none">
+                                    <div className="flex items-center my-3 select-none">
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                      <button
+                                        onClick={() =>
+                                          handleSongClick(`reserve`)
+                                        }
+                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                      >
                                         Резерв
-                                      </span>
+                                      </button>
                                       <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                                     </div>
                                     {stackSongs
@@ -900,7 +900,7 @@ export const Sidebar2 = ({ onPreview }) => {
                                   {stackSongs.filter((song) => song.isReserve)
                                     .length > 0 && (
                                     <>
-                                      <div className="flex items-center my-3 select-none pointer-events-none">
+                                      <div className="flex items-center my-3 select-none">
                                         <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                         <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
                                           Резерв
