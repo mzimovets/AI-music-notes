@@ -94,6 +94,7 @@
 
 "use client";
 import { useSongContext } from "@/app/song/[id]/SongContextProvider";
+import { ServerSong } from "@/lib/types";
 import { useRef, useState, useCallback } from "react";
 
 export const usePrintSong = () => {
@@ -101,36 +102,43 @@ export const usePrintSong = () => {
   const [isLoading, setIsLoading] = useState(false);
   const iframeRef = useRef(null);
 
-  const handlePrint = useCallback(() => {
-    const filename = context?.songResponse?.doc?.file?.filename;
-    if (!filename) return;
+  const handlePrint = useCallback(
+    (song?: ServerSong) => {
+      const filename =
+        context?.songResponse?.doc?.file?.filename || song?.file?.filename;
+      console.log("handlePrint", filename, iframeRef.current);
+      if (!filename) return;
 
-    const fileUrl = `/uploads/${filename}`;
+      const fileUrl = `/uploads/${filename}`;
 
-    if (iframeRef.current) {
-      setIsLoading(true);
+      if (iframeRef.current) {
+        setIsLoading(true);
 
-      // Сбрасываем src для корректного срабатывания onload при повторном нажатии
-      iframeRef.current.src = "";
+        // Сбрасываем src для корректного срабатывания onload при повторном нажатии
+        iframeRef.current.src = "";
 
-      iframeRef.current.onload = () => {
-        try {
-          const iframeWindow = iframeRef.current.contentWindow;
-          if (iframeWindow) {
-            iframeWindow.focus();
-            iframeWindow.print();
+        iframeRef.current.onload = () => {
+          try {
+            const iframeWindow = iframeRef.current.contentWindow;
+            if (iframeWindow) {
+              iframeWindow.focus();
+              iframeWindow.print();
+            }
+          } catch (error) {
+            console.error("Ошибка печати:", error);
+            alert(
+              "Ошибка доступа к печати (CORS). Проверьте настройки сервера.",
+            );
+          } finally {
+            setIsLoading(false);
           }
-        } catch (error) {
-          console.error("Ошибка печати:", error);
-          alert("Ошибка доступа к печати (CORS). Проверьте настройки сервера.");
-        } finally {
-          setIsLoading(false);
-        }
-      };
+        };
 
-      iframeRef.current.src = fileUrl;
-    }
-  }, [context]);
+        iframeRef.current.src = fileUrl;
+      }
+    },
+    [context],
+  );
 
   return {
     handlePrint,

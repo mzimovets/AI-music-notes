@@ -29,7 +29,9 @@ export const SongActions = () => {
       </button>
 
       <button
-        onClick={handleDownload}
+        onClick={() => {
+          handleDownload(context?.songResponse.doc);
+        }}
         disabled={!isReady || isDownloading}
         className={`hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform ${
           isDownloading ? "opacity-50 cursor-wait" : "disabled:opacity-50"

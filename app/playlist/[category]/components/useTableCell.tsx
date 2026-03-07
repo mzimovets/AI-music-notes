@@ -46,6 +46,7 @@ export const useTableCell = () => {
         case "actions":
           return (
             <div className="relative flex items-center gap-2 justify-end  gap-4">
+              {PrintElement}
               <Tooltip content="Поделиться">
                 <button
                   onClick={(e) => {

@@ -45,12 +45,15 @@ export const useDownloadSong = () => {
   const handleDownload = useCallback(
     async (manualSong = null) => {
       const song = manualSong || context?.songResponse;
-      if (!song?.doc?.file?.filename) return;
+      if (!song?.doc?.file?.filename && !manualSong) return;
 
       setIsDownloading(true);
       try {
-        const fileUrl = `http://localhost:4000/uploads/${song.doc.file.filename}`;
-        const fileName = song.doc.file.originalName || `${song.doc.name}.pdf`;
+        const fileUrl = `http://localhost:4000/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`;
+        const fileName =
+          manualSong?.file.filename ||
+          song?.doc?.file?.originalName ||
+          `${song.doc.name}.pdf`;
 
         const response = await fetch(fileUrl);
         if (!response.ok) throw new Error("Ошибка загрузки файла");
@@ -70,7 +73,7 @@ export const useDownloadSong = () => {
       } catch (error) {
         console.error("Ошибка при скачивании:", error);
         window.open(
-          `http://localhost:4000/uploads/${song.doc.file.filename}`,
+          `http://localhost:4000/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`,
           "_blank",
         );
         showCenterMessage();
