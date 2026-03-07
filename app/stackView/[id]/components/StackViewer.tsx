@@ -1,6 +1,5 @@
 "use client";
 import Pdfjs from "@/app/home/pdfjs";
-import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 
 import { Card } from "@heroui/card";
 import { Skeleton } from "@heroui/react";
@@ -25,7 +24,9 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
       <div className="pt-3 flex flex-col items-center">
         {/* Загружаем PDF и сохраняем pdfDoc */}
         <div style={{ display: "none" }}>
-          <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={1} />
+          {fileUrl && (
+            <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={1} />
+          )}
         </div>
 
         {/* Рендерим все страницы */}

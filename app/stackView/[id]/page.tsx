@@ -1,13 +1,11 @@
 "use client";
 import React, { useEffect, useState } from "react";
 
-import { SidebarButton } from "./components/SidebarButton";
 import { SideBarStack } from "./components/SideBarStack";
-import { useRouter } from "next/navigation";
+
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import { SongsList } from "./components/SongsList";
 import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
-import { DeleteModal } from "./components/DeleteModal";
 import { socket } from "@/lib/socket";
 import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
@@ -17,7 +15,6 @@ import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton"
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
-  const [hasSavedChanges, setHasSavedChanges] = useState(false);
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -30,11 +27,8 @@ export default function Page() {
   const {
     stackResponse,
     stackSongs,
-    removeSong,
     setStackSongs,
-    mealType,
     setMealType,
-    programSelected,
     setProgramSelected,
   } = useStackContext();
 
