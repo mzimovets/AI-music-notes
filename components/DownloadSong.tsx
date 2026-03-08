@@ -49,7 +49,7 @@ export const useDownloadSong = () => {
 
       setIsDownloading(true);
       try {
-        const fileUrl = `http://localhost:4000/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`;
+        const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`;
         const fileName =
           manualSong?.file.filename ||
           song?.doc?.file?.originalName ||
@@ -73,7 +73,7 @@ export const useDownloadSong = () => {
       } catch (error) {
         console.error("Ошибка при скачивании:", error);
         window.open(
-          `http://localhost:4000/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`,
+          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`,
           "_blank",
         );
         showCenterMessage();

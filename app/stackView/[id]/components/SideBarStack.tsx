@@ -162,7 +162,9 @@ export const SideBarStack = ({ onPreview }) => {
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch("http://localhost:4000/songs");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
+      );
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {

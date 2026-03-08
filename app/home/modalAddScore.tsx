@@ -79,7 +79,9 @@ export default function ModalAddScore() {
 
   const fetchAllSongs = async () => {
     try {
-      const response = await fetch("http://localhost:4000/songs");
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
+      );
       const data = await response.json();
 
       if (data.status === "ok" && data.docs) {

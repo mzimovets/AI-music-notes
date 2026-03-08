@@ -29,7 +29,9 @@ export default function Home() {
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch("http://localhost:4000/songs");
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
+        );
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -59,7 +61,9 @@ export default function Home() {
 
     const fetchAllStacks = async () => {
       try {
-        const response = await fetch("http://localhost:4000/stacks");
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stacks`,
+        );
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {

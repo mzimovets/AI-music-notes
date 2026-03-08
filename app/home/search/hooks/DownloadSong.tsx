@@ -46,7 +46,7 @@ export const useDownloadSong = () => {
 
     setIsDownloading(true);
     try {
-      const fileUrl = `http://localhost:4000/uploads/${manualSong?.file?.filename}`;
+      const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${manualSong?.file?.filename}`;
       const fileName = manualSong?.file.filename;
 
       const response = await fetch(fileUrl);
@@ -67,7 +67,7 @@ export const useDownloadSong = () => {
     } catch (error) {
       console.error("Ошибка при скачивании:", error);
       window.open(
-        `http://localhost:4000/uploads/${manualSong?.file?.filename}`,
+        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${manualSong?.file?.filename}`,
         "_blank",
       );
       showCenterMessage();

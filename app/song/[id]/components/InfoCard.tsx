@@ -38,7 +38,9 @@ export const InfoCard = () => {
   const [category, setCategory] = useState(song.doc.category);
 
   const onLoad = async () => {
-    setSelectedFile(`http://localhost:4000/uploads/${song.doc.file.filename}`); //song.doc.file
+    setSelectedFile(
+      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`,
+    ); //song.doc.file
   };
 
   useEffect(() => {

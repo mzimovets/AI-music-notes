@@ -24,7 +24,7 @@ export const useShareSong = () => {
       return;
     }
 
-    const fileUrl = `http://localhost:4000/uploads/${file.filename}`;
+    const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${file.filename}`;
 
     try {
       const shareUrl = fileUrl;

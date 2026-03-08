@@ -12,7 +12,7 @@ export const authOptions = {
       },
       async authorize(credentials) {
         const res = await fetch(
-          `http://localhost:4000/user/${credentials?.username}`
+          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/user/${credentials?.username}`,
         );
         const data = await res.json();
 
@@ -20,7 +20,7 @@ export const authOptions = {
 
         const isValid = await bcrypt.compare(
           credentials?.password || "",
-          data.doc.password
+          data.doc.password,
         );
         if (!isValid) return null;
 

@@ -72,7 +72,9 @@ export default function StackPage() {
 
   const handleClosePreview = () => setIsPreviewModalOpen(false);
   const handlePreview = (song) => {
-    setSelectedFile(`http://localhost:4000/uploads/${song.file.filename}`);
+    setSelectedFile(
+      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`,
+    );
     setIsPreviewModalOpen(true);
   };
 
@@ -236,7 +238,7 @@ export default function StackPage() {
                 </div>
                 <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                   <PdfTitlePage
-                    fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+                    fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
                   />
                 </div>
               </div>
@@ -328,7 +330,7 @@ export default function StackPage() {
                   </div>
                   <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                     <PdfTitlePage
-                      fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+                      fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
                     />
                   </div>
                 </div>

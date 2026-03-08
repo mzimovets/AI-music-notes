@@ -54,7 +54,7 @@ module.exports = withPWA({
     return [
       {
         source: "/uploads/:path*",
-        destination: "http://localhost:4000/uploads/:path*",
+        destination: `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/:path*`,
       },
     ];
   },

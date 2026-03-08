@@ -57,7 +57,7 @@ export default function SongReadPage() {
 
       <div className="flex justify-center mb-2">
         <StackViewer
-          fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
+          fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
         />
       </div>
     </div>

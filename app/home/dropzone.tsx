@@ -266,7 +266,7 @@ export default function MyDropzone({
 
     // Инициализация Dropzone
     const dz = new Dropzone(`#${dropzoneId}`, {
-      url: "http://localhost:4000/api/upload",
+      url: `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/api/upload`,
       maxFilesize: 5,
       acceptedFiles: ".pdf",
       paramName: "file",
