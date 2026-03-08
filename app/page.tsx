@@ -3,7 +3,10 @@ import { Suspense, useEffect, useState } from "react";
 
 import React from "react";
 import Albums from "./home/albums";
-import { SongsLibraryContextProvider } from "./providers";
+import {
+  SongsLibraryContextProvider,
+  useAllSongsLibraryContextProvider,
+} from "./providers";
 
 import { Button } from "@heroui/react";
 
@@ -16,7 +19,7 @@ import { Search } from "./home/search/Search";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
-  const [allSongs, setAllSongs] = useState([]);
+  const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
   const [stacks, setStacks] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);

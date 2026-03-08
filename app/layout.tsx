@@ -5,7 +5,7 @@ import { metadata, viewport } from "./metadata";
 import { Link } from "@heroui/link";
 import clsx from "clsx";
 
-import { Providers } from "./providers";
+import { AllSongsLibraryContextProvider, Providers } from "./providers";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
 import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
@@ -55,8 +55,10 @@ export default function RootLayout({
         <SessionProvider>
           <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
             <div className="relative flex flex-col">
-              <NavbarWrapper />
-              <MainWrapper>{children}</MainWrapper>
+              <AllSongsLibraryContextProvider>
+                <NavbarWrapper />
+                <MainWrapper>{children}</MainWrapper>
+              </AllSongsLibraryContextProvider>
               <footer className="w-full flex items-center justify-center py-3"></footer>
             </div>
           </Providers>

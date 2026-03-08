@@ -22,6 +22,7 @@ import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
 import { AddSongIcon } from "@/components/icons/AddSongIcon";
+import { useAllSongsLibraryContextProvider } from "../providers";
 
 export const songs = [
   { label: "Духовные канты", key: "spiritual_chants" },
@@ -50,6 +51,7 @@ export default function ModalAddScore() {
   const [authorLyrics, setAuthorLyrics] = useState("");
   const [authorArrange, setAuthorArrange] = useState("");
   const [category, setCategory] = useState("");
+  const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
 
   const [validationErrors, setValidationErrors] = useState({
     name: false,
@@ -73,6 +75,32 @@ export default function ModalAddScore() {
     };
     setValidationErrors(errors);
     return !errors.name && !errors.category && !errors.file;
+  };
+
+  const fetchAllSongs = async () => {
+    try {
+      const response = await fetch("http://localhost:4000/songs");
+      const data = await response.json();
+
+      if (data.status === "ok" && data.docs) {
+        const songs = data.docs
+          .filter((song) => song.docType === "song")
+          .map((song) => ({
+            _id: song._id,
+            name: song.doc?.name || song.name || "",
+            author: song.doc?.author || song.author || "",
+            authorLyrics: song.doc?.authorLyrics || song.authorLyrics || "",
+            authorArrange: song.doc?.authorArrange || song.authorArrange || "",
+            category: song.doc?.category || song.category || "",
+            file: song.doc?.file || song.file || {},
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+        setAllSongs(songs);
+      }
+    } catch (error) {
+      console.error("Ошибка при загрузке песен:", error);
+    }
   };
 
   const handleSave = async (onClose: () => void) => {
@@ -121,6 +149,7 @@ export default function ModalAddScore() {
       },
     });
 
+    await fetchAllSongs();
     onClose();
   };
 
