@@ -101,7 +101,29 @@ const storage = multer.diskStorage({
     cb(null, __dirname + "/uploads");
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname);
+    // decode possible latin1 encoding from browser
+    let decodedName = Buffer.from(file.originalname, "latin1").toString("utf8");
+
+    // split name and extension
+    const ext = decodedName.substring(decodedName.lastIndexOf("."));
+    let baseName = decodedName.substring(0, decodedName.lastIndexOf("."));
+
+    // sanitize name (remove strange characters, normalize spaces)
+    baseName = baseName
+      .replace(/[^a-zA-Zа-яА-Я0-9-_ ]/g, "")
+      .trim()
+      .replace(/\s+/g, "_");
+
+    let finalName = `${baseName}${ext}`;
+    let counter = 1;
+
+    // check if file exists and add small numeric suffix if needed
+    while (fs.existsSync(__dirname + "/uploads/" + finalName)) {
+      finalName = `${baseName}_${counter}${ext}`;
+      counter++;
+    }
+
+    cb(null, finalName);
   },
 });
 const upload = multer({ storage: storage });
@@ -128,7 +150,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 
   const fileData = {
     _id: Date.now().toString(), // или req.file.filename
-    originalName: req.file.originalname,
+    originalName: req.file.filename,
     path: req.file.path,
     mimetype: req.file.mimetype,
     size: req.file.size,
