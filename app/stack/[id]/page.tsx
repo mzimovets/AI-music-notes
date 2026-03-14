@@ -1,21 +1,20 @@
 "use client";
 import React, { useEffect, useState } from "react";
-
-import { PdfTitlePage } from "./components/PdfTitlePage";
-import { useStackContext } from "./components/StackContextProvider";
 import { Divider } from "@heroui/divider";
-import { ScrollToTop } from "./components/ScrollToTopButton";
-import ModalFilePreviewer from "../../home/modalFilePreviewer";
-import { getPluralForm } from "./components/GetPluralForm";
-import { EyePreviewButton } from "./components/EyePreviewButton";
-import { RemoveSongButton } from "./components/RemoveSongButton";
-import { TrashBinIcon } from "./components/icons/TrashBinIcon";
-import { Sidebar2 } from "./components/Sidebar2";
-import { Monogram } from "@/components/monogram";
-import { updateStack } from "@/actions/actions";
-import { holidays } from "./components/Sidebar2";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
+
+import ModalFilePreviewer from "../../home/modalFilePreviewer";
+
+import { holidays } from "./components/Sidebar2";
+import { Sidebar2 } from "./components/Sidebar2";
+import { TrashBinIcon } from "./components/icons/TrashBinIcon";
+import { RemoveSongButton } from "./components/RemoveSongButton";
+import { EyePreviewButton } from "./components/EyePreviewButton";
+import { getPluralForm } from "./components/GetPluralForm";
+import { ScrollToTop } from "./components/ScrollToTopButton";
+import { useStackContext } from "./components/StackContextProvider";
+import { PdfTitlePage } from "./components/PdfTitlePage";
 import { SaveIcon } from "./components/icons/SaveIcon";
 import { PublishIcon } from "./components/icons/PublishIcon";
 import { mealFilesMap } from "./constants";
@@ -24,9 +23,12 @@ import { ActionButton } from "./components/ActionButton";
 import { DeleteStackModal } from "./components/DeleteStackModal";
 import { StackCover } from "./components/StackCover";
 import { StackCoverColorSelector } from "./components/StackCoverColorSelector";
-import { CloseButton } from "@/app/stackView/[id]/components/CloseButton";
 import EmptyStackIcon from "./components/icons/EmptyStackIcon";
 import SidebarIcon from "./components/icons/SidebarIcon";
+
+import { updateStack } from "@/actions/actions";
+import { Monogram } from "@/components/monogram";
+import { CloseButton } from "@/app/stackView/[id]/components/CloseButton";
 
 export default function StackPage() {
   const router = useRouter();
@@ -46,23 +48,25 @@ export default function StackPage() {
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [showButton, setShowButton] = useState(true);
+  const [showButton] = useState(true);
 
   // Автопрокрутка к песне по ее instanceId с учетом фиксированного header
-  const scrollToSong = (songId: string) => {
-    const el = document.getElementById(songId);
-    if (el) {
-      // Высота фиксированного header, который может перекрывать контент
-      const headerOffset = 120;
-      const elementPosition =
-        el.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - headerOffset;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  };
+  // const scrollToSong = (songId: string) => {
+  //   const el = document.getElementById(songId);
+
+  //   if (el) {
+  //     // Высота фиксированного header, который может перекрывать контент
+  //     const headerOffset = 120;
+  //     const elementPosition =
+  //       el.getBoundingClientRect().top + window.pageYOffset;
+  //     const offsetPosition = elementPosition - headerOffset;
+
+  //     window.scrollTo({
+  //       top: offsetPosition,
+  //       behavior: "smooth",
+  //     });
+  //   }
+  // };
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
@@ -160,8 +164,8 @@ export default function StackPage() {
       {stackSongs && stackSongs.length > 0 ? (
         <>
           <p
-            id={`program`}
             className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+            id={`program`}
           >
             Программа
           </p>
@@ -178,8 +182,8 @@ export default function StackPage() {
                 mealType &&
                 mealFilesMap[mealType]?.start && (
                   <div
-                    id={`meal_start`}
                     className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                    id={`meal_start`}
                   >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
@@ -207,8 +211,8 @@ export default function StackPage() {
                   </div>
                 )}
               <div
-                id={`${song._id}_${index}`}
                 className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                id={`${song._id}_${index}`}
               >
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
@@ -248,8 +252,8 @@ export default function StackPage() {
                 mealType &&
                 mealFilesMap[mealType]?.end && (
                   <div
-                    id={`meal_end`}
                     className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                    id={`meal_end`}
                   >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
@@ -286,8 +290,8 @@ export default function StackPage() {
           {reserveSongs.length > 0 && (
             <div className="mt-16 flex flex-col">
               <p
-                id={`reserve`}
                 className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+                id={`reserve`}
               >
                 Резерв
               </p>
@@ -298,9 +302,9 @@ export default function StackPage() {
               </div>
               {reserveSongs.map((song, index) => (
                 <div
-                  id={`${song._id}_${index}_reserved`}
                   key={song.instanceId || index}
                   className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                  id={`${song._id}_${index}_reserved`}
                 >
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
@@ -354,8 +358,8 @@ export default function StackPage() {
 
       <ModalFilePreviewer
         isOpen={isPreviewModalOpen}
-        onClose={handleClosePreview}
         selectedFile={selectedFile}
+        onClose={handleClosePreview}
       />
       <DeleteStackModal />
     </>

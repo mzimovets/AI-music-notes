@@ -28,7 +28,7 @@ export default function MyDropzone({
   cardClassName,
 }: MyDropzoneProps) {
   // ← исправляем параметры
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [setIsDragActive] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const dzRef = useRef<Dropzone | null>(null);
   const dropzoneInitialized = useRef(false);
@@ -89,6 +89,7 @@ export default function MyDropzone({
 
     dz.on("success", (file, response) => {
       const fileId = response?.id || null;
+
       if (onFileSelect) onFileSelect(file, fileId);
     });
 
@@ -120,14 +121,17 @@ export default function MyDropzone({
 
   const getFileIcon = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
+
     if (ext === "pdf") return "📄";
     if (["jpg", "jpeg", "png", "gif"].includes(ext || "")) return "🖼️";
+
     return "📎";
   };
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + " B";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+
     return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   };
 
@@ -138,8 +142,8 @@ export default function MyDropzone({
         style={hasError ? { backgroundColor: "#fee7ef" } : {}}
       >
         <form
-          id={dropzoneId}
           className="dropzone w-full h-full flex items-center justify-center relative z-10"
+          id={dropzoneId}
           style={{ border: "none", position: "relative" }}
         >
           <div className="dropzone-clickable w-full h-full flex items-center justify-center cursor-pointer">
@@ -190,14 +194,14 @@ export default function MyDropzone({
                   </div>
 
                   <button
+                    aria-label="Удалить файл"
+                    className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg hover:scale-110 z-30"
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleRemoveFile(e);
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg hover:scale-110 z-30"
-                    aria-label="Удалить файл"
                   >
                     <span className="text-sm font-bold">×</span>
                   </button>
@@ -210,14 +214,14 @@ export default function MyDropzone({
 
       {selectedFile && selectedFile.size > 0 && onPreview && (
         <Button
-          onPress={onPreview}
           className="w-full px-5 py-2.5 rounded-lg text-base input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] !text-white hover:opacity-90 transition-all"
+          onPress={onPreview}
         >
           <span>Предпросмотр файла</span>
         </Button>
       )}
 
-      <style jsx>{`
+      <style>{`
         @keyframes pulse {
           0% {
             opacity: 0.3;

@@ -1,10 +1,12 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { Form, Input, Button, Card } from "@heroui/react";
-import { EyeFilledIcon } from "./components/EyeFilledIcon";
-import { EyeSlashFilledIcon } from "./components/EyeSlashFilledIcon";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+
+import { EyeFilledIcon } from "./components/EyeFilledIcon";
+import { EyeSlashFilledIcon } from "./components/EyeSlashFilledIcon";
+
 import { Pattern } from "@/components/pattern";
 
 export default function Page() {
@@ -17,7 +19,9 @@ export default function Page() {
 
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
+
     document.body.style.overflow = "hidden";
+
     return () => {
       document.body.style.overflow = originalOverflow;
     };
@@ -27,7 +31,7 @@ export default function Page() {
     <div className="h-screen flex items-center justify-center px-4 sm:px-6">
       <Card className="p-8 w-full max-w-md sm:max-w-lg md:max-w-xl shadow-lg md:shadow-2xl bg-white/60 backdrop-blur-xl rounded-2xl border border-white/50">
         <div className="absolute top-0 left-0 pt-2 pl-2 z-0 pointer-events-none">
-          <Pattern width={124} height={120} className="opacity-80" />
+          <Pattern className="opacity-80" height={120} width={124} />
         </div>
 
         <div className="font-bold text-center pb-4 font-pheader">
@@ -46,6 +50,7 @@ export default function Page() {
 
             if (!username || !password) {
               setIsLoading(false);
+
               return;
             }
 
@@ -68,13 +73,13 @@ export default function Page() {
           <Input
             isClearable
             isRequired
+            className="input-header w-full max-w-sm"
+            errorMessage="Пожалуйста, введите логин"
             label="Логин"
             labelPlacement="outside"
             name="username"
             placeholder="Введите логин"
             type="text"
-            errorMessage="Пожалуйста, введите логин"
-            className="input-header w-full max-w-sm"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -85,14 +90,7 @@ export default function Page() {
 
           <Input
             isRequired
-            id="password"
-            name="password"
-            label="Пароль"
-            placeholder="Введите пароль"
-            type={showPassword ? "text" : "password"}
-            errorMessage="Пожалуйста, введите пароль"
             className="input-header w-full max-w-sm"
-            labelPlacement="outside"
             classNames={{ endContent: "pointer-events-auto" }}
             endContent={
               <button
@@ -108,6 +106,13 @@ export default function Page() {
                 )}
               </button>
             }
+            errorMessage="Пожалуйста, введите пароль"
+            id="password"
+            label="Пароль"
+            labelPlacement="outside"
+            name="password"
+            placeholder="Введите пароль"
+            type={showPassword ? "text" : "password"}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -126,10 +131,10 @@ export default function Page() {
 
           <div className="w-full mt-4 flex justify-center">
             <Button
-              id="login-submit"
-              type="submit"
-              isLoading={isLoading}
               className="input-header px-10 py-2 rounded-lg bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white font-medium hover:opacity-90 transition-all"
+              id="login-submit"
+              isLoading={isLoading}
+              type="submit"
             >
               Войти
             </Button>
@@ -137,9 +142,9 @@ export default function Page() {
         </Form>
         <div className="absolute bottom-3 right-2 z-0 pointer-events-none">
           <Pattern
-            width={124}
-            height={120}
             className="scale-y-[-1] scale-x-[-1] opacity-80"
+            height={120}
+            width={124}
           />
         </div>
       </Card>

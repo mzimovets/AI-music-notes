@@ -7,6 +7,6 @@ export default withAuth({
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|favicon.ico|authPage).*)"], 
+  matcher: ["/((?!api|_next/static|favicon.ico|authPage).*)"],
   // все страницы кроме /api, /_next/static, favicon и /authPage
 };

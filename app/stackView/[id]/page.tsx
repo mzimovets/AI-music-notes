@@ -2,12 +2,12 @@
 import React, { useEffect, useState } from "react";
 
 import { SideBarStack } from "./components/SideBarStack";
-
-import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
+import { StackViewer } from "./components/StackViewer";
 import { SongsList } from "./components/SongsList";
+
 import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
 import { socket } from "@/lib/socket";
-import { StackViewer } from "./components/StackViewer";
+import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
@@ -18,8 +18,10 @@ export default function Page() {
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
+
     if (el) {
       const y = el.getBoundingClientRect().top + window.pageYOffset;
+
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
@@ -75,6 +77,7 @@ export default function Page() {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
@@ -96,8 +99,8 @@ export default function Page() {
         {stackResponse.doc?.name}
       </p>
       <p
-        id={`program`}
         className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+        id={`program`}
       >
         Программа
       </p>
@@ -116,13 +119,13 @@ export default function Page() {
         />
       )}
 
-      <SongsList songs={mainSongs} isReserved={false} />
+      <SongsList isReserved={false} songs={mainSongs} />
 
       {reserveSongs.length > 0 && (
         <>
           <p
-            id={`reserve`}
             className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+            id={`reserve`}
           >
             Резерв
           </p>
@@ -135,8 +138,8 @@ export default function Page() {
 
           <div className="justify-center  gap-2 mb-6">
             <SongsList
-              songs={reserveSongs}
               isReserved={true}
+              songs={reserveSongs}
               onSongClick={scrollToReserveSong}
             />
           </div>

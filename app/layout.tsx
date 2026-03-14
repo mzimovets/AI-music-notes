@@ -1,16 +1,15 @@
 "use client";
+
 import { SessionProvider } from "next-auth/react";
-import "@/styles/globals.css";
-import { metadata, viewport } from "./metadata";
-import { Link } from "@heroui/link";
 import clsx from "clsx";
 
 import { AllSongsLibraryContextProvider, Providers } from "./providers";
-import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
-import { siteConfig } from "@/config/site";
-import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
+
+import { fontSans } from "@/config/fonts";
+import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+import "@/styles/globals.css";
 
 export default function RootLayout({
   children,
@@ -20,8 +19,8 @@ export default function RootLayout({
   return (
     <html
       suppressHydrationWarning
-      lang="en"
       className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
+      lang="en"
     >
       <head>
         {/* <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -32,10 +31,10 @@ export default function RootLayout({
 
         {/* Основная иконка для iOS */}
         {/* */}
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="any" />
+        <link href="/apple-touch-icon.png" rel="apple-touch-icon" sizes="any" />
 
         {/* Фавикон для старых и современных браузеров */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link href="/favicon.ico" rel="icon" sizes="any" />
         {/* <link
           rel="icon"
           type="image/png"
@@ -44,9 +43,9 @@ export default function RootLayout({
         /> */}
 
         {/* Манифест для PWA */}
-        <link rel="manifest" href="/manifest.json" />
+        <link href="/manifest.json" rel="manifest" />
 
-        <meta name="theme-color" content="#F7F4F1" />
+        <meta content="#F7F4F1" name="theme-color" />
       </head>
 
       <body
@@ -59,7 +58,7 @@ export default function RootLayout({
                 <NavbarWrapper />
                 <MainWrapper>{children}</MainWrapper>
               </AllSongsLibraryContextProvider>
-              <footer className="w-full flex items-center justify-center py-3"></footer>
+              <footer className="w-full flex items-center justify-center py-3" />
             </div>
           </Providers>
         </SessionProvider>

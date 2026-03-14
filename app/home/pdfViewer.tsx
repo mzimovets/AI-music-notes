@@ -14,7 +14,7 @@ const Document = dynamic(
   () => import("react-pdf").then((mod) => mod.Document),
   {
     ssr: false,
-  }
+  },
 );
 const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
   ssr: false,
@@ -43,8 +43,8 @@ export function PdfViewer() {
         </button>
         <button
           disabled={!numPages || pageNumber >= numPages}
-          onClick={() => setPageNumber(pageNumber + 1)}
           style={{ marginLeft: "10px" }}
+          onClick={() => setPageNumber(pageNumber + 1)}
         >
           Next
         </button>

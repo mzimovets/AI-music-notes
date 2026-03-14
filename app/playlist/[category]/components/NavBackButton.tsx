@@ -1,7 +1,9 @@
 "use client";
-import { LeftArr } from "@/components/LeftArr";
-import { Button } from "@heroui/react";
+
 import { useRouter } from "next/navigation";
+import { Button } from "@heroui/react";
+
+import { LeftArr } from "@/components/LeftArr";
 
 export const NavBackButton = () => {
   const router = useRouter();
@@ -11,11 +13,11 @@ export const NavBackButton = () => {
   return (
     <div>
       <Button
+        isIconOnly
+        className={`${buttonClassName} font-normal shadow-md absolute left-35 top-20`}
         onPress={() => {
           router.push("/");
         }}
-        isIconOnly
-        className={`${buttonClassName} font-normal shadow-md absolute left-35 top-20`}
       >
         <LeftArr className="h-6 w-6" />
       </Button>

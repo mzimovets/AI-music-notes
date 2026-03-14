@@ -1,7 +1,8 @@
 "use client";
 
-import { StackSong } from "@/lib/types";
 import { createContext, useContext, useState } from "react";
+
+import { StackSong } from "@/lib/types";
 
 export const StackContext = createContext<{
   stackResponse: { status: string; doc: StackSong };
@@ -28,6 +29,7 @@ export function StackContextProvider({
   };
 
   const clearStack = () => setStackSongs([]);
+
   return (
     <StackContext.Provider
       value={{
@@ -55,8 +57,10 @@ export function StackContextProvider({
 
 export function useStackContext() {
   const context = useContext(StackContext);
+
   if (!context) {
     throw new Error("component must be in StackLibraryContext");
   }
+
   return context;
 }

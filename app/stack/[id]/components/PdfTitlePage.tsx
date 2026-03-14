@@ -1,11 +1,13 @@
 "use client";
-import Pdfjs from "@/app/home/pdfjs";
-import { Card } from "@heroui/card";
+
 import { useState } from "react";
+import { Card } from "@heroui/card";
+
+import Pdfjs from "@/app/home/pdfjs";
 
 export const PdfTitlePage = ({ fileUrl }: { fileUrl: string | File }) => {
-  const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [pageNum, setPageNum] = useState<number>(1);
+  const [, setPdfDoc] = useState<any>(null);
+  const [pageNum] = useState<number>(1);
 
   return (
     <>
@@ -13,7 +15,7 @@ export const PdfTitlePage = ({ fileUrl }: { fileUrl: string | File }) => {
         <Card
           className={`w-125 h-auto flex items-center justify-center p-2 transition-colors duration-200`}
         >
-          <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={pageNum} />
+          <Pdfjs fileUrl={fileUrl} pageNum={pageNum} setPdfDoc={setPdfDoc} />
         </Card>
       </div>
     </>

@@ -12,25 +12,16 @@ export async function GET() {
 
     // @ts-ignore
     global.io.on("connection", (socket) => {
-      console.log("Client connected:", socket.id);
-
       socket.on("join-stack", (stackId) => {
         socket.join(stackId);
       });
 
       socket.on("stack-updated", ({ stackId, songs }) => {
-  console.log("SERVER broadcast stack-updated", stackId, songs.length);
-
-  // рассылаем ВСЕМ клиентам в комнате, включая отправителя
-  global.io.in(stackId).emit("stack-updated", songs);
-});
-
-      socket.on("disconnect", () => {
-        console.log("Client disconnected:", socket.id);
+        global.io.in(stackId).emit("stack-updated", songs);
       });
-    });
 
-    console.log("Socket server started");
+      socket.on("disconnect", () => {});
+    });
   }
 
   return new Response("Socket running");

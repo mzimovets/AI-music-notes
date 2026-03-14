@@ -1,28 +1,26 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
-
 import React from "react";
+import { Button } from "@heroui/react";
+import { motion, AnimatePresence } from "framer-motion";
+
 import Albums from "./home/albums";
 import {
   SongsLibraryContextProvider,
   useAllSongsLibraryContextProvider,
 } from "./providers";
-
-import { Button } from "@heroui/react";
-
-import { motion, AnimatePresence } from "framer-motion";
-import { LoadingCamerton } from "@/components/LoadingCamerton";
 import { StackCard } from "./home/StackCard";
+import { Search } from "./home/search/Search";
+
 import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
 import { DownArrIcon } from "@/components/icons/DownArrIcon";
-import { Search } from "./home/search/Search";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
   const [stacks, setStacks] = useState([]);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [, setIsLoading] = useState(false);
   const [showStacks, setShowStacks] = useState(false);
 
   useEffect(() => {
@@ -52,8 +50,7 @@ export default function Home() {
           setAllSongs(songs);
           // setFilteredSongs(songs);
         }
-      } catch (error) {
-        console.error("Ошибка при загрузке песен:", error);
+      } catch {
       } finally {
         setIsLoading(false);
       }
@@ -67,13 +64,10 @@ export default function Home() {
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
-          console.log("stacks", data.docs);
           setStacks(data.docs);
         }
-      } catch (error) {
-        console.error("Ошибка при загрузке stacks:", error);
+      } catch {
       } finally {
-        // setIsLoading(false);
       }
     };
 
@@ -90,8 +84,16 @@ export default function Home() {
         <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
           {/* Оборачиваем текст в span с курсором */}
           <div
-            onClick={() => setShowStacks((prev) => !prev)}
             className="leading-none cursor-pointer select-none"
+            role="button"
+            tabIndex={0}
+            onClick={() => setShowStacks((prev) => !prev)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setShowStacks((prev) => !prev);
+              }
+            }}
           >
             Стопки
           </div>
@@ -99,10 +101,7 @@ export default function Home() {
           {stacks.length > 4 && (
             <Button
               isIconOnly
-              type="button"
-              onPress={(e) => {
-                setShowStacks((prev) => !prev);
-              }}
+              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
               className="
       flex items-center justify-center
       h-8 w-8 p-0
@@ -113,12 +112,15 @@ export default function Home() {
       focus:outline-none
       active:outline-none
     "
-              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+              type="button"
+              onPress={() => {
+                setShowStacks((prev) => !prev);
+              }}
             >
               {showStacks ? (
-                <DownArrIcon width={18} height={18} className="text-black" />
+                <DownArrIcon className="text-black" height={18} width={18} />
               ) : (
-                <LeftArrIcon width={18} height={18} className="text-black" />
+                <LeftArrIcon className="text-black" height={18} width={18} />
               )}
             </Button>
           )}
@@ -128,11 +130,11 @@ export default function Home() {
         <AnimatePresence initial={false}>
           {(showStacks || stacks.length <= 4) && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden"
+              exit={{ height: 0, opacity: 0 }}
+              initial={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
             >
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
                 <StackCard stacks={stacks} />

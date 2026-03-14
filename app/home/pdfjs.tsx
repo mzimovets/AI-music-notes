@@ -1,8 +1,5 @@
 "use client";
 
-import { Button, ButtonGroup } from "@heroui/button";
-import { Divider } from "@heroui/divider";
-import { relative } from "path";
 import React, { useEffect, useRef, useState } from "react";
 
 interface PdfViewerProps {
@@ -15,7 +12,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const renderTaskRef = useRef<any>(null);
   const [pdfDoc, setPdfDocState] = useState<any>(null);
-  const [scale, setScale] = useState(1);
+  const [scale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -27,6 +24,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
     const loadPdf = async () => {
       try {
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
+
         await import("pdfjs-dist/build/pdf.worker.mjs");
 
         (pdfjsLib as any).GlobalWorkerOptions.workerSrc = new URL(
@@ -35,10 +33,12 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
         ).toString();
 
         let loadingTask;
+
         if (typeof fileUrl === "string") {
           loadingTask = (pdfjsLib as any).getDocument(fileUrl);
         } else {
           const arrayBuffer = await fileUrl.arrayBuffer();
+
           loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer });
         }
 
@@ -48,9 +48,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
 
         setPdfDocState(pdf);
         setPdfDoc && setPdfDoc(pdf);
-      } catch (err) {
-        console.error("Ошибка при загрузке PDF:", err);
-      }
+      } catch {}
     };
 
     loadPdf();
@@ -70,8 +68,10 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
         setContainerWidth(containerRef.current.clientWidth);
       }
     };
+
     updateContainerWidth();
     window.addEventListener("resize", updateContainerWidth);
+
     return () => window.removeEventListener("resize", updateContainerWidth);
   }, []);
 
@@ -99,14 +99,9 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
 
         const outputScale = window.devicePixelRatio || 1;
 
-        // Scaled viewport for rendering with outputScale (for high DPI)
-        const scaledViewport = page.getViewport({
-          scale: baseScale * outputScale,
-          rotation,
-        });
-
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
+
         if (!context) return;
 
         // Set canvas width to container width * outputScale for high DPI
@@ -134,7 +129,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
         if (err?.name === "RenderingCancelledException") {
           // Render cancelled, do nothing
         } else {
-          console.error("Ошибка при рендеринге страницы PDF:", err);
         }
       }
     };

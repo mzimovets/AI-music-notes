@@ -1,6 +1,8 @@
 "use client";
-import { ServerSong } from "@/lib/types";
+
 import { createContext, useContext } from "react";
+
+import { ServerSong } from "@/lib/types";
 
 export const SongContext = createContext<{
   songResponse: { status: string; doc: ServerSong };
@@ -22,8 +24,10 @@ export function SongContextProvider({
 
 export function useSongContext() {
   const context = useContext(SongContext);
+
   if (!context) {
     throw new Error("component must be in SongsContextProvider");
   }
+
   return context;
 }

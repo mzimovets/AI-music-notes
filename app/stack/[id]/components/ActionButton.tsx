@@ -24,9 +24,9 @@ export const ActionButton = React.forwardRef<
   return (
     <button
       ref={ref}
-      onClick={onClick}
       className={`${baseClass} ${variants[variant]} ${className ?? ""}`}
       {...props}
+      onClick={onClick}
     >
       {children}
     </button>

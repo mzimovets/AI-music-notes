@@ -13,19 +13,19 @@ export const CloseIcon: React.FC<CloseIconProps> = ({
 }) => {
   return (
     <svg
-      width={size}
+      className={className}
+      fill="none"
       height={size}
       viewBox="0 0 24 24"
-      fill="none"
+      width={size}
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
     >
       <path
         d="M19 5L4.99998 19M5.00001 5L19 19"
         stroke={color}
-        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        strokeWidth="1.5"
       />
     </svg>
   );

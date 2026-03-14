@@ -1,11 +1,13 @@
 "use client";
 import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalFooter } from "@heroui/modal";
-import { CloseIcon } from "./icon/CloseIcon";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+
+import { CloseIcon } from "./icon/CloseIcon";
+
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
-import { removeStack, updateStack } from "@/actions/actions";
+import { removeStack } from "@/actions/actions";
 
 export const CloseButton = () => {
   const router = useRouter();
@@ -19,10 +21,13 @@ export const CloseButton = () => {
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
+
       setIsVisible(currentY < lastScrollY || currentY === 0);
       setLastScrollY(currentY);
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
@@ -43,9 +48,7 @@ export const CloseButton = () => {
         }`}
       >
         <Button
-          onPress={() => setIsOpen(true)}
           isIconOnly
-          type="button"
           className="
         group
         flex items-center justify-center
@@ -60,17 +63,19 @@ export const CloseButton = () => {
         hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
         active:scale-95
       "
+          type="button"
+          onPress={() => setIsOpen(true)}
         >
           <CloseIcon className="w-5 h-5 text-red/70 group-hover:text-red transition-colors" />
         </Button>
       </div>
 
       <Modal
-        isOpen={isOpen}
-        onOpenChange={setIsOpen}
-        placement="center"
         backdrop="blur"
         classNames={{ backdrop: "bg-black/40" }}
+        isOpen={isOpen}
+        placement="center"
+        onOpenChange={setIsOpen}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
           {(onClose) => (
@@ -87,9 +92,9 @@ export const CloseButton = () => {
 
               <ModalFooter className="flex justify-center gap-4 pb-6">
                 <Button
+                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                   variant="bordered"
                   onPress={onClose}
-                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                 >
                   Отмена
                 </Button>

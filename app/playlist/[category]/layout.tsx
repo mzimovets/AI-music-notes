@@ -1,5 +1,6 @@
-import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 import { NavBackButton } from "./components/NavBackButton";
+
+import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 
 export default function PlaylistLayout({
   children,

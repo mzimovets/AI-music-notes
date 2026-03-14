@@ -21,18 +21,18 @@ export const SwarrowIcon: React.FC<SwarrowIconProps> = ({
 }) => {
   return (
     <svg
-      width={width}
+      className={className}
+      fill="none"
       height={height}
       viewBox="0 0 38 10"
-      fill="none"
+      width={width}
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
     >
       <path
-        fillRule="evenodd"
         clipRule="evenodd"
         d="M38 5.067s-2.11 10.825-16.365.403a1.484 1.484 0 01-1.144.53 1.457 1.457 0 01-1.05-.437 1.516 1.516 0 01.003-2.135A1.471 1.471 0 0120.5 3a1.456 1.456 0 011.057.434 1.515 1.515 0 01.424.834c3.23-2.306 13.48-8.742 16.019.8zm-3.41-.06a.537.537 0 00-.17-.38.576.576 0 00-.396-.157.575.575 0 00-.396.15.536.536 0 00-.17.378c.003.143.063.28.17.38.105.1.247.157.396.157a.568.568 0 00.39-.145.53.53 0 00.175-.366v-.017zm-9.919 0s.96 3.35 7.764 0l-.068-.033c-.688-.342-6.364-3.163-7.696.024v.009zM19 5.022C19.083 5.004 14.025 1 14.025 1 13.464 2.22 1.659 4.676.157 4.99L0 5.021c-.002 0 .113.025.322.068C2.364 5.514 13.463 7.818 13.99 9c0 0 4.924-3.96 5.008-3.978z"
         fill={color}
+        fillRule="evenodd"
       />
     </svg>
   );
@@ -47,19 +47,19 @@ export const SwarrowIconAlt: React.FC<SwarrowIconProps> = ({
 }) => {
   return (
     <svg
-      width={width}
-      height={height}
-      viewBox="0 0 38 10"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
       className={className}
+      fill="none"
+      height={height}
       style={color ? { color } : undefined}
+      viewBox="0 0 38 10"
+      width={width}
+      xmlns="http://www.w3.org/2000/svg"
     >
       <path
-        fillRule="evenodd"
         clipRule="evenodd"
         d="M38 5.067s-2.11 10.825-16.365.403a1.484 1.484 0 01-1.144.53 1.457 1.457 0 01-1.05-.437 1.516 1.516 0 01.003-2.135A1.471 1.471 0 0120.5 3a1.456 1.456 0 011.057.434 1.515 1.515 0 01.424.834c3.23-2.306 13.48-8.742 16.019.8zm-3.41-.06a.537.537 0 00-.17-.38.576.576 0 00-.396-.157.575.575 0 00-.396.15.536.536 0 00-.17.378c.003.143.063.28.17.38.105.1.247.157.396.157a.568.568 0 00.39-.145.53.53 0 00.175-.366v-.017zm-9.919 0s.96 3.35 7.764 0l-.068-.033c-.688-.342-6.364-3.163-7.696.024v.009zM19 5.022C19.083 5.004 14.025 1 14.025 1 13.464 2.22 1.659 4.676.157 4.99L0 5.021c-.002 0 .113.025.322.068C2.364 5.514 13.463 7.818 13.99 9c0 0 4.924-3.96 5.008-3.978z"
         fill="currentColor"
+        fillRule="evenodd"
       />
     </svg>
   );
@@ -80,24 +80,24 @@ export const SwarrowIconGradient: React.FC<
 }) => {
   return (
     <svg
-      width={width}
+      className={className}
+      fill="none"
       height={height}
       viewBox="0 0 38 10"
-      fill="none"
+      width={width}
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
     >
       <defs>
-        <linearGradient id="swarrowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="swarrowGradient" x1="0%" x2="100%" y1="0%" y2="0%">
           <stop offset="0%" stopColor={gradientStart} />
           <stop offset="100%" stopColor={gradientEnd} />
         </linearGradient>
       </defs>
       <path
-        fillRule="evenodd"
         clipRule="evenodd"
         d="M38 5.067s-2.11 10.825-16.365.403a1.484 1.484 0 01-1.144.53 1.457 1.457 0 01-1.05-.437 1.516 1.516 0 01.003-2.135A1.471 1.471 0 0120.5 3a1.456 1.456 0 011.057.434 1.515 1.515 0 01.424.834c3.23-2.306 13.48-8.742 16.019.8zm-3.41-.06a.537.537 0 00-.17-.38.576.576 0 00-.396-.157.575.575 0 00-.396.15.536.536 0 00-.17.378c.003.143.063.28.17.38.105.1.247.157.396.157a.568.568 0 00.39-.145.53.53 0 00.175-.366v-.017zm-9.919 0s.96 3.35 7.764 0l-.068-.033c-.688-.342-6.364-3.163-7.696.024v.009zM19 5.022C19.083 5.004 14.025 1 14.025 1 13.464 2.22 1.659 4.676.157 4.99L0 5.021c-.002 0 .113.025.322.068C2.364 5.514 13.463 7.818 13.99 9c0 0 4.924-3.96 5.008-3.978z"
         fill="url(#swarrowGradient)"
+        fillRule="evenodd"
       />
     </svg>
   );
@@ -128,7 +128,7 @@ export const SwarrowIconWithCircle: React.FC<SwarrowIconWithCircleProps> = ({
         />
       )}
       <div className="relative z-10">
-        <SwarrowIcon width={width} height={height} color={color} />
+        <SwarrowIcon color={color} height={height} width={width} />
       </div>
     </div>
   );
@@ -148,19 +148,19 @@ export const SwarrowIconCircleInline: React.FC<SwarrowIconWithCircleProps> = ({
 
   return (
     <svg
-      width={svgWidth}
+      className={className}
+      fill="none"
       height={svgHeight}
       viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-      fill="none"
+      width={svgWidth}
       xmlns="http://www.w3.org/2000/svg"
-      className={className}
     >
       {/* Круг */}
       <circle
         cx={svgWidth / 2}
         cy={svgHeight / 2}
-        r={circleSize / 2}
         fill={circleColor}
+        r={circleSize / 2}
       />
 
       {/* Стрелка поверх круга */}
@@ -168,10 +168,10 @@ export const SwarrowIconCircleInline: React.FC<SwarrowIconWithCircleProps> = ({
         transform={`translate(${(svgWidth - Number(width)) / 2}, ${(svgHeight - Number(height)) / 2})`}
       >
         <path
-          fillRule="evenodd"
           clipRule="evenodd"
           d="M38 5.067s-2.11 10.825-16.365.403a1.484 1.484 0 01-1.144.53 1.457 1.457 0 01-1.05-.437 1.516 1.516 0 01.003-2.135A1.471 1.471 0 0120.5 3a1.456 1.456 0 011.057.434 1.515 1.515 0 01.424.834c3.23-2.306 13.48-8.742 16.019.8zm-3.41-.06a.537.537 0 00-.17-.38.576.576 0 00-.396-.157.575.575 0 00-.396.15.536.536 0 00-.17.378c.003.143.063.28.17.38.105.1.247.157.396.157a.568.568 0 00.39-.145.53.53 0 00.175-.366v-.017zm-9.919 0s.96 3.35 7.764 0l-.068-.033c-.688-.342-6.364-3.163-7.696.024v.009zM19 5.022C19.083 5.004 14.025 1 14.025 1 13.464 2.22 1.659 4.676.157 4.99L0 5.021c-.002 0 .113.025.322.068C2.364 5.514 13.463 7.818 13.99 9c0 0 4.924-3.96 5.008-3.978z"
           fill={color}
+          fillRule="evenodd"
         />
       </g>
     </svg>
@@ -195,10 +195,10 @@ export const SwarrowIconCircleSimple: React.FC<SwarrowIconWithCircleProps> = ({
         style={{ backgroundColor: circleColor }}
       />
       <SwarrowIcon
-        width={width}
-        height={height}
-        color={color}
         className="relative z-10"
+        color={color}
+        height={height}
+        width={width}
       />
     </div>
   );

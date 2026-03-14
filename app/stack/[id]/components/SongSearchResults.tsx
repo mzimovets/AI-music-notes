@@ -17,7 +17,6 @@ const SongSearchResults: React.FC<SongSearchResultsProps> = ({
   searchValue,
   onAddSong,
   onPreview,
-  programSelected,
   rowsPerPage = 4,
   page,
   setPage,
@@ -51,10 +50,10 @@ const SongSearchResults: React.FC<SongSearchResultsProps> = ({
           ))}
       </div>
       <Pagination
+        className="pagination"
         count={Math.ceil(filteredSongs.length / rowsPerPage)}
         page={page}
         onChange={handlePageChange}
-        className="pagination"
       />
     </div>
   );

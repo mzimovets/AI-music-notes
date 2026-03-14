@@ -2,6 +2,7 @@
 "use client";
 import { Modal, ModalContent, ModalBody } from "@heroui/react";
 import { useState, useEffect } from "react";
+
 import { Viewer } from "../stack/[id]/components/Viewer";
 
 interface ModalFilePreviewerProps {
@@ -15,7 +16,7 @@ export default function ModalFilePreviewer({
   onClose,
   selectedFile,
 }: ModalFilePreviewerProps) {
-  const [pageNum, setPageNum] = useState<number | null>(1);
+  const [, setPageNum] = useState<number | null>(1);
 
   useEffect(() => {
     if (!isOpen) {
@@ -25,14 +26,14 @@ export default function ModalFilePreviewer({
 
   return (
     <Modal
-      isOpen={isOpen}
-      onOpenChange={onClose}
-      placement="center"
-      size="xl"
       classNames={{
         wrapper: "!items-start",
         base: "-translate-y-10",
       }}
+      isOpen={isOpen}
+      placement="center"
+      size="xl"
+      onOpenChange={onClose}
     >
       <ModalContent>
         {() => (

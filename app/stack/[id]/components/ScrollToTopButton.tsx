@@ -16,6 +16,7 @@ export const ScrollToTop = () => {
     };
 
     window.addEventListener("scroll", toggleVisibility);
+
     return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
 
@@ -34,23 +35,23 @@ export const ScrollToTop = () => {
     >
       <Button
         isIconOnly
-        onPress={scrollToTop}
         className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-xl"
         radius="full"
         size="lg"
+        onPress={scrollToTop}
       >
         <svg
-          xmlns="http://www.w3.org"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2.5}
-          stroke="currentColor"
           className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2.5}
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org"
         >
           <path
+            d="m4.5 15.75 7.5-7.5 7.5 7.5"
             strokeLinecap="round"
             strokeLinejoin="round"
-            d="m4.5 15.75 7.5-7.5 7.5 7.5"
           />
         </svg>
       </Button>

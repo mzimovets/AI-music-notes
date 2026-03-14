@@ -1,13 +1,10 @@
 "use client";
-import MyDropzone from "@/app/home/dropzone";
-import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@heroui/button";
 import { Card, CardHeader, CardBody } from "@heroui/card";
-import { useEffect, useState } from "react";
-import { SongContextProvider, useSongContext } from "../SongContextProvider";
-import { getCategoryDisplay } from "@/lib/utils";
-import { InfoCardInput } from "./InfoCardInput";
-import { useRouter } from "next/navigation";
 import {
   Modal,
   ModalContent,
@@ -15,9 +12,16 @@ import {
   ModalBody,
   ModalFooter,
 } from "@heroui/modal";
-import { editSong, removeSong } from "@/actions/actions";
+
+import { SongContextProvider, useSongContext } from "../SongContextProvider";
+
+import { InfoCardInput } from "./InfoCardInput";
+
+import MyDropzone from "@/app/home/dropzone";
+import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
+import { getCategoryDisplay } from "@/lib/utils";
 import { Song } from "@/lib/types";
-import { useSession } from "next-auth/react";
+import { removeSong } from "@/actions/actions";
 
 export const InfoCard = () => {
   const { data: session } = useSession();
@@ -61,11 +65,11 @@ export const InfoCard = () => {
       authorArrange,
       category,
     };
+
     if (selectedFile && typeof selectedFile !== "string") {
       data.file = selectedFile;
     }
 
-    const editSaveSong = await editSong(song.doc._id, data);
     setIsEdit(false);
   };
 
@@ -89,11 +93,9 @@ export const InfoCard = () => {
         router.push(`/playlist/${song.doc.category}`);
         router.refresh();
       } else {
-        console.error("Ошибка при удалении песни");
         setIsDeleting(false);
       }
-    } catch (error) {
-      console.error("Ошибка при удалении песни:", error);
+    } catch {
       setIsDeleting(false);
     }
   };
@@ -124,21 +126,21 @@ export const InfoCard = () => {
           </div>
           {isEdit && (
             <Button
-              onPress={handleDeleteClick}
               className="button-edit-font px-5 py-2.5 rounded-lg bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all"
+              onPress={handleDeleteClick}
             >
               <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
                 className="size-6"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
                 <path
+                  d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"
                 />
               </svg>
               Удалить
@@ -146,13 +148,13 @@ export const InfoCard = () => {
           )}
           {session?.user?.role === "регент" && (
             <Button
-              onPress={handleEdit}
-              endContent={isEdit ? null : null}
               className={`button-edit-font px-5 py-2.5 rounded-lg  transition-all ${
                 isEdit
                   ? "bg-gray-100 text-gray-600 hover:bg-gray-200 border"
                   : "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:shadow-lg"
               }`}
+              endContent={isEdit ? null : null}
+              onPress={handleEdit}
             >
               {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
             </Button>
@@ -170,8 +172,10 @@ export const InfoCard = () => {
                   "Автор аранжировки": "Введите автора аранжировки",
                   Категория: "Выберите категорию",
                 };
+
                 return placeholders[label] || `Введите ${label.toLowerCase()}`;
               };
+
               return (
                 <div
                   key={index}
@@ -191,9 +195,9 @@ export const InfoCard = () => {
                     <div className="w-full md:w-2/3">
                       {isEdit ? (
                         <InfoCardInput
-                          placeholder={getPlaceholder(field.label)}
-                          field={field}
                           category={category}
+                          field={field}
+                          placeholder={getPlaceholder(field.label)}
                           onChange={(value) => {
                             switch (field.label) {
                               case "Название":
@@ -244,8 +248,6 @@ export const InfoCard = () => {
                       </p>
                     </div>
                     <MyDropzone
-                      onFileSelect={handleFileSelect}
-                      onPreview={handlePreview}
                       currentFile={{
                         name:
                           selectedFile && typeof selectedFile === "string"
@@ -260,6 +262,8 @@ export const InfoCard = () => {
                             ? song.doc._id
                             : null,
                       }}
+                      onFileSelect={handleFileSelect}
+                      onPreview={handlePreview}
                     />
                   </div>
                 </div>
@@ -268,8 +272,8 @@ export const InfoCard = () => {
               <div className="px-8 py-6 bg-gray-50 border-t">
                 <div className="flex items-center justify-center gap-3">
                   <Button
-                    onPress={handleSave}
                     className="px-5 py-2.5 rounded-lg border button-safe-font bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white-400  hover:opacity-90 transition-all"
+                    onPress={handleSave}
                   >
                     Сохранить
                   </Button>
@@ -282,14 +286,14 @@ export const InfoCard = () => {
 
       <ModalFilePreviewer
         isOpen={isPreviewModalOpen}
-        onClose={handleClosePreview}
         selectedFile={selectedFile}
+        onClose={handleClosePreview}
       />
 
       <Modal
         isOpen={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
         placement="center"
+        onOpenChange={setIsDeleteModalOpen}
       >
         <ModalContent>
           {(onClose) => (
@@ -305,7 +309,7 @@ export const InfoCard = () => {
                     Вы уверены, что хотите удалить партитуру
                     <br />
                     <span className="font-semibold text-gray-900 ml-1">
-                      "{song.doc.name}"
+                      &quot;{song.doc.name}&quot;
                     </span>
                     ?
                   </p>
@@ -322,17 +326,17 @@ export const InfoCard = () => {
               </ModalBody>
               <ModalFooter>
                 <Button
-                  variant="light"
-                  onPress={onClose}
                   className="px-6 py-3 font-medium"
                   disabled={isDeleting}
+                  variant="light"
+                  onPress={onClose}
                 >
                   Отмена
                 </Button>
                 <Button
-                  onPress={handleConfirmDelete}
                   className="px-6 py-3 bg-gradient-to-r from-red-400 to-red-500 text-white font-medium hover:shadow-lg transition-all"
                   isLoading={isDeleting}
+                  onPress={handleConfirmDelete}
                 >
                   {isDeleting ? "Удаление..." : "Да, удалить"}
                 </Button>

@@ -1,5 +1,60 @@
 "use client";
 
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useSession } from "next-auth/react";
+import { useParams } from "next/navigation";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  restrictToVerticalAxis,
+  restrictToWindowEdges,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerBody,
+  Button,
+  Card,
+  Pagination,
+  ScrollShadow,
+  Chip,
+  Divider,
+} from "@heroui/react";
+import { Select, SelectItem } from "@heroui/react";
+import { Input } from "@heroui/input";
+
+import { DeleteModal } from "./DeleteModal";
+import { SidebarButton } from "./SidebarButton";
+
+import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
+import { SearchIcon } from "@/components/icons";
+import { StackIcon } from "@/components/icons/StackIcon";
+import { ListIcon } from "@/app/stack/[id]/components/icons/ListIcon";
+import { EmptyIcon } from "@/components/icons/EmptyIcon";
+import CopyIcon from "@/app/stack/[id]/components/icons/CopyIcon";
+import SideButton from "@/app/stack/[id]/components/icons/SideButton";
+import AddSongStackIcon from "@/app/stack/[id]/components/icons/AddSongStackIcon";
+import ReserveIcon from "@/app/stack/[id]/components/icons/ReserveIcon";
+import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
+import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
+import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
+import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
+import { SortableSong } from "@/app/stack/[id]/components/SortableSong";
+import { socket } from "@/lib/socket";
+import { updateStack } from "@/actions/actions";
+
 export const holidays = [
   { key: "daily", label: "Молитвы на трапезу" },
   { key: "rozhdestvo", label: "Рождество", fullName: "Рождеству Христову" },
@@ -49,72 +104,8 @@ export const holidays = [
   },
 ];
 
-import React, { useEffect, useState, useRef } from "react";
-import { useSession } from "next-auth/react";
-import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerHeader,
-  DrawerBody,
-  Button,
-  useDisclosure,
-  Card,
-  Pagination,
-  ScrollShadow,
-  Chip,
-  Divider,
-} from "@heroui/react";
-import { Select, SelectItem } from "@heroui/react";
-import { Input } from "@heroui/input";
-import { SearchIcon } from "@/components/icons";
-import { SortableSong } from "@/app/stack/[id]/components/SortableSong";
-
-// DND Kit
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import {
-  restrictToVerticalAxis,
-  restrictToWindowEdges,
-  restrictToParentElement,
-} from "@dnd-kit/modifiers";
-// Removed unused imports: CSS, TrashBinIcon, EmptyIcon, EyePreviewButton, EyeIcon
-import { StackIcon } from "@/components/icons/StackIcon";
-import { ListIcon } from "@/app/stack/[id]/components/icons/ListIcon";
-// import { EmptyIcon } from "../../../components/icons/EmptyIcon";
-
-import { EmptyIcon } from "@/components/icons/EmptyIcon";
-import CopyIcon from "@/app/stack/[id]/components/icons/CopyIcon";
-
-import SideButton from "@/app/stack/[id]/components/icons/SideButton";
-import AddSongStackIcon from "@/app/stack/[id]/components/icons/AddSongStackIcon";
-import ReserveIcon from "@/app/stack/[id]/components/icons/ReserveIcon";
-import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
-import DownloadIcon from "@/components/DownloadIcon";
-import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
-import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
-import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
-import { updateStack } from "@/actions/actions";
-import { useParams } from "next/navigation";
-import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
-import { DeleteModal } from "./DeleteModal";
-import { SidebarButton } from "./SidebarButton";
-import { socket } from "@/lib/socket";
-import { useRouter } from "next/navigation";
-// Removed unused import: DownloadIcon
-
 export const SideBarStack = ({ onPreview }) => {
-  const router = useRouter();
+  // const router = useRouter();
   const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -124,6 +115,7 @@ export const SideBarStack = ({ onPreview }) => {
     // небольшая задержка, чтобы drawer успел закрыться
     setTimeout(() => {
       const el = document.getElementById(songId);
+
       if (el) {
         const y = el.getBoundingClientRect().top + window.pageYOffset;
 
@@ -144,7 +136,6 @@ export const SideBarStack = ({ onPreview }) => {
   const {
     stackResponse,
     stackSongs,
-    removeSong,
     setStackSongs,
     mealType,
     setMealType,
@@ -166,10 +157,9 @@ export const SideBarStack = ({ onPreview }) => {
         `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
       );
       const data = await response.json();
+
       setSongsList(data.docs || []);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
   };
 
   // TODO: выенсти
@@ -183,7 +173,9 @@ export const SideBarStack = ({ onPreview }) => {
       if (searchRef.current && !searchRef.current.contains(event.target))
         setIsOpen(false);
     };
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -193,6 +185,7 @@ export const SideBarStack = ({ onPreview }) => {
       instanceId: `${Date.now()}-${Math.random()}`,
       isReserve: !!isReserve,
     };
+
     setStackSongs((prev) => {
       const newStack = [...prev, newSongEntry];
 
@@ -215,13 +208,14 @@ export const SideBarStack = ({ onPreview }) => {
 
   // --- Авто-флаг для резервного чипа: чип снимается один раз, когда резерв пуст, но доступен для повторного включения ---
   const [reserveAutoDisabled, setReserveAutoDisabled] = useState(false);
+
   useEffect(() => {
     const reserveSongsExist = stackSongs.some((s) => s.isReserve);
 
     // Если резерв пуст и чип включен и авто-снятие ещё не выполнено
-    const isReserveOnly =
-      (programSelected.includes("Резерв") && programSelected.length === 1) ||
-      (programSelected.includes("reserved") && programSelected.length === 1);
+    // const isReserveOnly =
+    //   (programSelected.includes("Резерв") && programSelected.length === 1) ||
+    //   (programSelected.includes("reserved") && programSelected.length === 1);
 
     if (programSelected.includes("reserved") && !reserveSongsExist) {
       setProgramSelected((prev) => {
@@ -241,9 +235,11 @@ export const SideBarStack = ({ onPreview }) => {
   // Новый handleDragEnd для двух SortableContext
   const handleDragEnd = (event) => {
     const { active, over } = event;
+
     if (!over) return;
 
     const activeSong = stackSongs.find((s) => s.instanceId === active.id);
+
     if (!activeSong) return;
 
     const overSong = stackSongs.find((s) => s.instanceId === over.id);
@@ -253,10 +249,13 @@ export const SideBarStack = ({ onPreview }) => {
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
       const oldIndex = mainSongs.findIndex((s) => s.instanceId === active.id);
       const newIndex = mainSongs.findIndex((s) => s.instanceId === over.id);
+
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(mainSongs, oldIndex, newIndex);
       const reserveSongs = stackSongs.filter((s) => s.isReserve);
+
       setStackSongs([...moved, ...reserveSongs]);
+
       return;
     }
     // Перемещение внутри резерва
@@ -266,10 +265,13 @@ export const SideBarStack = ({ onPreview }) => {
         (s) => s.instanceId === active.id,
       );
       const newIndex = reserveSongs.findIndex((s) => s.instanceId === over.id);
+
       if (oldIndex === -1 || newIndex === -1) return;
       const moved = arrayMove(reserveSongs, oldIndex, newIndex);
       const mainSongs = stackSongs.filter((s) => !s.isReserve);
+
       setStackSongs([...mainSongs, ...moved]);
+
       return;
     }
   };
@@ -284,6 +286,7 @@ export const SideBarStack = ({ onPreview }) => {
   });
 
   const [page, setPage] = useState(1);
+
   useEffect(() => {
     if (isOpen) setPage(1);
   }, [isOpen]);
@@ -368,14 +371,15 @@ export const SideBarStack = ({ onPreview }) => {
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
   const params = useParams<{ id: string }>();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const save = async () => {
-    const resp = await updateStack({
+  const save = useCallback(async () => {
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
@@ -384,7 +388,13 @@ export const SideBarStack = ({ onPreview }) => {
       id: params.id,
       name: stackResponse.doc?.name,
     });
-  };
+  }, [
+    stackSongs,
+    mealType,
+    programSelected,
+    params.id,
+    stackResponse.doc?.name,
+  ]);
 
   return (
     <>
@@ -402,15 +412,15 @@ export const SideBarStack = ({ onPreview }) => {
         </div>
       </div>
       <Drawer
-        isOpen={isDrawerOpen}
-        placement="left"
-        onOpenChange={setIsDrawerOpen}
-        isDismissable={false}
-        isKeyboardDismissDisabled={true}
         hideCloseButton
         classNames={{
           base: "sm:data-[placement=right]:m-2 sm:data-[placement=left]:m-2  rounded-medium",
         }}
+        isDismissable={false}
+        isKeyboardDismissDisabled={true}
+        isOpen={isDrawerOpen}
+        placement="left"
+        onOpenChange={setIsDrawerOpen}
       >
         <DrawerContent onClose={() => setIsDrawerOpen(false)}>
           {(onClose) => (
@@ -444,10 +454,10 @@ export const SideBarStack = ({ onPreview }) => {
                           ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                           : "text-default-500"
                       }`}
-                      startContent={<ListIcon />}
                       size="sm"
+                      startContent={<ListIcon />}
                       variant="flat"
-                      onClick={() => setActiveTab("program")}
+                      onPress={() => setActiveTab("program")}
                     >
                       Программа
                     </Button>
@@ -457,18 +467,18 @@ export const SideBarStack = ({ onPreview }) => {
                   {session?.user?.role === "регент" && (
                     <>
                       <Button
+                        className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
                         radius="lg"
                         size="sm"
                         onPress={() => setIsDeleteModalOpen(true)}
-                        className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
                       >
                         <TrashBinIcon />
                       </Button>
                       <Button
+                        className="min-w-0 px-3 bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
                         radius="lg"
                         size="sm"
                         onPress={save}
-                        className="min-w-0 px-3 bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
                       >
                         <SaveIcon />
                       </Button>
@@ -497,25 +507,25 @@ export const SideBarStack = ({ onPreview }) => {
                     <div className="relative shrink-0 z-50">
                       {session?.user?.role === "регент" && (
                         <Input
-                          type="search"
+                          isClearable
+                          className="mt-4 w-full text-center justify-center font-header gap-4"
+                          classNames={{
+                            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
+                            input: "text-sm pl-2",
+                            inputWrapper: "bg-[#FFFAF5] rounded-md",
+                          }}
                           placeholder="Введите название или автора"
+                          startContent={
+                            <SearchIcon className="text-default-400 mr-2" />
+                          }
+                          type="search"
                           value={searchValue}
                           onChange={(e) => {
                             setSearchValue(e.target.value);
                             setIsOpen(true);
                           }}
-                          isClearable
                           onClear={() => setSearchValue("")}
                           onFocus={() => setIsOpen(true)}
-                          startContent={
-                            <SearchIcon className="text-default-400 mr-2" />
-                          }
-                          className="mt-4 w-full text-center justify-center font-header gap-4"
-                          classNames={{
-                            inputWrapper: "bg-[#FFFAF5] rounded-md",
-                            input: "text-sm pl-2",
-                            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
-                          }}
                         />
                       )}
 
@@ -539,12 +549,12 @@ export const SideBarStack = ({ onPreview }) => {
                                   <div className="flex gap-3">
                                     {/* Добавление в обычную стопку */}
                                     <Button
-                                      radius="full"
                                       isIconOnly
-                                      variant="shadow"
-                                      size="md"
-                                      onPress={() => handleAddSong(song, false)}
                                       className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:opacity-90"
+                                      radius="full"
+                                      size="md"
+                                      variant="shadow"
+                                      onPress={() => handleAddSong(song, false)}
                                     >
                                       <AddSongStackIcon />
                                     </Button>
@@ -552,11 +562,11 @@ export const SideBarStack = ({ onPreview }) => {
                                     {(programSelected.includes("Резерв") ||
                                       programSelected.includes("reserved")) && (
                                       <Button
-                                        radius="full"
                                         isIconOnly
-                                        variant="shadow"
-                                        size="md"
                                         className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:opacity-90"
+                                        radius="full"
+                                        size="md"
+                                        variant="shadow"
                                         onPress={() =>
                                           handleAddSong(song, true)
                                         }
@@ -583,9 +593,6 @@ export const SideBarStack = ({ onPreview }) => {
                           </div>
                           {filteredSongs.length > rowsPerPage && (
                             <Pagination
-                              page={page}
-                              total={pages}
-                              onChange={setPage}
                               className=" pt-6"
                               classNames={{
                                 wrapper: "font-header",
@@ -604,6 +611,9 @@ export const SideBarStack = ({ onPreview }) => {
                                   "font-bold",
                                 ].join(" "),
                               }}
+                              page={page}
+                              total={pages}
+                              onChange={setPage}
                             />
                           )}
                         </Card>
@@ -623,14 +633,14 @@ export const SideBarStack = ({ onPreview }) => {
                             {session?.user?.role === "регент" && (
                               <>
                                 <Chip
-                                  size="sm"
-                                  color="primary"
-                                  variant="flat"
                                   className={`cursor-pointer input-header border 
                                     px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
                                     rounded-full
                                     ${programSelected.includes("Трапеза") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
                                   `}
+                                  color="primary"
+                                  size="sm"
+                                  variant="flat"
                                   onClick={() => {
                                     setProgramSelected((prev) =>
                                       prev.includes("Трапеза")
@@ -642,14 +652,14 @@ export const SideBarStack = ({ onPreview }) => {
                                   Трапеза
                                 </Chip>
                                 <Chip
-                                  size="sm"
-                                  color="primary"
-                                  variant="flat"
                                   className={`cursor-pointer input-header border 
                                     px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
                                     rounded-full
                                     ${programSelected.includes("Резерв") || programSelected.includes("reserved") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
                                   `}
+                                  color="primary"
+                                  size="sm"
+                                  variant="flat"
                                   onClick={() => {
                                     if (
                                       programSelected.includes("Резерв") ||
@@ -691,22 +701,22 @@ export const SideBarStack = ({ onPreview }) => {
                             <div className="flex items-center my-3 select-none">
                               <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                               <button
-                                onClick={() => handleSongClick(`program`)}
                                 className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                onClick={() => handleSongClick(`program`)}
                               >
                                 Программа
                               </button>
                               <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
                             </div>
                             <DndContext
-                              sensors={sensors}
                               collisionDetection={closestCenter}
-                              onDragEnd={handleDragEnd}
                               modifiers={[
                                 restrictToVerticalAxis,
                                 restrictToWindowEdges,
                                 restrictToParentElement,
                               ]}
+                              sensors={sensors}
+                              onDragEnd={handleDragEnd}
                             >
                               {/* Основная стопка */}
                               <SortableContext
@@ -715,13 +725,24 @@ export const SideBarStack = ({ onPreview }) => {
                                   .map((s) => s.instanceId)}
                                 strategy={verticalListSortingStrategy}
                               >
-                                <div id="main-drop" className="mb-4">
+                                <div className="mb-4" id="main-drop">
                                   {programSelected.includes("Трапеза") && (
                                     <div
                                       className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer"
+                                      role="button"
+                                      tabIndex={0}
                                       onClick={() =>
-                                        handleSongClick(`meal_start`)
+                                        handleSongClick("meal_start")
                                       }
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          handleSongClick("meal_start");
+                                        }
+                                      }}
                                     >
                                       <p className="text-sm input-header m-0 text-left">
                                         Трапеза (начало)
@@ -737,6 +758,7 @@ export const SideBarStack = ({ onPreview }) => {
                                             const value = Array.from(
                                               keys,
                                             )[0] as string;
+
                                             setMealType(value);
                                           }}
                                         >
@@ -754,10 +776,9 @@ export const SideBarStack = ({ onPreview }) => {
                                     .map((song, index) => (
                                       <SortableSong
                                         key={song.instanceId}
-                                        song={song}
                                         index={index}
+                                        song={song}
                                         onClick={() => {
-                                          console.log("song", song);
                                           handleSongClick(
                                             `${song._id}_${index}`,
                                           );
@@ -775,9 +796,20 @@ export const SideBarStack = ({ onPreview }) => {
                                   {programSelected.includes("Трапеза") && (
                                     <div
                                       className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer"
+                                      role="button"
+                                      tabIndex={0}
                                       onClick={() =>
-                                        handleSongClick(`meal_end`)
+                                        handleSongClick("meal_end")
                                       }
+                                      onKeyDown={(e) => {
+                                        if (
+                                          e.key === "Enter" ||
+                                          e.key === " "
+                                        ) {
+                                          e.preventDefault();
+                                          handleSongClick("meal_end");
+                                        }
+                                      }}
                                     >
                                       <p className="text-sm input-header m-0">
                                         Трапеза (конец)
@@ -798,10 +830,10 @@ export const SideBarStack = ({ onPreview }) => {
                                     <div className="flex items-center my-3 select-none">
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                       <button
+                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
                                         onClick={() =>
                                           handleSongClick(`reserve`)
                                         }
-                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
                                       >
                                         Резерв
                                       </button>
@@ -812,14 +844,14 @@ export const SideBarStack = ({ onPreview }) => {
                                       .map((song, index) => (
                                         <SortableSong
                                           key={song.instanceId}
-                                          song={song}
                                           index={index}
-                                          onPreview={onPreview}
+                                          song={song}
                                           onClick={() =>
                                             handleSongClick(
                                               `${song._id}_${index}_reserved`,
                                             )
                                           }
+                                          onPreview={onPreview}
                                           onRemove={(id) =>
                                             setStackSongs((prev) =>
                                               prev.filter(
@@ -846,10 +878,7 @@ export const SideBarStack = ({ onPreview }) => {
                       <div className="flex gap-2 items-center">
                         {["Музыка", "Слова", "Аранжировка"].map((item) => (
                           <Chip
-                            size="sm"
                             key={item}
-                            color="primary"
-                            variant="flat"
                             className={`cursor-pointer input-header border 
                                         px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
                                         rounded-full
@@ -858,6 +887,9 @@ export const SideBarStack = ({ onPreview }) => {
                                             ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                                             : "bg-transparent text-default-500 border-default-300"
                                         }`}
+                            color="primary"
+                            size="sm"
+                            variant="flat"
                             onClick={() => {
                               setProgramSelected((prev) =>
                                 prev.includes(item)
@@ -873,23 +905,24 @@ export const SideBarStack = ({ onPreview }) => {
                       {session?.user?.role === "регент" && (
                         <div className="flex gap-2">
                           <Button
-                            size="sm"
-                            variant="flat"
                             isIconOnly
                             className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                            onClick={() => {
+                            size="sm"
+                            variant="flat"
+                            onPress={() => {
                               const text = getProgramText();
+
                               navigator.clipboard.writeText(text.trim());
                             }}
                           >
                             <CopyIcon size={22} />
                           </Button>
                           <Button
-                            size="sm"
-                            variant="flat"
                             isIconOnly
                             className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                            onClick={() => programRef.current?.handleDownload()}
+                            size="sm"
+                            variant="flat"
+                            onPress={() => programRef.current?.handleDownload()}
                           >
                             <DownloadPngIcon />
                           </Button>
@@ -999,6 +1032,24 @@ export const SideBarStack = ({ onPreview }) => {
                                           <div
                                             key={song.instanceId}
                                             className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() =>
+                                              handleSongClick(
+                                                `${song._id}_${index}_reserved`,
+                                              )
+                                            }
+                                            onKeyDown={(e) => {
+                                              if (
+                                                e.key === "Enter" ||
+                                                e.key === " "
+                                              ) {
+                                                e.preventDefault();
+                                                handleSongClick(
+                                                  `${song._id}_${index}_reserved`,
+                                                );
+                                              }
+                                            }}
                                           >
                                             <span className="input-header">
                                               {index + 1}. {song.name}

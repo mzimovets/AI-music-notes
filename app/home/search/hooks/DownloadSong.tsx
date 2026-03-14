@@ -1,9 +1,10 @@
 "use client";
-import { useState, useCallback } from "react";
+import { useState } from "react";
 
 // Показывает центрированное сообщение с анимацией, размеры как при нажатии «Поделиться»
 const showCenterMessage = () => {
   const container = document.createElement("div");
+
   container.className =
     "fixed inset-0 flex items-center justify-center z-50 pointer-events-none";
   container.innerHTML = `
@@ -41,7 +42,6 @@ export const useDownloadSong = () => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const handleDownload = async (manualSong = null) => {
-    const song = manualSong;
     if (!manualSong) return;
 
     setIsDownloading(true);
@@ -50,12 +50,14 @@ export const useDownloadSong = () => {
       const fileName = manualSong?.file.filename;
 
       const response = await fetch(fileUrl);
+
       if (!response.ok) throw new Error("Ошибка загрузки файла");
 
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
 
       const link = document.createElement("a");
+
       link.href = downloadUrl;
       link.download = fileName;
       document.body.appendChild(link);
@@ -64,8 +66,7 @@ export const useDownloadSong = () => {
 
       window.URL.revokeObjectURL(downloadUrl);
       showCenterMessage();
-    } catch (error) {
-      console.error("Ошибка при скачивании:", error);
+    } catch {
       window.open(
         `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${manualSong?.file?.filename}`,
         "_blank",

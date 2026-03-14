@@ -1,4 +1,5 @@
 import { Song } from "./types";
+
 import { categorySongs } from "@/components/constants";
 
 export const getCategoryDisplay = (
@@ -20,6 +21,7 @@ export const getCategoryDisplay = (
       childrens: "Детские песни",
       other: "Другие песни",
     };
+
     return fullNames[key] || `${category.name} песни`;
   }
 
@@ -31,6 +33,7 @@ export async function getData() {
   const data = await fetch(`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`);
 
   const posts = await data.json();
+
   return posts;
 }
 
@@ -41,11 +44,13 @@ export const getSongs = async (category?: string) => {
     );
 
     const posts = await data.json();
+
     return posts;
   } else {
     const data = await fetch(`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`);
 
     const posts = await data.json();
+
     return posts;
   }
 };
@@ -55,12 +60,13 @@ export const getSongById = async (id: string) => {
     `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}`,
   );
   const posts = await data.json();
+
   return posts;
 };
 
 export const postSong = async (data: Song, id?: string) => {
-  console.log("POst song data", data);
   const formData = new FormData();
+
   formData.append("name", data.name);
   formData.append("author", data.author || "");
   formData.append("file", data.file || "");
@@ -77,11 +83,13 @@ export const postSong = async (data: Song, id?: string) => {
   );
 
   const posts = await resp.json();
+
   return posts;
 };
 
 export const putSong = async (data: Partial<Song>, id?: string) => {
   const formData = new FormData();
+
   formData.append("name", data.name);
   formData.append("author", data.author || "");
   if (data.file) {
@@ -100,11 +108,11 @@ export const putSong = async (data: Partial<Song>, id?: string) => {
   );
 
   const posts = await resp.json();
+
   return posts;
 };
 
 export const deleteSong = async (id: string) => {
-  console.log("delete song", id);
   const data = await fetch(
     `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}/true`,
     {
@@ -115,11 +123,11 @@ export const deleteSong = async (id: string) => {
   );
 
   const posts = await data.json();
+
   return posts;
 };
 
 export const deleteStack = async (id: string) => {
-  console.log("delete stack", id);
   const data = await fetch(
     `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}/true`,
     {
@@ -130,5 +138,6 @@ export const deleteStack = async (id: string) => {
   );
 
   const posts = await data.json();
+
   return posts;
 };

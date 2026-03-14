@@ -7,14 +7,11 @@ export const StackCard = ({ stacks }) => {
   const { data: session } = useSession();
   const isRegent = session?.user?.role === "регент";
 
-  const getRandomColor = () => {
-    const colors = ["blue", "green", "purple", "red"];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
-
   const fillCard = (stack) => (
     <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
       <Card
+        isPressable
+        className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
         onPress={() => {
           if (stack.isPublished) {
             router.push(`/stackView/${stack._id}`);
@@ -22,16 +19,14 @@ export const StackCard = ({ stacks }) => {
             router.push(`/stack/${stack._id}`);
           }
         }}
-        isPressable
-        className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
       >
         {!stack.isPublished ? (
           <div className="z-45 absolute top-12 -right-5 w-[120%] h-6 bg-gradient-to-r from-[#7DE392] to-[#2E7D32] origin-top-right rotate-45 transform overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full bg-white/30 blur-sm rotate-12"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-white/30 blur-sm rotate-12" />
           </div>
         ) : (
           <div className="z-45 absolute top-12 -right-5 w-[120%] h-6 bg-gradient-to-r from-[#BD9673] to-[#7D5E42] origin-top-right rotate-45 transform overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full bg-white/30 blur-sm rotate-12"></div>
+            <div className="absolute top-0 left-0 w-full h-full bg-white/30 blur-sm rotate-12" />
           </div>
         )}
         {/* Контент карточки */}
@@ -57,6 +52,7 @@ export const StackCard = ({ stacks }) => {
     ?.slice()
     .sort((a, b) => {
       if (a.isPublished === b.isPublished) return 0;
+
       return a.isPublished ? -1 : 1;
     });
 

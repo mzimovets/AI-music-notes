@@ -1,4 +1,5 @@
 import { Button, Popover, PopoverContent, PopoverTrigger } from "@heroui/react";
+
 import { ActionButton } from "./ActionButton";
 import { ColorIcon } from "./icons/ColorIcon";
 import { useStackContext } from "./StackContextProvider";
@@ -36,12 +37,12 @@ export const StackCoverColorSelector = () => {
             ].map((color) => (
               <Button
                 key={color.hex}
-                isIconOnly
-                radius="full"
                 disableRipple
-                onPress={() => setStackCover(color.name)}
+                isIconOnly
                 className="!w-8 !h-8 min-w-0 p-0 flex items-center justify-center hover:scale-110 transition-transform"
+                radius="full"
                 style={{ backgroundColor: `#${color.hex}` }}
+                onPress={() => setStackCover(color.name)}
               >
                 {selectedCover === color.name && (
                   <span className="w-3 h-3 rounded-full bg-white" />

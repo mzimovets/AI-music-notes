@@ -21,40 +21,40 @@ export const SongActions = () => {
   return (
     <>
       <button
-        onClick={() => handleShare()}
-        disabled={!isReady}
         className="hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform disabled:opacity-50"
+        disabled={!isReady}
+        onClick={() => handleShare()}
       >
-        <ShareIcon width={34} height={34} />
+        <ShareIcon height={34} width={34} />
       </button>
 
       <button
-        onClick={() => {
-          handleDownload(context?.songResponse.doc);
-        }}
-        disabled={!isReady || isDownloading}
         className={`hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform ${
           isDownloading ? "opacity-50 cursor-wait" : "disabled:opacity-50"
         }`}
+        disabled={!isReady || isDownloading}
+        onClick={() => {
+          handleDownload(context?.songResponse.doc);
+        }} // callback последний
       >
         <DownloadIcon
-          width={34}
-          height={34}
           className={isDownloading ? "animate-bounce" : ""}
+          height={34}
+          width={34}
         />
       </button>
 
       <button
-        onClick={handlePrint}
-        disabled={!isReady || isPrinting}
         className={`hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform ${
           isPrinting ? "opacity-50 cursor-not-allowed" : "disabled:opacity-50"
         }`}
+        disabled={!isReady || isPrinting}
+        onClick={handlePrint} // callback последний
       >
         <PrinterIcon
-          width={34}
-          height={34}
           className={isPrinting ? "animate-pulse" : ""}
+          height={34}
+          width={34}
         />
       </button>
       {PrintElement}

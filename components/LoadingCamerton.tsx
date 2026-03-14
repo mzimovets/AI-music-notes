@@ -7,7 +7,7 @@ export const LoadingCamerton = () => {
   // Таймлайн (от 0 до 1)
   const T_PREP = 0.1; // Замах назад
   const T_SPIN_PEAK = 0.3; // Максимальная скорость
-  const T_SLOW_DOWN = 0.45; // Начало фазы замедления
+
   const T_STOP_SPIN = 0.55; // Полная остановка (вращения больше нет)
   const T_STILL_PAUSE = 0.6; // Пауза в покое перед ударом (честная фиксация)
   const T_IMPACT = 0.64; // Пик удара вниз
@@ -26,25 +26,24 @@ export const LoadingCamerton = () => {
       <div style={{ position: "relative", width: 60, height: 60 }}>
         {/* Хлесткие волны (запуск после T_RETURN) */}
         <Wave
-          side="left"
           delay={totalDuration * T_RETURN}
+          side="left"
           totalCycle={totalDuration}
         />
         <Wave
-          side="right"
           delay={totalDuration * T_RETURN}
+          side="right"
           totalCycle={totalDuration}
         />
 
         <motion.svg
-          viewBox="0 0 30 30"
-          style={{ width: "100%", height: "100%", overflow: "visible" }}
           animate={{
             // Вращение: замах -> разгон -> замедление -> МЕРТВАЯ ОСТАНОВКА
             rotate: [0, -25, 600, 1080, 1080, 1080, 1080, 1080],
             // Удар: стоит(0) до тех пор, пока вращение полностью не прекратится
             y: [0, 0, 0, 0, 0, 12, 0, 0],
           }}
+          style={{ width: "100%", height: "100%", overflow: "visible" }}
           transition={{
             duration: totalDuration,
             repeat: Infinity,
@@ -68,9 +67,10 @@ export const LoadingCamerton = () => {
               "linear", // Финальный покой
             ],
           }}
+          viewBox="0 0 30 30"
         >
           <defs>
-            <linearGradient id="camertonGradient" x1="0" y1="0" x2="1" y2="1">
+            <linearGradient id="camertonGradient" x1="0" x2="1" y1="0" y2="1">
               <stop offset="0%" stopColor="#BD9673" />
               <stop offset="100%" stopColor="#7D5E42" />
             </linearGradient>
@@ -99,6 +99,7 @@ const Wave = ({
   totalCycle: number;
 }) => {
   const isLeft = side === "left";
+
   return (
     <div
       style={{
@@ -112,19 +113,12 @@ const Wave = ({
       {[0, 0.08].map((i) => (
         <motion.div
           key={i}
-          initial={{ opacity: 0, x: 0 }}
           animate={{
             opacity: [0, 1, 0],
             x: isLeft ? [0, -22] : [0, 22],
             scaleY: [1, 1.4, 0.7],
           }}
-          transition={{
-            delay: delay + i,
-            duration: 0.4,
-            repeat: Infinity,
-            repeatDelay: totalCycle - 0.4,
-            ease: "circOut",
-          }}
+          initial={{ opacity: 0, x: 0 }}
           style={{
             position: "absolute",
             width: "100%",
@@ -132,6 +126,13 @@ const Wave = ({
             borderLeft: isLeft ? "2.5px solid #BD9673" : "none",
             borderRight: !isLeft ? "2.5px solid #BD9673" : "none",
             borderRadius: isLeft ? "100% 0 0 100%" : "0 100% 100% 0",
+          }}
+          transition={{
+            delay: delay + i,
+            duration: 0.4,
+            repeat: Infinity,
+            repeatDelay: totalCycle - 0.4,
+            ease: "circOut",
           }}
         />
       ))}

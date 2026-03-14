@@ -1,8 +1,5 @@
 "use client";
 
-import { addToast } from "@heroui/react";
-import { LinkIcon } from "@/components/icons/LinkIcon";
-
 export const useShareSong = () => {
   const handleShare = async (manualSongData = null) => {
     // 1. Сначала ищем данные в аргументе (для таблицы),
@@ -17,7 +14,6 @@ export const useShareSong = () => {
     const name = song.name || "Партитура";
 
     if (!file?.filename) {
-      console.warn("Файл не найден в структуре:", song);
       return;
     }
 
@@ -43,6 +39,7 @@ export const useShareSong = () => {
         // Показать временное сообщение в центре экрана
         const showCenterMessage = () => {
           const container = document.createElement("div");
+
           container.className =
             "fixed inset-0 flex items-center justify-center z-50 pointer-events-none";
           container.innerHTML = `
@@ -80,11 +77,10 @@ export const useShareSong = () => {
             );
           }, 2500);
         };
+
         showCenterMessage();
       }
-    } catch (error) {
-      console.error("Ошибка Share:", error);
-    }
+    } catch {}
   };
 
   return { handleShare };

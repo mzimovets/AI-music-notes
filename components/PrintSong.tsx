@@ -93,9 +93,10 @@
 // };
 
 "use client";
+import { useRef, useState, useCallback } from "react";
+
 import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 import { ServerSong } from "@/lib/types";
-import { useRef, useState, useCallback } from "react";
 
 export const usePrintSong = () => {
   const context = useSongContext();
@@ -106,7 +107,7 @@ export const usePrintSong = () => {
     (song?: ServerSong) => {
       const filename =
         context?.songResponse?.doc?.file?.filename || song?.file?.filename;
-      console.log("handlePrint", filename, iframeRef.current);
+
       if (!filename) return;
 
       const fileUrl = `/uploads/${filename}`;
@@ -120,12 +121,12 @@ export const usePrintSong = () => {
         iframeRef.current.onload = () => {
           try {
             const iframeWindow = iframeRef.current.contentWindow;
+
             if (iframeWindow) {
               iframeWindow.focus();
               iframeWindow.print();
             }
-          } catch (error) {
-            console.error("Ошибка печати:", error);
+          } catch {
             alert(
               "Ошибка доступа к печати (CORS). Проверьте настройки сервера.",
             );

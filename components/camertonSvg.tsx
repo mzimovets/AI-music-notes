@@ -11,7 +11,7 @@ export const CamertonLogo: React.FC<CamertonLogoProps> = ({ className }) => (
     xmlns="http://www.w3.org/2000/svg"
   >
     <defs>
-      <linearGradient id="camertonGradient" x1="0" y1="0" x2="1" y2="0">
+      <linearGradient id="camertonGradient" x1="0" x2="1" y1="0" y2="0">
         <stop offset="0%" stopColor="#BD9673" />
         <stop offset="100%" stopColor="#7D5E42" />
       </linearGradient>
