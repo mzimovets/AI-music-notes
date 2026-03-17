@@ -60,11 +60,19 @@ export const SongsTable = () => {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 flex flex-col w-full">
       <Table
         isHeaderSticky
         isStriped
         aria-label="Таблица песен"
+        className="mt-4  w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
+        classNames={{
+          base: "max-h-[520px] overflow-scroll",
+          table: "min-h-[200px]",
+        }}
+        onRowAction={(key) => {
+          router.push(`/song/${key}`);
+        }}
         bottomContent={
           pages > 1 ? (
             <Pagination
