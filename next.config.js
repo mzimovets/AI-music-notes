@@ -21,6 +21,18 @@ const withPWA = require("next-pwa")({
         expiration: { maxEntries: 100, maxAgeSeconds: 365 * 24 * 60 * 60 },
       },
     },
+
+    // Кэшируем загруженные файлы (PDF, PNG)
+    {
+      urlPattern: /^\/uploads\/.*/,
+      handler: "CacheFirst",
+      options: {
+        cacheName: "uploads-cache",
+        expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
+    },
+
     // Кэшируем все остальные ресурсы и страницы
     {
       urlPattern: /^\/.*$/,
@@ -37,4 +49,13 @@ const withPWA = require("next-pwa")({
 
 module.exports = withPWA({
   reactStrictMode: true,
+
+  async rewrites() {
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/:path*`,
+      },
+    ];
+  },
 });

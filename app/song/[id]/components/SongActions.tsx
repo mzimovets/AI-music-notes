@@ -1,8 +1,9 @@
 "use client";
 import { useSongContext } from "../SongContextProvider";
-import { useShareSong } from "./ShareSong";
-import { useDownloadSong } from "./DownloadSong";
-import { usePrintSong } from "./PrintSong";
+import { useShareSong } from "../../../../components/ShareSong";
+import { useDownloadSong } from "../../../../components/DownloadSong";
+
+import { usePrintSong } from "@/components/PrintSong";
 import ShareIcon from "@/components/ShareIcon";
 import PrinterIcon from "@/components/PrinterIcon";
 import DownloadIcon from "@/components/DownloadIcon";
@@ -28,7 +29,9 @@ export const SongActions = () => {
       </button>
 
       <button
-        onClick={handleDownload}
+        onClick={() => {
+          handleDownload(context?.songResponse.doc);
+        }}
         disabled={!isReady || isDownloading}
         className={`hover:opacity-100 transition-opacity duration-300 group hover:scale-110 transition-transform ${
           isDownloading ? "opacity-50 cursor-wait" : "disabled:opacity-50"

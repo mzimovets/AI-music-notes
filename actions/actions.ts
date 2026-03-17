@@ -36,6 +36,7 @@ export async function updateStack({
   programSelected,
   currentUrl,
   name,
+  cover,
   id,
 }: {
   stack: StackSong[];
@@ -44,6 +45,7 @@ export async function updateStack({
   programSelected: [];
   currentUrl: string;
   name: string;
+  cover: string;
   id: string;
 }) {
   // there will be update
@@ -53,6 +55,7 @@ export async function updateStack({
     mealType,
     programSelected,
     name,
+    cover,
     id,
   });
   revalidatePath(currentUrl);

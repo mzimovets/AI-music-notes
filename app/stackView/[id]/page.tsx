@@ -1,40 +1,36 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { CloseButton } from "./components/CloseButton";
-import { SidebarButton } from "./components/SidebarButton";
+
 import { SideBarStack } from "./components/SideBarStack";
-import { useRouter } from "next/navigation";
+
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import { SongsList } from "./components/SongsList";
 import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
-import { DeleteModal } from "./components/DeleteModal";
 import { socket } from "@/lib/socket";
+import { StackViewer } from "./components/StackViewer";
+import { mealFilesMap } from "@/app/stack/[id]/constants";
+import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
+import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
+  const scrollToReserveSong = (songId: string) => {
+    const el = document.getElementById(songId);
+    if (el) {
+      const y = el.getBoundingClientRect().top + window.pageYOffset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    }
+  };
+
   const {
     stackResponse,
     stackSongs,
-    removeSong,
     setStackSongs,
-    mealType,
     setMealType,
-    programSelected,
     setProgramSelected,
   } = useStackContext();
-
-  console.log("CONTEXT", {
-    stackResponse,
-    stackSongs,
-    removeSong,
-    setStackSongs,
-    mealType,
-    setMealType,
-    programSelected,
-    setProgramSelected,
-  });
 
   const [joined, setJoined] = useState(false);
 
@@ -42,12 +38,10 @@ export default function Page() {
     if (!stackResponse?.doc?._id || joined) return;
 
     const stackId = stackResponse.doc._id;
-    console.log("JOIN ROOM:", stackId);
 
     socket.emit("join-stack", stackId);
 
     const handleUpdate = (updatedSongs) => {
-      console.log("RECEIVED:", updatedSongs);
       setStackSongs(updatedSongs);
     };
 
@@ -89,27 +83,47 @@ export default function Page() {
 
   return (
     <div>
+      <ScrollToTop />
       <SideBarStack onPreview={undefined} />
       <div
-        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-50 
+        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
       >
-        <CloseButton />
+        <CloseReadButton />
       </div>
-      <p className="flex flex-col text-default-500 text-center mt-2 justify-center font-header gap-2 text-[9px] xs:text-xs sm:text-sm md:text-base lg:text-lg xl:text-xl 2xl:text-2xl 3xl:text-4xl">
+      <p className="flex justify-center text-center font-header text-sm sm:text-base md:text-lg font-bold mt-4 mb-2 bg-clip-text text-transparent bg-gradient-to-r from-[#BD9673] to-[#7D5E42] tracking-wide">
         {stackResponse.doc?.name}
       </p>
-      <div className="justify-center flex gap-2  mb-2">
+      <p
+        id={`program`}
+        className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+      >
+        Программа
+      </p>
+      <div className="justify-center flex gap-2 ">
         <p className="text-bold text-sm input-header justify-center text-default-500">
           {mainSongs.length} {getPluralForm(mainSongs.length)}
         </p>
       </div>
+      {/* Тропарь */}
+      {stackResponse.doc?.programSelected.includes("Трапеза") && (
+        <StackViewer
+          fileUrl={
+            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
+            ""
+          }
+        />
+      )}
+
       <SongsList songs={mainSongs} isReserved={false} />
 
       {reserveSongs.length > 0 && (
         <>
-          <p className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+          <p
+            id={`reserve`}
+            className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+          >
             Резерв
           </p>
 
@@ -120,9 +134,22 @@ export default function Page() {
           </div>
 
           <div className="justify-center  gap-2 mb-6">
-            <SongsList songs={reserveSongs} isReserved={true} />
+            <SongsList
+              songs={reserveSongs}
+              isReserved={true}
+              onSongClick={scrollToReserveSong}
+            />
           </div>
         </>
+      )}
+      {/* Кондак */}
+      {stackResponse.doc?.programSelected.includes("Трапеза") && (
+        <StackViewer
+          fileUrl={
+            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
+            ""
+          }
+        />
       )}
     </div>
   );

@@ -46,25 +46,26 @@ export const SortableSong: React.FC<SortableSongProps> = ({
   return (
     <div ref={setNodeRef} style={style} className="touch-none select-none">
       <Card
-        onClick={(e) => {
-          // Игнорируем клики по кнопкам (Eye, Trash, Drag) у регента
-          if ((e.target as HTMLElement).closest("button, div.cursor-grab"))
-            return;
-          if (onClick) onClick();
-        }}
         className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${
           isDragging ? "shadow-xl opacity-50" : "shadow-sm"
         } cursor-pointer`}
       >
-        <div className="flex flex-col overflow-hidden">
+      <Button
+              className="touch-none select-none w-full bg-transparent"
+              onPress={() => {
+                onClick();
+              }}
+            >
+        <div className="flex flex-col overflow-hidden w-full">
           <p className="text-bold text-sm capitalize text-left input-header truncate">
             <span className="mr-2 text-default-400">{index + 1}.</span>
             {song.name}
           </p>
-          <p className="text-bold text-sm capitalize input-header justify-center text-default-500 truncate">
+          <p className="text-left text-bold text-sm capitalize input-header justify-center text-default-500 truncate w-full">
             {song.author}
           </p>
         </div>
+      </Button>
 
         <div className="flex items-center gap-2">
           {isRegent && (

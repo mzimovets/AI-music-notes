@@ -1,14 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/modal";
 
-import { Button } from "@heroui/button";
 import { PdfTitlePage } from "./components/PdfTitlePage";
 import { useStackContext } from "./components/StackContextProvider";
 import { Divider } from "@heroui/divider";
@@ -20,96 +12,21 @@ import { RemoveSongButton } from "./components/RemoveSongButton";
 import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
-import { removeStack, updateStack } from "@/actions/actions";
+import { updateStack } from "@/actions/actions";
 import { holidays } from "./components/Sidebar2";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { SaveIcon } from "./components/icons/SaveIcon";
 import { PublishIcon } from "./components/icons/PublishIcon";
-
-const mealFilesMap: Record<string, { start: string; end: string }> = {
-  daily: {
-    start: "meals-pdf/daily-per.pdf",
-    end: "meals-pdf/daily-pos.pdf",
-  },
-  rozhdestvo: {
-    start: "meals-pdf/rozhdestvo-trop.pdf",
-    end: "meals-pdf/rozhdestvo-cond.pdf",
-  },
-  kreshchenie: {
-    start: "meals-pdf/kreshchenie-trop.pdf",
-    end: "meals-pdf/kreshchenie-cond.pdf",
-  },
-  sretenie: {
-    start: "meals-pdf/sretenie-trop.pdf",
-    end: "meals-pdf/sretenie-cond.pdf",
-  },
-  blagoveshchenie: {
-    start: "meals-pdf/blagoveshchenie-trop.pdf",
-    end: "meals-pdf/blagoveshchenie-cond.pdf",
-  },
-  vhod: {
-    start: "meals-pdf/vhod-trop.pdf",
-    end: "meals-pdf/vhod-cond.pdf",
-  },
-  pascha: {
-    start: "meals-pdf/pascha-trop.pdf",
-    end: "meals-pdf/pascha-cond.pdf",
-  },
-  voznesenie: {
-    start: "meals-pdf/voznesenie-trop.pdf",
-    end: "meals-pdf/voznesenie-cond.pdf",
-  },
-  troica: {
-    start: "meals-pdf/troica-trop.pdf",
-    end: "meals-pdf/troica-cond.pdf",
-  },
-  preobrazhenie: {
-    start: "meals-pdf/preobrazhenie-trop.pdf",
-    end: "meals-pdf/preobrazhenie-cond.pdf",
-  },
-  uspenie: {
-    start: "meals-pdf/uspenie-trop.pdf",
-    end: "meals-pdf/uspenie-cond.pdf",
-  },
-  rozhdestvoBogorodicy: {
-    start: "meals-pdf/rozhdestvoBogorodicy-trop.pdf",
-    end: "meals-pdf/rozhdestvoBogorodicy-cond.pdf",
-  },
-  vozdvizhenie: {
-    start: "meals-pdf/vozdvizhenie-trop.pdf",
-    end: "meals-pdf/vozdvizhenie-cond.pdf",
-  },
-  vvedenie: {
-    start: "meals-pdf/vvedenie-trop.pdf",
-    end: "meals-pdf/vvedenie-cond.pdf",
-  },
-};
-
-type ActionButtonProps = {
-  children: React.ReactNode;
-  onClick: () => void;
-  variant: "green" | "brown" | "red";
-};
-
-const ActionButton = ({ children, onClick, variant }: ActionButtonProps) => {
-  const baseClass =
-    "button-edit-font px-3 py-1.5 text-sm rounded-full border transition-all flex gap-1.5 items-center";
-
-  const variants = {
-    green:
-      "bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:border-green-300",
-    brown:
-      "bg-[#FFFAF5] text-[#7D5E42] border-[#E6D3C2] hover:bg-[#F3E8DE] hover:border-[#BD9673]",
-    red: "bg-red-50 text-red-400 border-red-200 hover:bg-red-100 hover:border-red-300",
-  };
-
-  return (
-    <button onClick={onClick} className={`${baseClass} ${variants[variant]}`}>
-      {children}
-    </button>
-  );
-};
+import { mealFilesMap } from "./constants";
+import { StackName } from "./components/StackName";
+import { ActionButton } from "./components/ActionButton";
+import { DeleteStackModal } from "./components/DeleteStackModal";
+import { StackCover } from "./components/StackCover";
+import { StackCoverColorSelector } from "./components/StackCoverColorSelector";
+import { CloseButton } from "@/app/stackView/[id]/components/CloseButton";
+import EmptyStackIcon from "./components/icons/EmptyStackIcon";
+import SidebarIcon from "./components/icons/SidebarIcon";
 
 export default function StackPage() {
   const router = useRouter();
@@ -123,11 +40,29 @@ export default function StackPage() {
     setMealType,
     programSelected,
     setProgramSelected,
+    stackName,
+    stackCover,
+    setIsDeleteModalOpen,
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [showButton, setShowButton] = useState(true);
+
+  // Автопрокрутка к песне по ее instanceId с учетом фиксированного header
+  const scrollToSong = (songId: string) => {
+    const el = document.getElementById(songId);
+    if (el) {
+      // Высота фиксированного header, который может перекрывать контент
+      const headerOffset = 120;
+      const elementPosition =
+        el.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - headerOffset;
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: "smooth",
+      });
+    }
+  };
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
@@ -137,7 +72,9 @@ export default function StackPage() {
 
   const handleClosePreview = () => setIsPreviewModalOpen(false);
   const handlePreview = (song) => {
-    setSelectedFile(`http://localhost:4000/uploads/${song.file.filename}`);
+    setSelectedFile(
+      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`,
+    );
     setIsPreviewModalOpen(true);
   };
 
@@ -145,34 +82,24 @@ export default function StackPage() {
     setIsDeleteModalOpen(true);
   };
 
-  const handleConfirmDelete = async () => {
-    try {
-      setIsDeleting(true);
-      const response = await removeStack(params.id);
-      if (response) {
-        router.push(`/`);
-        router.refresh();
-      } else {
-        setIsDeleting(false);
-        console.error("Ошибка при удалении стопки");
-      }
-    } catch (error) {
-      console.error("Ошибка при удалении стопки:", error);
-      setIsDeleting(false);
-    }
-  };
+  // Use a simplified helper for stack name
+  const stackNameToSave = stackName?.trim() || "Стопка";
 
+  // ИИ ниже
   const save = async () => {
-    const resp = await updateStack({
+    const finalName = stackName?.trim() ? stackName : "Стопка";
+
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
       isPublished: false,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackResponse.doc?.name,
+      cover: stackCover,
+      name: finalName,
     });
-    console.log("resp", resp);
+
     router.push(`/`);
   };
 
@@ -184,46 +111,58 @@ export default function StackPage() {
       isPublished: true,
       currentUrl: window.location.pathname,
       id: params.id,
-      name: stackResponse.doc?.name,
+      cover: stackCover,
+      name: stackNameToSave,
     });
-    console.log("resp", resp);
+
     router.push(`/`);
   };
 
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
 
-  console.log("mainsongs: ", mainSongs);
-  console.log("mealFilesMap: ", mealFilesMap[mealType]);
-
   return (
     <>
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
-
-      <p className="flex flex-col text-center justify-center font-header gap-2 mb-2 text-lg sm:text-xl md:text-2xl">
-        {stackResponse.doc?.name}
-      </p>
-
-      <div className="mt-2 mb-4 flex justify-center">
-        <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
-          <ActionButton variant="green" onClick={save}>
-            <SaveIcon />
-          </ActionButton>
-
-          <ActionButton variant="brown" onClick={publicStack}>
-            <PublishIcon />
-          </ActionButton>
-
-          <ActionButton variant="red" onClick={handleDeleteStack}>
-            <TrashBinIcon />
-          </ActionButton>
-        </div>
+      <div
+        className={`fixed right-3 z-20 transform-gpu transition-all duration-200
+          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+        `}
+      >
+        <CloseButton />
       </div>
+      {stackSongs && stackSongs.length > 0 && (
+        <>
+          <StackCover />
+          <StackName />
+
+          <div className="mt-2 mb-4 flex justify-center">
+            <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
+              <ActionButton variant="green" onClick={save}>
+                <SaveIcon />
+              </ActionButton>
+
+              <ActionButton variant="brown" onClick={publicStack}>
+                <PublishIcon />
+              </ActionButton>
+
+              <StackCoverColorSelector />
+
+              <ActionButton variant="red" onClick={handleDeleteStack}>
+                <TrashBinIcon />
+              </ActionButton>
+            </div>
+          </div>
+        </>
+      )}
 
       {stackSongs && stackSongs.length > 0 ? (
         <>
-          <p className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+          <p
+            id={`program`}
+            className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+          >
             Программа
           </p>
           <div className="justify-center flex gap-2 mb-6">
@@ -238,7 +177,10 @@ export default function StackPage() {
                 programSelected.includes("Трапеза") &&
                 mealType &&
                 mealFilesMap[mealType]?.start && (
-                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+                  <div
+                    id={`meal_start`}
+                    className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                  >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
                         <p className="text-bold text-sm  text-left input-header">
@@ -257,25 +199,31 @@ export default function StackPage() {
                     <div className="relative my-2">
                       <Divider className="opacity-60" />
                     </div>
-                    <div className="mt-1 mb-1  sm:mb-6 sm:mt-2">
+                    <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                       <PdfTitlePage
                         fileUrl={`/${mealFilesMap[mealType].start}`}
                       />
                     </div>
                   </div>
                 )}
-              <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+              <div
+                id={`${song._id}_${index}`}
+                className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+              >
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                     <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
                       <p className="text-bold text-sm capitalize input-header">
                         {index + 1}. {song.name}
+                        {song.author && (
+                          <>
+                            <span className="text-black"> —</span>{" "}
+                            <span className="text-default-500">
+                              {song.author}
+                            </span>
+                          </>
+                        )}
                       </p>
-                      {song.author && (
-                        <p className="text-bold text-sm capitalize input-header text-default-500 sm:ml-2">
-                          {song.author}
-                        </p>
-                      )}
                     </div>
                     <div className="flex justify-center sm:justify-end gap-2 mt-2 sm:mt-0">
                       <EyePreviewButton onClick={() => handlePreview(song)} />
@@ -290,7 +238,7 @@ export default function StackPage() {
                 </div>
                 <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                   <PdfTitlePage
-                    fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+                    fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
                   />
                 </div>
               </div>
@@ -299,7 +247,10 @@ export default function StackPage() {
                 programSelected.includes("Трапеза") &&
                 mealType &&
                 mealFilesMap[mealType]?.end && (
-                  <div className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm">
+                  <div
+                    id={`meal_end`}
+                    className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
+                  >
                     <div className="flex gap-2 items-center justify-between">
                       <div className="flex gap-2 items-center">
                         <p className="text-bold text-sm text-left input-header">
@@ -334,7 +285,10 @@ export default function StackPage() {
 
           {reserveSongs.length > 0 && (
             <div className="mt-16 flex flex-col">
-              <p className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg">
+              <p
+                id={`reserve`}
+                className="flex flex-col text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+              >
                 Резерв
               </p>
               <div className="justify-center flex gap-2 mb-6">
@@ -344,6 +298,7 @@ export default function StackPage() {
               </div>
               {reserveSongs.map((song, index) => (
                 <div
+                  id={`${song._id}_${index}_reserved`}
                   key={song.instanceId || index}
                   className="rounded-xl border border-default-200 bg-default-50/50 px-3 py-1.5 sm:px-4 sm:py-3 mb-1 sm:mb-4 transition-shadow hover:shadow-sm"
                 >
@@ -352,12 +307,15 @@ export default function StackPage() {
                       <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
                         <p className="text-bold text-sm capitalize input-header">
                           {index + 1}. {song.name}
+                          {song.author && (
+                            <>
+                              <span className="text-black"> —</span>{" "}
+                              <span className="text-default-500">
+                                {song.author}
+                              </span>
+                            </>
+                          )}
                         </p>
-                        {song.author && (
-                          <p className="text-bold text-sm capitalize input-header text-default-500 sm:ml-2">
-                            {song.author}
-                          </p>
-                        )}
                       </div>
                       <div className="flex justify-center sm:justify-end gap-2 mt-2 sm:mt-0">
                         <EyePreviewButton onClick={() => handlePreview(song)} />
@@ -372,7 +330,7 @@ export default function StackPage() {
                   </div>
                   <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                     <PdfTitlePage
-                      fileUrl={`http://localhost:4000/uploads/${song.file.filename}`}
+                      fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
                     />
                   </div>
                 </div>
@@ -383,59 +341,23 @@ export default function StackPage() {
             </div>
           )}
         </>
-      ) : null}
+      ) : (
+        <div className="flex flex-col items-center justify-center gap-4 py-20 text-center text-gray-500">
+          <EmptyStackIcon className="w-32 h-32 text-gray-400" />
+
+          <p className="text-center text-gray-400 text-xl input-header font-medium leading-snug max-w-md">
+            В этой стопке пока нет песен — добавьте песню через боковое меню{" "}
+            <SidebarIcon className="inline" />
+          </p>
+        </div>
+      )}
 
       <ModalFilePreviewer
         isOpen={isPreviewModalOpen}
         onClose={handleClosePreview}
         selectedFile={selectedFile}
       />
-      <Modal
-        isOpen={isDeleteModalOpen}
-        onOpenChange={setIsDeleteModalOpen}
-        placement="center"
-      >
-        <ModalContent>
-          {(onClose) => (
-            <>
-              <ModalHeader className="flex flex-col gap-1">
-                <h3 className="text-xl font-bold text-gray-900">
-                  Удалить стопку
-                </h3>
-              </ModalHeader>
-              <ModalBody>
-                <div className="space-y-4">
-                  <p className="text-gray-600">
-                    Вы уверены, что хотите удалить стопку
-                    <br />
-                    <span className="font-semibold text-gray-900 ml-1">
-                      "{stackResponse.doc?.name}"
-                    </span>
-                    ?
-                  </p>
-                  <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                    <p className="text-sm text-red-700 font-medium">
-                      ⚠️ Это действие невозможно отменить
-                    </p>
-                  </div>
-                </div>
-              </ModalBody>
-              <ModalFooter>
-                <Button variant="light" onPress={onClose} disabled={isDeleting}>
-                  Отмена
-                </Button>
-                <Button
-                  onPress={handleConfirmDelete}
-                  className="bg-gradient-to-r from-red-400 to-red-500 text-white"
-                  isLoading={isDeleting}
-                >
-                  {isDeleting ? "Удаление..." : "Да, удалить"}
-                </Button>
-              </ModalFooter>
-            </>
-          )}
-        </ModalContent>
-      </Modal>
+      <DeleteStackModal />
     </>
   );
 }

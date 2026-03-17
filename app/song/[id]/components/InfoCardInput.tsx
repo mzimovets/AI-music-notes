@@ -22,16 +22,14 @@ export const InfoCardInput = ({
 }: InfoCardInputProps) => {
   if (field.label === "Категория") {
     const categoryName = categorySongs.find((f) => f.key === category);
-    console.log("categoryName, field: ", categoryName, field);
+
     const handleSelectionChange = (keys: any) => {
       const selectedKey = Array.from(keys)[0] as string;
       const selectedCategory = categorySongs.find(
-        (cat) => cat.key === selectedKey
+        (cat) => cat.key === selectedKey,
       );
-      console.log("selectedKey: ", selectedKey);
-      console.log("selectedCategory: ", selectedCategory);
+
       if (selectedCategory && onChange) {
-        console.log("selectedCategory.key: ", selectedCategory.key);
         onChange(selectedCategory.key);
       }
     };

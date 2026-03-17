@@ -1,17 +1,24 @@
 {
-  "name": "My PWA App",
-  "short_name": "PWAApp",
-  "description": "My Next.js Progressive Web App",
+  "name": "Нотная библиотека",
+  "short_name": "Ноты",
+  "description": "Нотная библиотека",
   "icons": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/logo512.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo512.png",
+      "type": "image/png",
       "sizes": "512x512",
-      "type": "image/png"
+      "purpose": "any"
     }
   ],
   "start_url": "/",

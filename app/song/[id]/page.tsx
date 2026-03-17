@@ -20,7 +20,6 @@ export default async function PricingPage({
 }) {
   const { id } = await params;
   const song = await getSongById(id);
-  console.log(song);
 
   return (
     <SongContextProvider songResponse={song}>
@@ -37,7 +36,7 @@ export default async function PricingPage({
           {song.doc.file?.filename && (
             <div className="relative inline-block">
               <DocViewer
-                fileUrl={`http://localhost:4000/uploads/${song.doc.file.filename}`}
+                fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
               />
               <EyeSongPageView
                 songId={id}

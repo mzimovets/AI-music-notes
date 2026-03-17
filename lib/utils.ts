@@ -3,7 +3,7 @@ import { categorySongs } from "@/components/constants";
 
 export const getCategoryDisplay = (
   key: string,
-  format: "short" | "full" = "short"
+  format: "short" | "full" = "short",
 ): string => {
   const category = categorySongs.find((item) => item.key === key);
 
@@ -28,7 +28,7 @@ export const getCategoryDisplay = (
 
 export async function getData() {
   //   const data = await fetch("https://api.vercel.app/blog");
-  const data = await fetch("http://localhost:4000/songs");
+  const data = await fetch(`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`);
 
   const posts = await data.json();
   return posts;
@@ -36,12 +36,14 @@ export async function getData() {
 
 export const getSongs = async (category?: string) => {
   if (category) {
-    const data = await fetch(`http://localhost:4000/songs/${category}`);
+    const data = await fetch(
+      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs/${category}`,
+    );
 
     const posts = await data.json();
     return posts;
   } else {
-    const data = await fetch("http://localhost:4000/songs");
+    const data = await fetch(`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`);
 
     const posts = await data.json();
     return posts;
@@ -49,7 +51,9 @@ export const getSongs = async (category?: string) => {
 };
 
 export const getSongById = async (id: string) => {
-  const data = await fetch(`http://localhost:4000/song/${id}`);
+  const data = await fetch(
+    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}`,
+  );
   const posts = await data.json();
   return posts;
 };
@@ -64,16 +68,19 @@ export const postSong = async (data: Song, id?: string) => {
   formData.append("category", data.category || "");
   formData.append("authorArrange", data.authorArrange || "");
   formData.append("authorLyrics", data.authorLyrics || "");
-  const resp = await fetch(`http://localhost:4000/song/${id}`, {
-    method: "POST",
-    body: formData,
-  });
+  const resp = await fetch(
+    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}`,
+    {
+      method: "POST",
+      body: formData,
+    },
+  );
 
   const posts = await resp.json();
   return posts;
 };
 
-export const putSong = async (data: Partial <Song>, id?: string) => {
+export const putSong = async (data: Partial<Song>, id?: string) => {
   const formData = new FormData();
   formData.append("name", data.name);
   formData.append("author", data.author || "");
@@ -84,10 +91,13 @@ export const putSong = async (data: Partial <Song>, id?: string) => {
   formData.append("category", data.category || "");
   formData.append("authorArrange", data.authorArrange || "");
   formData.append("authorLyrics", data.authorLyrics || "");
-  const resp = await fetch(`http://localhost:4000/song/${id}/true`, {
+  const resp = await fetch(
+    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}/true`,
+    {
       method: "POST",
       body: formData,
-  });
+    },
+  );
 
   const posts = await resp.json();
   return posts;
@@ -95,23 +105,29 @@ export const putSong = async (data: Partial <Song>, id?: string) => {
 
 export const deleteSong = async (id: string) => {
   console.log("delete song", id);
-  const data = await fetch(`http://localhost:4000/song/${id}/true`, {
-    headers: {
-      method: "GET",
+  const data = await fetch(
+    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/song/${id}/true`,
+    {
+      headers: {
+        method: "GET",
+      },
     },
-  });
+  );
 
   const posts = await data.json();
   return posts;
 };
 
-export const deleteStack= async (id: string) => {
+export const deleteStack = async (id: string) => {
   console.log("delete stack", id);
-  const data = await fetch(`http://localhost:4000/stack/${id}/true`, {
-    headers: {
-      method: "GET",
+  const data = await fetch(
+    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}/true`,
+    {
+      headers: {
+        method: "GET",
+      },
     },
-  });
+  );
 
   const posts = await data.json();
   return posts;

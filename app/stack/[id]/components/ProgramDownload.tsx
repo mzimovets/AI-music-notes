@@ -1,4 +1,5 @@
 import React, { useState, useImperativeHandle, forwardRef } from "react";
+import ReactDOM from "react-dom/client";
 import { toPng } from "html-to-image";
 
 const FONT_FAMILY = "Roboto Slab, serif";
@@ -13,6 +14,227 @@ type ProgramDownloadProps = {
   height?: number;
   onDownload?: (blob: Blob) => void;
   downloadHandler?: () => void; // добавляем проп
+};
+
+type Section = {
+  title: string;
+  lines: string[];
+};
+
+type ProgramDownloadContentProps = {
+  sections: Section[];
+  songFontSize: number;
+  authorFontSize: number;
+  dynamicTitleFontSize: number;
+  songMargin: string;
+  bgImageSrc: string;
+  bgTop: number;
+  bgLeft: number;
+  bgWidth: number;
+  bgHeight: number;
+  width: number;
+  height: number;
+  paddingX: number;
+  paddingY: number;
+};
+
+const ProgramDownloadContent: React.FC<ProgramDownloadContentProps> = ({
+  sections,
+  songFontSize,
+  authorFontSize,
+  dynamicTitleFontSize,
+  songMargin,
+  bgImageSrc,
+  bgTop,
+  bgLeft,
+  bgWidth,
+  bgHeight,
+  width,
+  height,
+  paddingX,
+  paddingY,
+}) => {
+  return (
+    <div
+      style={{
+        width: width,
+        height: height,
+        position: "relative",
+        overflow: "hidden",
+        backgroundColor: "white",
+        boxSizing: "border-box",
+        fontFamily: FONT_FAMILY,
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
+      }}
+    >
+      {/* Фоновое изображение */}
+      <img
+        src={bgImageSrc}
+        alt="background"
+        crossOrigin="anonymous"
+        style={{
+          position: "absolute",
+          top: bgTop,
+          left: bgLeft,
+          width: bgWidth,
+          height: bgHeight,
+          objectFit: "cover",
+          margin: 0,
+          padding: 0,
+        }}
+      />
+
+      {/* Текстовый слой */}
+      <div
+        style={{
+          position: "absolute",
+          top: paddingY - 120,
+          left: paddingX,
+          right: paddingX,
+          bottom: paddingY + 20,
+          color: FONT_COLOR,
+          margin: 0,
+          padding: 0,
+        }}
+      >
+        {sections.map((section, sectionIndex) => {
+          // Группируем песни с авторами
+          const allLines = section.lines;
+          const songsWithAuthors: { song: string; authors: string[] }[] = [];
+
+          for (let i = 0; i < allLines.length; i++) {
+            const line = allLines[i];
+            if (/^\d+\./.test(line.trim())) {
+              const authors: string[] = [];
+              let j = i + 1;
+              while (j < allLines.length) {
+                const nextLine = allLines[j];
+                if (
+                  nextLine.trim().startsWith("сл.") ||
+                  nextLine.trim().startsWith("муз.") ||
+                  nextLine.trim().startsWith("аранж.")
+                ) {
+                  let formattedLine = nextLine.trim();
+                  if (formattedLine.startsWith("аранж.")) {
+                    if (authors.length > 0) {
+                      // Объединяем с предыдущим автором через запятую
+                      authors[authors.length - 1] =
+                        authors[authors.length - 1] + ", " + formattedLine;
+                      j++;
+                      continue;
+                    }
+                  }
+                  authors.push(formattedLine);
+                  j++;
+                } else break;
+              }
+              songsWithAuthors.push({ song: line, authors });
+              i = j - 1;
+            }
+          }
+
+          return (
+            <div
+              key={sectionIndex}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                marginBottom: "3em",
+              }}
+            >
+              {/* Заголовок секции с линиями */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3em",
+                  marginBottom: dynamicTitleFontSize * 1.35 * 1.2,
+                }}
+              >
+                <div
+                  style={{
+                    width: "25%",
+                    height: "2px",
+                    background: `linear-gradient(to left, ${TITLE_COLOR}AA, transparent)`,
+                  }}
+                />
+                <div
+                  style={{
+                    fontSize: dynamicTitleFontSize,
+                    fontWeight: "bold",
+                    textAlign: "center",
+                    color: TITLE_COLOR,
+                    whiteSpace: "nowrap",
+                    fontFamily: FONT_FAMILY,
+                  }}
+                >
+                  {section.title}
+                </div>
+                <div
+                  style={{
+                    width: "25%",
+                    height: "2px",
+                    background: `linear-gradient(to right, ${TITLE_COLOR}AA, transparent)`,
+                  }}
+                />
+              </div>
+
+              {/* Контейнер песен секции */}
+              <div
+                style={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "4%",
+                  width: "100%",
+                  justifyContent: "space-between",
+                }}
+              >
+                {songsWithAuthors.map((item, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      width: "48%",
+                      breakInside: "avoid",
+                      marginBottom: songMargin,
+                      fontFamily: FONT_FAMILY,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: songFontSize,
+                        fontWeight: "bold",
+                        marginBottom: songMargin,
+                        lineHeight: 1.35,
+                        fontFamily: FONT_FAMILY,
+                      }}
+                    >
+                      {item.song}
+                    </div>
+                    {item.authors.map((author, aIndex) => (
+                      <div
+                        key={aIndex}
+                        style={{
+                          fontSize: authorFontSize,
+                          marginBottom: songMargin,
+                          lineHeight: 1.35,
+                          color: AUTHOR_COLOR,
+                          fontFamily: FONT_FAMILY,
+                        }}
+                      >
+                        {author}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 };
 
 const ProgramDownload = forwardRef<
@@ -61,6 +283,10 @@ const ProgramDownload = forwardRef<
         tempContainer.style.overflow = "hidden";
         tempContainer.style.boxSizing = "border-box";
         tempContainer.style.backgroundColor = "white";
+        // isolate styles for html-to-image
+        tempContainer.style.fontFamily = FONT_FAMILY;
+        tempContainer.style.fontWeight = "bold";
+        tempContainer.setAttribute("aria-hidden", "true");
 
         document.body.appendChild(tempContainer);
 
@@ -180,136 +406,45 @@ const ProgramDownload = forwardRef<
           `📐 Позиция фона: x=${bgLeft}, y=${bgTop}, w=${bgWidth}, h=${bgHeight}`,
         );
 
-        // Создаем HTML содержимое
-        let html = `
-        <div style="
-          width: ${width}px;
-          height: ${height}px;
-          position: relative;
-          overflow: hidden;
-          background-color: white;
-          box-sizing: border-box;
-          font-family: 'Roboto Slab', Georgia, serif;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        ">
-          <!-- Фоновое изображение -->
-          <img 
-            src="${bgImage.src}" 
-            alt="background"
-            crossorigin="anonymous"
-            style="
-              position: absolute;
-              top: ${bgTop}px;
-              left: ${bgLeft}px;
-              width: ${bgWidth}px;
-              height: ${bgHeight}px;
-              object-fit: cover;
-              margin: 0;
-              padding: 0;
-            "
-          />
-          
-          <!-- Текстовый слой -->
-          <div style="
-            position: absolute;
-            top: ${paddingY - 120}px;
-            left: ${paddingX}px;
-            right: ${paddingX}px;
-            bottom: ${paddingY + 20}px;
-            color: ${FONT_COLOR};
-            margin: 0;
-            padding: 0;
-          ">
-      `;
+        // Создаем внутренний контейнер с нужными стилями
+        const tempContainerInner = document.createElement("div");
+        tempContainerInner.style.fontFamily = FONT_FAMILY;
+        tempContainerInner.style.fontWeight = "bold";
+        tempContainerInner.style.width = `${width}px`;
+        tempContainerInner.style.height = `${height}px`;
+        tempContainerInner.style.margin = "0";
+        tempContainerInner.style.padding = "0";
+        tempContainerInner.style.backgroundColor = "white";
+        tempContainerInner.style.boxSizing = "border-box";
+        tempContainerInner.style.opacity = "1";
+        tempContainerInner.style.position = "relative";
+        // Ensure isolation
+        tempContainer.appendChild(tempContainerInner);
 
-        sections.forEach((section, sectionIndex) => {
-          // Группируем песни с авторами
-          const allLines = section.lines;
-          const songsWithAuthors: { song: string; authors: string[] }[] = [];
+        // Рендерим React компонент внутрь tempContainerInner
+        const root = ReactDOM.createRoot(tempContainerInner);
+        root.render(
+          <ProgramDownloadContent
+            sections={sections}
+            songFontSize={songFontSize}
+            authorFontSize={authorFontSize}
+            dynamicTitleFontSize={dynamicTitleFontSize}
+            songMargin={songMargin}
+            bgImageSrc={bgImage.src}
+            bgTop={bgTop}
+            bgLeft={bgLeft}
+            bgWidth={bgWidth}
+            bgHeight={bgHeight}
+            width={width}
+            height={height}
+            paddingX={paddingX}
+            paddingY={paddingY}
+          />,
+        );
 
-          for (let i = 0; i < allLines.length; i++) {
-            const line = allLines[i];
-            if (/^\d+\./.test(line.trim())) {
-              const authors: string[] = [];
-              let j = i + 1;
-              while (j < allLines.length) {
-                const nextLine = allLines[j];
-                if (
-                  nextLine.trim().startsWith("сл.") ||
-                  nextLine.trim().startsWith("муз.") ||
-                  nextLine.trim().startsWith("аранж.")
-                ) {
-                  let formattedLine = nextLine.trim();
-                  if (formattedLine.startsWith("аранж.")) {
-                    if (authors.length > 0) {
-                      // Объединяем с предыдущим автором через запятую
-                      authors[authors.length - 1] =
-                        authors[authors.length - 1] + ", " + formattedLine;
-                      j++;
-                      continue;
-                    }
-                  }
-                  authors.push(formattedLine);
-                  j++;
-                } else break;
-              }
-              songsWithAuthors.push({ song: line, authors });
-              i = j - 1;
-            }
-          }
-
-          // Контейнер секции
-          html += `<div style="display: flex; flex-direction: column; margin-bottom: 3em;">`;
-
-          // Заголовок секции с линиями
-          html += `
-          <div style="
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 3em;
-            margin-bottom: ${finalFontSize * lineHeight * 1.2}px;
-          ">
-            <div style="width:25%; height:2px; background:linear-gradient(to left, ${TITLE_COLOR}AA, transparent)"></div>
-            <div style="
-              font-size: ${dynamicTitleFontSize}px;
-              font-weight: bold;
-              text-align: center;
-              color: ${TITLE_COLOR};
-              white-space: nowrap;
-            ">${section.title}</div>
-            <div style="width:25%; height:2px; background:linear-gradient(to right, ${TITLE_COLOR}AA, transparent)"></div>
-          </div>
-        `;
-
-          // Контейнер песен секции
-          html += `<div style="display:flex; flex-wrap: wrap; gap:4%; width:100%; justify-content: space-between;">`;
-
-          songsWithAuthors.forEach((item) => {
-            html += `<div style="width:48%; break-inside: avoid; margin-bottom: ${songMargin};">
-            <div style="font-size:${songFontSize}px; font-weight:bold; margin-bottom:${songMargin}; line-height:1.35;">${item.song}</div>`;
-            item.authors.forEach((author) => {
-              html += `<div style="font-size:${authorFontSize}px; margin-bottom:${songMargin}; line-height:1.35; color:${AUTHOR_COLOR}">${author}</div>`;
-            });
-            html += `</div>`;
-          });
-
-          html += `</div>`; // конец контейнера песен
-          html += `</div>`; // конец контейнера секции
-        });
-
-        html += `
-          </div>
-        </div>
-      `;
-
-        // Вставляем HTML в контейнер
-        tempContainer.innerHTML = html;
-
-        // Ждем загрузки изображения
+        // Ждем загрузки изображения и рендера React
         await new Promise<void>((resolve) => {
-          const img = tempContainer.querySelector("img");
+          const img = tempContainerInner.querySelector("img");
           if (img && img.complete) {
             resolve();
           } else if (img) {
@@ -320,18 +455,17 @@ const ProgramDownload = forwardRef<
           }
         });
 
+        // Ждем загрузки всех шрифтов после монтирования
+        await document.fonts.ready;
+
         // Даем время на отрисовку
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         console.log("🖼️ Конвертируем в PNG с высоким качеством...");
 
-        // Находим основной div
-        const mainDiv = tempContainer.firstElementChild;
-        if (!mainDiv) throw new Error("Не удалось найти основной элемент");
-
         // КОНВЕРТИРУЕМ с увеличенным pixelRatio для максимального качества
         const pixelRatio = 3; // Еще больше для 2480×3508
-        const dataUrl = await toPng(mainDiv as HTMLElement, {
+        const dataUrl = await toPng(tempContainerInner as HTMLElement, {
           cacheBust: true,
           pixelRatio: pixelRatio,
           width: width,
@@ -345,6 +479,8 @@ const ProgramDownload = forwardRef<
             transform: "none",
             width: `${width}px`,
             height: `${height}px`,
+            fontFamily: FONT_FAMILY,
+            fontWeight: "bold",
           },
           filter: (node) => {
             // Пропускаем все элементы

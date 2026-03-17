@@ -1,42 +1,42 @@
 export const categorySongs = [
-    {
-      key: "spiritual_chants",
-      name: "Духовные канты",
-      image: "",
-    },
-    {
-      key: "easter",
-      name: "Пасха",
-      image: "",
-    },
-    {
-      key: "carols",
-      name: "Колядки",
-      image: "",
-    },
-    {
-      key: "folk",
-      name: "Народные",
-      image: "",
-    },
-    {
-      key: "soviet",
-      name: "Советские",
-      image: "",
-    },
-    {
-      key: "military",
-      name: "Военные",
-      image: "",
-    },
-    {
-      key: "childrens",
-      name: "Детские",
-      image: "",
-    },
-    {
-      key: "other",
-      name: "Другое",
-      image: "",
-    },
-  ];
+  {
+    key: "spiritual_chants",
+    name: "Духовные канты",
+    image: "/songs/kants.jpg",
+  },
+  {
+    key: "easter",
+    name: "Пасха",
+    image: "/songs/pasha.jpg",
+  },
+  {
+    key: "carols",
+    name: "Колядки",
+    image: "/songs/carols.jpg",
+  },
+  {
+    key: "folk",
+    name: "Народные",
+    image: "/songs/narod.jpg",
+  },
+  {
+    key: "soviet",
+    name: "Советские",
+    image: "/songs/soviet.jpg",
+  },
+  {
+    key: "military",
+    name: "Военные",
+    image: "/songs/pobeda.jpg",
+  },
+  {
+    key: "childrens",
+    name: "Детские",
+    image: "/songs/children.jpg",
+  },
+  {
+    key: "other",
+    name: "Другое",
+    image: "/songs/other.jpg",
+  },
+];
