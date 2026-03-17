@@ -776,37 +776,38 @@ export const Sidebar2 = ({ onPreview }) => {
                               {/* Резерв */}
                               {stackSongs.some((s) => s.isReserve) &&
                                 (programSelected.includes("Резерв") ||
-                                  programSelected.includes("reserved")) && (<SortableContext
-                                  items={stackSongs
-                                    .filter((s) => s.isReserve)
-                                    .map((s) => s.instanceId)}
-                                  strategy={verticalListSortingStrategy}
-                                >
-                                  <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none">
+                                  programSelected.includes("reserved")) && (
+                                  <SortableContext
+                                    items={stackSongs
+                                      .filter((s) => s.isReserve)
+                                      .map((s) => s.instanceId)}
+                                    strategy={verticalListSortingStrategy}
+                                  >
+                                    <div id="reserve-drop">
+                                      <div className="flex items-center my-3 select-none">
                                         <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                         <button
-                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
-                                        onClick={() =>
-                                          handleSongClick(`reserve`)
-                                        }
-                                      >
-                                        Резерв
-                                      </button>
-                                      <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
-                                    </div>
-                                    {stackSongs
-                                      .filter((s) => s.isReserve)
-                                      .map((song, index) => (
-                                        <SortableSong
-                                          key={song.instanceId}
-                                          index={index}
+                                          className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                          onClick={() =>
+                                            handleSongClick(`reserve`)
+                                          }
+                                        >
+                                          Резерв
+                                        </button>
+                                        <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
+                                      </div>
+                                      {stackSongs
+                                        .filter((s) => s.isReserve)
+                                        .map((song, index) => (
+                                          <SortableSong
+                                            key={song.instanceId}
+                                            index={index}
                                             song={song}
                                             onClick={() =>
-                                            handleSongClick(
-                                              `${song._id}_${index}_reserved`,
-                                            )
-                                          }
+                                              handleSongClick(
+                                                `${song._id}_${index}_reserved`,
+                                              )
+                                            }
                                             onPreview={onPreview}
                                             onRemove={(id) =>
                                               setStackSongs((prev) =>
@@ -960,24 +961,24 @@ export const Sidebar2 = ({ onPreview }) => {
                                             <div
                                               key={song.instanceId}
                                               className="flex flex-col gap-1 p-2 rounded-md bg-white/50"
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() =>
-                                              handleSongClick(
-                                                `${song._id}_${index}_reserved`,
-                                              )
-                                            }
-                                            onKeyDown={(e) => {
-                                              if (
-                                                e.key === "Enter" ||
-                                                e.key === " "
-                                              ) {
-                                                e.preventDefault();
+                                              role="button"
+                                              tabIndex={0}
+                                              onClick={() =>
                                                 handleSongClick(
                                                   `${song._id}_${index}_reserved`,
-                                                );
+                                                )
                                               }
-                                            }}
+                                              onKeyDown={(e) => {
+                                                if (
+                                                  e.key === "Enter" ||
+                                                  e.key === " "
+                                                ) {
+                                                  e.preventDefault();
+                                                  handleSongClick(
+                                                    `${song._id}_${index}_reserved`,
+                                                  );
+                                                }
+                                              }}
                                             >
                                               <span className="input-header">
                                                 {index + 1}. {song.name}

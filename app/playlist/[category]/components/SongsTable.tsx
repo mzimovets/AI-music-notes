@@ -65,14 +65,6 @@ export const SongsTable = () => {
         isHeaderSticky
         isStriped
         aria-label="Таблица песен"
-        className="mt-4  w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
-        classNames={{
-          base: "max-h-[520px] overflow-scroll",
-          table: "min-h-[200px]",
-        }}
-        onRowAction={(key) => {
-          router.push(`/song/${key}`);
-        }}
         bottomContent={
           pages > 1 ? (
             <Pagination
@@ -100,12 +92,15 @@ export const SongsTable = () => {
             />
           ) : null
         }
-        className="mt-4 p-1 w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
+        className="mt-4  w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
         classNames={{
           base: "max-h-[520px] overflow-scroll",
           table: "min-h-[200px]",
         }}
         onChange={setPage}
+        onRowAction={(key) => {
+          router.push(`/song/${key}`);
+        }}
       >
         <TableHeader columns={columns}>
           {(column) => (

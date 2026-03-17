@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-
 @config "../tailwind.config.js";
 
 @font-face {
@@ -101,6 +100,5 @@
   width: 80%;
   margin: 0 auto;
 }
-
 
 /* !!! */
