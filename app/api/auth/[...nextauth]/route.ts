@@ -34,7 +34,7 @@ const authOptions = {
     }),
   ],
 
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt" as const },
 
   callbacks: {
     async jwt({ token, user }: any) {

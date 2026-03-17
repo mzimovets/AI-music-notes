@@ -108,7 +108,7 @@ export default function StackPage() {
   };
 
   const publicStack = async () => {
-    const resp = await updateStack({
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,

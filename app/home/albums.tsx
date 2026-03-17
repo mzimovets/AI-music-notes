@@ -292,7 +292,7 @@ export default function Albums() {
             <div key={post.key} className="flex flex-col items-center w-full">
               <Card
                 isPressable
-                className="w-50 h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow"
                 onPress={() => router.push(`/playlist/${post.key}`)}
               >
                 {" "}

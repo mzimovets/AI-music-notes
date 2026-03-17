@@ -91,7 +91,7 @@ export default function Page() {
           <Input
             isRequired
             className="input-header w-full max-w-sm"
-            classNames={{ endContent: "pointer-events-auto" }}
+            // classNames={{ endContent: "pointer-events-auto" }}
             endContent={
               <button
                 aria-label="toggle password visibility"

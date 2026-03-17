@@ -76,7 +76,10 @@ export default function MyDropzone({
 
     // Добавьте обработчик для отклонения не-PDF файлов
     dz.on("error", (file, message) => {
-      if (message.includes("You can't upload files of this type")) {
+      if (
+        typeof message === "string" &&
+        message.includes("You can't upload files of this type")
+      ) {
         alert("Пожалуйста, загрузите только PDF файлы");
       }
       dz.removeFile(file);
@@ -88,7 +91,10 @@ export default function MyDropzone({
     });
 
     dz.on("success", (file, response) => {
-      const fileId = response?.id || null;
+      const fileId =
+        typeof response === "object" && response !== null && "id" in response
+          ? ((response as { id?: string }).id ?? null)
+          : null;
 
       if (onFileSelect) onFileSelect(file, fileId);
     });

@@ -81,49 +81,36 @@ export default function Home() {
 
       {/* Stacks.tsx */}
       {stacks.length > 0 && (
-        <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
-          {/* Оборачиваем текст в span с курсором */}
-          <div
-            className="leading-none cursor-pointer select-none"
-            role="button"
-            tabIndex={0}
-            onClick={() => setShowStacks((prev) => !prev)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                setShowStacks((prev) => !prev);
-              }
-            }}
-          >
+        <div className="w-full flex justify-start font-header gap-2 mt-4 px-4 sm:px-6 md:px-8">
+          <span className="text-base sm:text-lg md:text-xl lg:text-2xl">
             Стопки
-          </div>
-
-          {stacks.length > 4 && (
-            <Button
-              isIconOnly
-              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
-              className="
-      flex items-center justify-center
-      h-8 w-8 p-0
-      bg-transparent border-none shadow-none
-      text-black
-      transition-transform duration-200
-      hover:scale-110
-      focus:outline-none
-      active:outline-none
-    "
-              type="button"
-              onPress={() => {
-                setShowStacks((prev) => !prev);
-              }}
-            >
-              {showStacks ? (
-                <DownArrIcon className="text-black" height={18} width={18} />
-              ) : (
-                <LeftArrIcon className="text-black" height={18} width={18} />
-              )}
-            </Button>
-          )}
+          </span>
+        </div>
+      )}
+      {stacks.length > 0 && stacks.length > 4 && (
+        <div className="flex items-center font-header gap-4 mt-8 px-4 sm:px-6 md:px-8">
+          <Button
+            isIconOnly
+            aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+            className="
+          flex items-center justify-center
+          h-8 w-8 p-0
+          bg-transparent border-none shadow-none
+          text-black
+          transition-transform duration-200
+          hover:scale-110
+          focus:outline-none
+          active:outline-none
+        "
+            type="button"
+            onPress={() => setShowStacks((prev) => !prev)}
+          >
+            {showStacks ? (
+              <DownArrIcon className="text-black" height={18} width={18} />
+            ) : (
+              <LeftArrIcon className="text-black" height={18} width={18} />
+            )}
+          </Button>
         </div>
       )}
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
@@ -145,8 +132,10 @@ export default function Home() {
       </section>
       {/*End Stacks.tsx */}
 
-      <div className="pl-32 pb-0 flex flex-col font-header gap-4 mt-8">
-        Песни
+      <div className="w-full flex justify-start font-header gap-2 mt-4 px-4 sm:px-6 md:px-8">
+        <span className="text-base sm:text-lg md:text-xl lg:text-2xl">
+          Песни
+        </span>
       </div>
       {/* <LoadingCamerton /> */}
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
