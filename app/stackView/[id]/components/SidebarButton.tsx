@@ -1,6 +1,7 @@
-import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
 import { Button } from "@heroui/button";
 import { useEffect, useState } from "react";
+
+import SidebarIcon from "@/app/stack/[id]/components/icons/SidebarIcon";
 
 type SidebarButtonProps = {
   onPress?: () => void;
@@ -13,10 +14,13 @@ export const SidebarButton = ({ onPress }: SidebarButtonProps) => {
   useEffect(() => {
     const handleScroll = () => {
       const currentY = window.scrollY;
+
       setIsVisible(currentY < lastScrollY || currentY === 0);
       setLastScrollY(currentY);
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
@@ -28,8 +32,6 @@ export const SidebarButton = ({ onPress }: SidebarButtonProps) => {
     >
       <Button
         isIconOnly
-        type="button"
-        onPress={onPress}
         className="
         group
         flex items-center justify-center
@@ -44,6 +46,8 @@ export const SidebarButton = ({ onPress }: SidebarButtonProps) => {
         hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
         active:scale-95
       "
+        type="button"
+        onPress={onPress}
       >
         <SidebarIcon className="w-5 h-5 text-black/70 group-hover:text-black transition-colors" />
       </Button>

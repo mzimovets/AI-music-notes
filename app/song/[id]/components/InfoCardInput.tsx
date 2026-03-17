@@ -1,6 +1,6 @@
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { songs } from "@/app/home/modalAddScore";
+
 import { categorySongs } from "@/components/constants";
 
 interface InfoCardInputProps {
@@ -36,17 +36,17 @@ export const InfoCardInput = ({
 
     return (
       <Select
-        isRequired={field.required}
-        selectedKeys={categoryName?.key ? [categoryName.key] : []}
-        placeholder={placeholder}
-        labelPlacement="outside"
-        onSelectionChange={handleSelectionChange}
         className="input-header"
+        isRequired={field.required}
+        labelPlacement="outside"
+        placeholder={placeholder}
+        selectedKeys={categoryName?.key ? [categoryName.key] : []}
+        onSelectionChange={handleSelectionChange} // callback последний
       >
         {categorySongs.map((category) => (
           <SelectItem
-            className="input-header"
             key={category.key}
+            className="input-header"
             textValue={category.name}
           >
             {category.name}
@@ -64,11 +64,11 @@ export const InfoCardInput = ({
 
   return (
     <Input
-      placeholder={placeholder}
-      defaultValue={field.value || ""}
       className="w-full"
-      onChange={handleInputChange}
+      defaultValue={field.value || ""}
       isRequired={field.required}
+      placeholder={placeholder}
+      onChange={handleInputChange}
     />
   );
 };

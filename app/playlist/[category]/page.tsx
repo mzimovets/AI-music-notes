@@ -1,10 +1,11 @@
 import React from "react";
-import PlaylistLayout from "./layout";
 
+import PlaylistLayout from "./layout";
 import { CategoryHeader } from "./components/CategoryHeader";
 import { SongsTable } from "./components/SongsTable";
-import { getSongs } from "@/lib/utils";
 import { PlaylistContextProvider } from "./PlaylistContextProvider";
+
+import { getSongs } from "@/lib/utils";
 
 export default async function PlaylistPage({
   params,

@@ -1,4 +1,6 @@
 "use client";
+
+import { useMemo, useState, useEffect } from "react";
 import {
   Table,
   TableHeader,
@@ -9,15 +11,13 @@ import {
   Spinner,
   Pagination,
 } from "@heroui/react";
-import { useTableCell } from "./useTableCell";
+
 import { usePlaylistContext } from "../PlaylistContextProvider";
-import { useMemo, useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
+
+import { useTableCell } from "./useTableCell";
 
 export const SongsTable = () => {
   const renderCell = useTableCell();
-  const router = useRouter();
 
   const { songsResponse, searchValue } = usePlaylistContext();
   const songs = songsResponse?.docs;
@@ -32,6 +32,7 @@ export const SongsTable = () => {
     return songs.filter((song) => {
       const nameMatch = song.name?.toLowerCase().includes(lowerSearch);
       const authorMatch = song.author?.toLowerCase().includes(lowerSearch);
+
       return nameMatch || authorMatch;
     });
   }, [songs, searchValue]);
@@ -44,6 +45,7 @@ export const SongsTable = () => {
   const items = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
     const end = start + rowsPerPage;
+
     return filteredSongs.slice(start, end);
   }, [page, filteredSongs]);
 
@@ -60,26 +62,20 @@ export const SongsTable = () => {
   return (
     <div className="space-y-4 flex flex-col w-full">
       <Table
-        isStriped
         isHeaderSticky
+        isStriped
         aria-label="Таблица песен"
-        className="mt-4  w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
-        classNames={{
-          base: "max-h-[520px] overflow-scroll",
-          table: "min-h-[200px]",
-        }}
-        // onRowAction={(key) => {
-        //   router.push(`/song/${key}`);
-        // }}
         bottomContent={
           pages > 1 ? (
             <Pagination
-              page={page}
-              total={pages}
-              onChange={setPage}
               className="pb-4"
               classNames={{
-                wrapper: "font-header",
+                cursor: [
+                  "font-pagination",
+                  "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+                  "text-white",
+                  "font-bold",
+                ].join(" "),
                 item: [
                   "font-pagination",
                   "text-gray-700",
@@ -88,16 +84,20 @@ export const SongsTable = () => {
                   "data-[hover=true]:from-[#BD9673]",
                   "data-[hover=true]:to-[#7D5E42]",
                 ].join(" "),
-                cursor: [
-                  "font-pagination",
-                  "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
-                  "text-white",
-                  "font-bold",
-                ].join(" "),
+
+                wrapper: "font-header",
               }}
+              page={page}
+              total={pages}
             />
           ) : null
         }
+        className="mt-4 p-1 w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
+        classNames={{
+          base: "max-h-[520px] overflow-scroll",
+          table: "min-h-[200px]",
+        }}
+        onChange={setPage}
       >
         <TableHeader columns={columns}>
           {(column) => (
@@ -112,23 +112,20 @@ export const SongsTable = () => {
         </TableHeader>
 
         <TableBody
-          items={items}
-          isLoading={!songs}
-          loadingContent={<Spinner label="Загрузка..." />}
           emptyContent={
             <div className="py-10 text-center">
               <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
                   fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
                   stroke="currentColor"
+                  strokeWidth={1.5}
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
                   <path
+                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
                   />
                 </svg>
               </div>
@@ -140,6 +137,9 @@ export const SongsTable = () => {
               </p>
             </div>
           }
+          isLoading={!songs}
+          items={items}
+          loadingContent={<Spinner label="Загрузка..." />}
         >
           {(item) => (
             <TableRow key={item._id}>

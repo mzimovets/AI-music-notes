@@ -1,17 +1,15 @@
 import React from "react";
 import { Card } from "@heroui/card";
-import { Button } from "@heroui/button";
-import { Monogram } from "@/components/monogram";
+
+import { SongContextProvider } from "./SongContextProvider";
+import { SongActions } from "./components/SongActions";
 import { InfoCard } from "./components/InfoCard";
 import { DocViewer } from "./components/DocViewer";
 import { BreadcrumbsPage } from "./components/BreadcrumbsPage";
-import { getSongById } from "@/lib/utils";
-import { SongContextProvider } from "./SongContextProvider";
 
-import { SongActions } from "./components/SongActions";
-import { NavBackButton } from "@/app/playlist/[category]/components/NavBackButton";
-import { EyeIcon } from "@/components/icons/EyeIcon";
+import { Monogram } from "@/components/monogram";
 import { EyeSongPageView } from "@/components/EyeSongPageView";
+import { getSongById } from "@/lib/utils";
 
 export default async function PricingPage({
   params,
@@ -39,8 +37,8 @@ export default async function PricingPage({
                 fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
               />
               <EyeSongPageView
-                songId={id}
                 className="absolute top-4 right-2 z-10"
+                songId={id}
               />
             </div>
           )}

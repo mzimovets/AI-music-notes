@@ -1,7 +1,8 @@
 "use client";
 import { Input } from "@heroui/react";
-import { useStackContext } from "./StackContextProvider";
 import { useEffect } from "react";
+
+import { useStackContext } from "./StackContextProvider";
 
 export const StackName = () => {
   const { stackResponse, stackName, setStackName } = useStackContext();
@@ -55,13 +56,13 @@ export const StackName = () => {
           "!shadow-none",
         ],
       }}
+      defaultValue={stackResponse.doc?.name}
       style={{
         fontFamily: "Roboto Slab, serif",
         fontSize: "24px",
         fontWeight: "bold",
         textAlign: "center",
       }}
-      defaultValue={stackResponse.doc?.name}
       value={stackName}
       onChange={onChangeStackName}
     />

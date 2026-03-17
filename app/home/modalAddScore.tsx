@@ -13,16 +13,18 @@ import {
   useDisclosure,
   addToast,
 } from "@heroui/react";
+import { useRouter } from "next/navigation";
+
+import { useAllSongsLibraryContextProvider } from "../providers";
 
 import MyDropzone from "./dropzone";
 import ModalFilePreviewer from "./modalFilePreviewer";
+
 import { addSong } from "@/actions/actions";
 import { Song } from "@/lib/types";
 import { Pattern } from "@/components/pattern";
-import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
 import { AddSongIcon } from "@/components/icons/AddSongIcon";
-import { useAllSongsLibraryContextProvider } from "../providers";
 
 export const songs = [
   { label: "Духовные канты", key: "spiritual_chants" },
@@ -51,7 +53,7 @@ export default function ModalAddScore() {
   const [authorLyrics, setAuthorLyrics] = useState("");
   const [authorArrange, setAuthorArrange] = useState("");
   const [category, setCategory] = useState("");
-  const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
+  const { setAllSongs } = useAllSongsLibraryContextProvider();
 
   const [validationErrors, setValidationErrors] = useState({
     name: false,
@@ -73,7 +75,9 @@ export default function ModalAddScore() {
       category: !category,
       file: !selectedFile,
     };
+
     setValidationErrors(errors);
+
     return !errors.name && !errors.category && !errors.file;
   };
 
@@ -100,9 +104,7 @@ export default function ModalAddScore() {
 
         setAllSongs(songs);
       }
-    } catch (error) {
-      console.error("Ошибка при загрузке песен:", error);
-    }
+    } catch {}
   };
 
   const handleSave = async (onClose: () => void) => {
@@ -117,6 +119,7 @@ export default function ModalAddScore() {
       authorArrange,
       authorLyrics,
     };
+
     setIsSaved(true);
 
     const response = await addSong(data, window.location.pathname);
@@ -125,8 +128,16 @@ export default function ModalAddScore() {
       title: <span className="font-bold text-white">Партитура добавлена</span>,
       description: (
         <div
-          onClick={() => router.push(`/song/${response.doc._id}`)}
           className="text-white"
+          role="button"
+          tabIndex={0}
+          onClick={() => router.push(`/song/${response.doc._id}`)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              router.push(`/song/${response.doc._id}`);
+            }
+          }}
         >
           <div className="flex gap-6">
             <div className="flex flex-col">
@@ -158,30 +169,30 @@ export default function ModalAddScore() {
   return (
     <>
       <Button
-        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  text-2xl font-normal shadow-md relative overflow-hidden group"
-        onPress={onOpen}
-        radius="full"
         isIconOnly
+        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  text-2xl font-normal shadow-md relative overflow-hidden group"
+        radius="full"
+        onPress={onOpen}
       >
         <AddSongIcon />
       </Button>
 
       <Modal
-        isDismissable={false}
-        isOpen={isOpen}
-        onOpenChange={onOpenChange}
-        placement="center"
-        size="3xl"
         backdrop="blur"
         classNames={{
           base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
         }}
+        isDismissable={false}
+        isOpen={isOpen}
+        placement="center"
+        size="3xl"
+        onOpenChange={onOpenChange}
       >
         <ModalContent className="p-10 bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
           {(onClose) => (
             <>
               <div className="absolute top-3 left-2 z-50">
-                <Pattern width={86} height={80} className="opacity-80" />
+                <Pattern className="opacity-80" height={80} width={86} />
               </div>
 
               {/* Заголовок */}
@@ -195,12 +206,13 @@ export default function ModalAddScore() {
                   <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 items-start">
                     <Input
                       isRequired
-                      isInvalid={validationErrors.name}
+                      className="input-header mb-0"
                       errorMessage={
                         validationErrors.name
                           ? "Введите название партитуры!"
                           : ""
                       }
+                      isInvalid={validationErrors.name}
                       label="Название"
                       labelPlacement="outside"
                       placeholder="Введите название партитуры"
@@ -212,18 +224,18 @@ export default function ModalAddScore() {
                             name: false,
                           }));
                       }}
-                      className="input-header mb-0"
                     />
 
                     <Select
                       isRequired
-                      isInvalid={validationErrors.category}
+                      className="input-header mb-0 "
                       errorMessage={
                         validationErrors.category ? "Выберите категорию!" : ""
                       }
+                      isInvalid={validationErrors.category}
                       label={<span>Категория</span>}
-                      placeholder="Выберите категорию"
                       labelPlacement="outside"
+                      placeholder="Выберите категорию"
                       scrollShadowProps={{ isEnabled: false }}
                       onSelectionChange={(keys) => {
                         setCategory(Array.from(keys)[0] as string);
@@ -233,12 +245,11 @@ export default function ModalAddScore() {
                             category: false,
                           }));
                       }}
-                      className="input-header mb-0 "
                     >
                       {songs.map((song) => (
                         <SelectItem
-                          className="input-header"
                           key={song.key}
+                          className="input-header"
                           textValue={song.label}
                         >
                           {song.label}
@@ -250,47 +261,48 @@ export default function ModalAddScore() {
                   {/* Авторы */}
                   <div className="mt-4 rounded-xl bg-white/10 p-4 shadow-lg grid grid-cols-1 md:grid-cols-3 gap-4">
                     <Input
-                      label="Автор музыки"
-                      labelPlacement="outside"
-                      placeholder="Введите автора"
+                      className="input-header mb-0"
                       description={
                         <span className="text-gray-600">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
-                      onChange={(e) => setAuthor(e.target.value)}
-                      className="input-header mb-0"
-                    />
-                    <Input
-                      label="Автор слов"
+                      label="Автор музыки"
                       labelPlacement="outside"
                       placeholder="Введите автора"
+                      onChange={(e) => setAuthor(e.target.value)}
+                    />
+                    <Input
+                      className="input-header mb-0"
                       description={
                         <span className="text-gray-600 ">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
-                      onChange={(e) => setAuthorLyrics(e.target.value)}
-                      className="input-header mb-0"
-                    />
-                    <Input
-                      label="Автор аранжировки"
+                      label="Автор слов"
                       labelPlacement="outside"
                       placeholder="Введите автора"
+                      onChange={(e) => setAuthorLyrics(e.target.value)}
+                    />
+                    <Input
+                      className="input-header mb-0"
                       description={
                         <span className="text-gray-600">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
+                      label="Автор аранжировки"
+                      labelPlacement="outside"
+                      placeholder="Введите автора"
                       onChange={(e) => setAuthorArrange(e.target.value)}
-                      className="input-header mb-0"
                     />
                   </div>
 
                   <div className="mt-4">
                     <MyDropzone
-                      className="mt-4  rounded-xl bg-white/10 p-4 shadow-lg "
                       cardClassName="bg-transparent shadow-none border-none !important"
+                      className="mt-4  rounded-xl bg-white/10 p-4 shadow-lg "
+                      hasError={validationErrors.file}
                       onFileSelect={(file) => {
                         setSelectedFile(file);
                         if (validationErrors.file)
@@ -300,7 +312,6 @@ export default function ModalAddScore() {
                           }));
                       }}
                       onPreview={onOpenPreview}
-                      hasError={validationErrors.file}
                     />
                     {validationErrors.file && (
                       <div className="text-tiny text-danger text-center mt-2 input-header">
@@ -313,8 +324,8 @@ export default function ModalAddScore() {
 
               <ModalFooter className="flex justify-center">
                 <Button
-                  type="submit"
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42]  text-white shadow-lg input-header"
+                  type="submit"
                   onPress={() => handleSave(onClose)}
                 >
                   Добавить в базу
@@ -323,9 +334,9 @@ export default function ModalAddScore() {
 
               <div className="absolute bottom-3 right-2 z-50">
                 <Pattern
-                  width={86}
-                  height={76}
                   className="scale-y-[-1] scale-x-[-1] opacity-80"
+                  height={76}
+                  width={86}
                 />
               </div>
             </>
@@ -335,8 +346,8 @@ export default function ModalAddScore() {
 
       <ModalFilePreviewer
         isOpen={isPreviewOpen}
-        onClose={onClosePreview}
         selectedFile={selectedFile}
+        onClose={onClosePreview}
       />
     </>
   );

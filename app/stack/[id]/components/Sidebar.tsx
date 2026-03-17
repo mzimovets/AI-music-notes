@@ -2,11 +2,7 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { Input } from "@heroui/input";
-import { SearchIcon } from "@/components/icons";
 import { Button, Card, Pagination, ScrollShadow } from "@heroui/react";
-import { useStackContext } from "./StackContextProvider";
-
-// DND Kit
 import {
   DndContext,
   closestCenter,
@@ -26,8 +22,12 @@ import {
   restrictToParentElement,
 } from "@dnd-kit/modifiers";
 import { CSS } from "@dnd-kit/utilities";
+
+import { useStackContext } from "./StackContextProvider";
 import { TrashBinIcon } from "./icons/TrashBinIcon";
 import { EmptyIcon } from "./icons/DragIcon";
+
+import { SearchIcon } from "@/components/icons";
 
 const SortableSong = ({ song, onRemove, index }) => {
   const {
@@ -49,7 +49,7 @@ const SortableSong = ({ song, onRemove, index }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="touch-none select-none">
+    <div ref={setNodeRef} className="touch-none select-none" style={style}>
       <Card
         className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${isDragging ? "shadow-xl opacity-50" : "shadow-sm"}`}
       >
@@ -65,10 +65,10 @@ const SortableSong = ({ song, onRemove, index }) => {
 
         <div className="flex items-center gap-2">
           <Button
+            className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
             radius="lg"
             size="sm"
             onPress={() => onRemove(song.instanceId)}
-            className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
           >
             <TrashBinIcon />
           </Button>
@@ -103,10 +103,9 @@ export const Sidebar = () => {
         `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
       );
       const data = await response.json();
+
       setSongsList(data.docs || []);
-    } catch (e) {
-      console.error(e);
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -118,7 +117,9 @@ export const Sidebar = () => {
       if (searchRef.current && !searchRef.current.contains(event.target))
         setIsOpen(false);
     };
+
     document.addEventListener("mousedown", handleClickOutside);
+
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
@@ -127,15 +128,18 @@ export const Sidebar = () => {
       ...song,
       instanceId: `${Date.now()}-${Math.random()}`,
     };
+
     setStackSongs((prev) => [...prev, newSongEntry]);
   };
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
+
     if (active && over && active.id !== over.id) {
       setStackSongs((items) => {
         const oldIndex = items.findIndex((i) => i.instanceId === active.id);
         const newIndex = items.findIndex((i) => i.instanceId === over.id);
+
         return arrayMove(items, oldIndex, newIndex);
       });
     }
@@ -143,6 +147,7 @@ export const Sidebar = () => {
 
   const filteredSongs = songslist?.filter((song) => {
     const search = searchValue.toLowerCase();
+
     return (
       song.name.toLowerCase().includes(search) ||
       song.author.toLowerCase().includes(search)
@@ -150,6 +155,7 @@ export const Sidebar = () => {
   });
 
   const [page, setPage] = useState(1);
+
   useEffect(() => {
     if (isOpen) setPage(1);
   }, [isOpen]);
@@ -163,23 +169,23 @@ export const Sidebar = () => {
   return (
     <div ref={searchRef} className="relative w-full">
       <Input
-        type="search"
-        placeholder="Поиск"
-        value={searchValue}
-        onChange={(e) => {
-          setSearchValue(e.target.value);
-          setIsOpen(true);
-        }}
         isClearable
-        onClear={() => setSearchValue("")}
-        onFocus={() => setIsOpen(true)}
-        startContent={<SearchIcon className="text-default-400 mr-2" />}
         className="mt-4 w-full text-center justify-center font-header gap-4"
         classNames={{
           inputWrapper: "bg-[#FFFAF5] rounded-md",
           input: "text-sm pl-2",
           clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
         }}
+        placeholder="Поиск"
+        startContent={<SearchIcon className="text-default-400 mr-2" />}
+        type="search"
+        value={searchValue}
+        onChange={(e) => {
+          setSearchValue(e.target.value);
+          setIsOpen(true);
+        }}
+        onClear={() => setSearchValue("")}
+        onFocus={() => setIsOpen(true)}
       />
 
       {searchValue.length > 0 && isOpen && (
@@ -200,10 +206,10 @@ export const Sidebar = () => {
                     </p>
                   </div>
                   <Button
-                    radius="full"
                     isIconOnly
-                    variant="shadow"
+                    radius="full"
                     size="sm"
+                    variant="shadow"
                     onPress={() =>
                       handleAddSong(song, window.location.pathname)
                     }
@@ -216,16 +222,16 @@ export const Sidebar = () => {
               <div className="py-10 text-center">
                 <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
                   <svg
-                    xmlns="http://www.w3.org"
                     fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
                     stroke="currentColor"
+                    strokeWidth={1.5}
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org"
                   >
                     <path
+                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
                     />
                   </svg>
                 </div>
@@ -240,9 +246,6 @@ export const Sidebar = () => {
           </div>
           {filteredSongs.length > rowsPerPage && (
             <Pagination
-              page={page}
-              total={pages}
-              onChange={setPage}
               className=" pt-6"
               classNames={{
                 wrapper: "font-header",
@@ -261,6 +264,9 @@ export const Sidebar = () => {
                   "font-bold",
                 ].join(" "),
               }}
+              page={page}
+              total={pages}
+              onChange={setPage}
             />
           )}
         </Card>
@@ -283,14 +289,14 @@ export const Sidebar = () => {
             size={40}
           >
             <DndContext
-              sensors={sensors}
               collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
               modifiers={[
                 restrictToVerticalAxis,
                 restrictToWindowEdges,
                 restrictToParentElement,
               ]}
+              sensors={sensors}
+              onDragEnd={handleDragEnd}
             >
               <SortableContext
                 items={stackSongs.map((s) => s.instanceId)}
@@ -301,8 +307,8 @@ export const Sidebar = () => {
                   {stackSongs.map((song, index) => (
                     <SortableSong
                       key={song.instanceId}
-                      song={song}
                       index={index}
+                      song={song}
                       onRemove={(id) =>
                         setStackSongs((prev) =>
                           prev.filter((s) => s.instanceId !== id),

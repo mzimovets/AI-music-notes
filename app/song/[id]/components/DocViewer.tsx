@@ -1,9 +1,11 @@
 "use client";
-import Pdfjs from "@/app/home/pdfjs";
-import { SwarrowIconWithCircle } from "@/components/swarrow";
+
+import { useState } from "react";
 import { Card } from "@heroui/card";
 import { Pagination } from "@heroui/pagination";
-import { useState } from "react";
+
+import Pdfjs from "@/app/home/pdfjs";
+import { SwarrowIconWithCircle } from "@/components/swarrow";
 
 export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -15,7 +17,7 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
         <Card
           className={`w-200 h-auto flex items-center justify-center p-2 transition-colors duration-200`}
         >
-          <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={pageNum} />
+          <Pdfjs fileUrl={fileUrl} pageNum={pageNum} setPdfDoc={setPdfDoc} />
         </Card>
       </div>
       <div
@@ -25,22 +27,25 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 mx-auto w-max m-10"
       >
         <div
-          onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
           className={`cursor-pointer p-3 ${
             pageNum > 1
               ? "hover:opacity-80 hover:scale-105"
               : "opacity-30 cursor-not-allowed"
           } transition-all duration-200`}
+          role="button"
+          tabIndex={0}
           title="Предыдущая страница"
+          onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
+          onKeyDown={(e) => {
+            if ((e.key === "Enter" || e.key === " ") && pageNum > 1) {
+              setPageNum(pageNum - 1);
+            }
+          }}
         >
-          <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
+          <SwarrowIconWithCircle circleSize={20} height={13} width={50} />
         </div>
         {pdfDoc?.numPages > 0 && (
           <Pagination
-            onChange={setPageNum}
-            total={pdfDoc?.numPages || 0}
-            page={pageNum}
-            showControls={false}
             className="pb-4"
             classNames={{
               wrapper: "font-header",
@@ -61,25 +66,40 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 "shadow-lg",
               ].join(" "),
             }}
+            page={pageNum}
+            showControls={false}
+            total={pdfDoc?.numPages || 0}
+            onChange={setPageNum}
           />
         )}
 
         <div
-          onClick={() =>
-            pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)
-          }
           className={`cursor-pointer p-3 ${
             pdfDoc && pageNum < pdfDoc.numPages
               ? "hover:opacity-80 hover:scale-105"
               : "opacity-30 cursor-not-allowed"
           } transition-all duration-200`}
+          role="button"
+          tabIndex={0}
           title="Следующая страница"
+          onClick={() =>
+            pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)
+          }
+          onKeyDown={(e) => {
+            if (
+              (e.key === "Enter" || e.key === " ") &&
+              pdfDoc &&
+              pageNum < pdfDoc.numPages
+            ) {
+              setPageNum(pageNum + 1);
+            }
+          }}
         >
           <SwarrowIconWithCircle
-            width={50}
-            height={13}
             circleSize={20}
             className="rotate-180"
+            height={13}
+            width={50}
           />
         </div>
       </div>

@@ -17,6 +17,7 @@ export const postStack = async (name: string, id?: string) => {
   );
 
   const respBody = await resp.json();
+
   return respBody;
 };
 
@@ -46,6 +47,7 @@ export const putStack = async ({
     _id: id,
     docType: "stack",
   };
+
   if (cover) {
     updateData.cover = cover;
   }
@@ -61,6 +63,7 @@ export const putStack = async ({
   );
 
   const respBody = await resp.json();
+
   return respBody;
 };
 
@@ -69,5 +72,6 @@ export const getStackById = async (id: string) => {
     `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}`,
   );
   const posts = await data.json();
+
   return posts;
 };

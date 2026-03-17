@@ -21,9 +21,9 @@ export default function AdaptedChat({ userId }: ChatProps) {
 
   useEffect(() => {
     const s = io("http://localhost:3001");
+
     setSocket(s);
 
-    s.on("connect", () => console.log("Connected to Socket.IO"));
     s.on("chat message", (msg) => {
       setMessages((prev) => [...prev, msg]);
     });

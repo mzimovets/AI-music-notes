@@ -1,11 +1,14 @@
 "use client";
+
+import { ChangeEvent } from "react";
+import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
+import { useParams } from "next/navigation";
+
+import { usePlaylistContext } from "../PlaylistContextProvider";
+
 import { SearchIcon } from "@/components/icons";
 import { Monogram } from "@/components/monogram";
-import { useParams } from "next/navigation";
-import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
-import { usePlaylistContext } from "../PlaylistContextProvider";
 import { categorySongs } from "@/components/constants";
-import { ChangeEvent } from "react";
 
 export const CategoryHeader = () => {
   const params = useParams<{ category: string }>();
@@ -14,7 +17,6 @@ export const CategoryHeader = () => {
   const context = usePlaylistContext();
   const { songsResponse } = context;
   const songs = songsResponse?.docs;
-  const count = songs.length;
   const { searchValue, setSearchValue } = context;
 
   const getSongWord = (count: number) => {
@@ -64,19 +66,19 @@ export const CategoryHeader = () => {
           </CardHeader>
           <CardBody className="py-0">
             <Input
-              type="search"
-              placeholder="Поиск"
-              value={searchValue}
               isClearable
-              onClear={() => setSearchValue("")}
-              onChange={handleSearchChange}
-              startContent={<SearchIcon className="text-default-400 mr-2" />}
               className="mx-auto mt-4"
               classNames={{
                 inputWrapper: "bg-[#FFFAF5] rounded-md",
                 input: "text-sm",
                 clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
               }}
+              placeholder="Поиск"
+              startContent={<SearchIcon className="text-default-400 mr-2" />}
+              type="search"
+              value={searchValue}
+              onChange={handleSearchChange}
+              onClear={() => setSearchValue("")}
             />
             <Monogram className="h-6 mt-4 w-auto" />
           </CardBody>

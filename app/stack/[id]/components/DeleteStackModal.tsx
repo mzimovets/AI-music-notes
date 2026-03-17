@@ -1,49 +1,50 @@
 "use client";
+
+import { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   Button,
   Modal,
   ModalContent,
   ModalFooter,
   ModalHeader,
-  ModalBody,
 } from "@heroui/react";
-import { useState } from "react";
+
 import { useStackContext } from "./StackContextProvider";
-import { removeStack } from "@/actions/actions";
-import { useParams, useRouter } from "next/navigation";
 import { TrashBinIcon } from "./icons/TrashBinIcon";
+
+import { removeStack } from "@/actions/actions";
 
 export const DeleteStackModal = () => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const [isDeleting, setIsDeleting] = useState(false);
-  const { stackResponse, isDeleteModalOpen, setIsDeleteModalOpen } =
-    useStackContext();
+  const { isDeleteModalOpen, setIsDeleteModalOpen } = useStackContext();
 
   const handleConfirmDelete = async () => {
     try {
       setIsDeleting(true);
+
       const response = await removeStack(params.id);
+
       if (response) {
         router.push(`/`);
         router.refresh();
       } else {
         setIsDeleting(false);
-        console.error("Ошибка при удалении стопки");
       }
-    } catch (error) {
-      console.error("Ошибка при удалении стопки:", error);
+    } catch {
       setIsDeleting(false);
     }
   };
 
   return (
     <Modal
-      isOpen={isDeleteModalOpen}
-      onOpenChange={setIsDeleteModalOpen}
-      placement="center"
       backdrop="blur"
       classNames={{ backdrop: "bg-black/40" }}
+      isOpen={isDeleteModalOpen}
+      placement="center"
+      onOpenChange={setIsDeleteModalOpen}
     >
       <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
         {(onClose) => (
@@ -64,17 +65,17 @@ export const DeleteStackModal = () => {
 
             <ModalFooter className="flex justify-center gap-4 pb-6">
               <Button
+                className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
+                disabled={isDeleting}
                 variant="bordered"
                 onPress={onClose}
-                disabled={isDeleting}
-                className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
               >
                 Отмена
               </Button>
               <Button
-                onPress={handleConfirmDelete}
                 className="bg-gradient-to-r from-red-400 to-red-500 text-white shadow-md hover:shadow-lg transition-all input-header"
                 isLoading={isDeleting}
+                onPress={handleConfirmDelete}
               >
                 {isDeleting ? "Удаление..." : "Да, удалить"}
               </Button>

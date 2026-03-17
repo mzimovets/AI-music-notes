@@ -1,6 +1,7 @@
 "use client";
-import { ServerSong } from "@/lib/types";
-import { useRef, useState, useCallback } from "react";
+import type { ServerSong } from "@/lib/types";
+
+import { useRef, useState } from "react";
 
 export const usePrintSong = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,12 +23,12 @@ export const usePrintSong = () => {
       iframeRef.current.onload = () => {
         try {
           const iframeWindow = iframeRef.current.contentWindow;
+
           if (iframeWindow) {
             iframeWindow.focus();
             iframeWindow.print();
           }
-        } catch (error) {
-          console.error("Ошибка печати:", error);
+        } catch {
           alert("Ошибка доступа к печати (CORS). Проверьте настройки сервера.");
         } finally {
           setIsLoading(false);

@@ -1,5 +1,5 @@
 "use client";
-import { ServerSong } from "@/lib/types";
+
 import {
   createContext,
   Dispatch,
@@ -7,6 +7,8 @@ import {
   useContext,
   useState,
 } from "react";
+
+import { ServerSong } from "@/lib/types";
 
 export const PlaylistContext = createContext<{
   songsResponse: { status: string; docs: ServerSong[] };
@@ -23,6 +25,7 @@ export function PlaylistContextProvider({
 }) {
   // Состояние для поиска
   const [searchValue, setSearchValue] = useState("");
+
   return (
     <PlaylistContext.Provider
       value={{ songsResponse, searchValue, setSearchValue }}
@@ -34,8 +37,10 @@ export function PlaylistContextProvider({
 
 export function usePlaylistContext() {
   const context = useContext(PlaylistContext);
+
   if (!context) {
     throw new Error("component must be in SongsLibraryContext");
   }
+
   return context;
 }

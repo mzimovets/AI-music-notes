@@ -1,4 +1,4 @@
-import { EmptyIcon } from "@/components/icons/EmptyIcon";
+import { useMemo, useState } from "react";
 import {
   Pagination,
   Table,
@@ -8,10 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from "@heroui/react";
+
 import { SearchTableCell } from "./SearchTableCell";
 import { columns } from "./columns";
-import { useMemo, useState } from "react";
 import { paginationClassnames } from "./constants";
+
+import { EmptyIcon } from "@/components/icons/EmptyIcon";
 
 export const SearchTable = ({ filteredSongs }) => {
   const [page, setPage] = useState(1);
@@ -30,18 +32,18 @@ export const SearchTable = ({ filteredSongs }) => {
     <Table
       isStriped
       aria-label="Example table with custom cells"
-      className="mt-4 w-150 m-3 bg-white rounded-lg shadow-xl p-1"
       bottomContent={
         pages > 1 ? (
           <Pagination
-            onChange={(page) => setPage(page)}
-            total={pages}
-            page={page}
             className="pb-4"
             classNames={paginationClassnames}
+            page={page}
+            total={pages}
+            onChange={(page) => setPage(page)}
           />
         ) : null
       }
+      className="mt-4 w-150 m-3 bg-white rounded-lg shadow-xl p-1"
     >
       <TableHeader columns={columns}>
         {(column) => (
@@ -55,7 +57,6 @@ export const SearchTable = ({ filteredSongs }) => {
         )}
       </TableHeader>
       <TableBody
-        items={items}
         emptyContent={
           <div className="py-10 text-center">
             <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
@@ -67,12 +68,13 @@ export const SearchTable = ({ filteredSongs }) => {
             <p className="text-gray-400 text-sm">Попробуйте изменить запрос</p>
           </div>
         }
+        items={items}
       >
         {(item) => (
           <TableRow key={item._id}>
             {(columnKey) => (
               <TableCell>
-                <SearchTableCell song={item} columnKey={columnKey} />
+                <SearchTableCell columnKey={columnKey} song={item} />
               </TableCell>
             )}
           </TableRow>

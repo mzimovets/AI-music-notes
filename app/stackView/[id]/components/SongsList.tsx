@@ -1,8 +1,10 @@
 "use client";
+import { Fragment } from "react";
+
+import { StackViewer } from "./StackViewer";
+
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
-import { Fragment, useEffect } from "react";
-import { StackViewer } from "./StackViewer";
 import { StackSong } from "@/lib/types";
 
 export const SongsList = ({

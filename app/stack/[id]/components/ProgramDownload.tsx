@@ -69,10 +69,11 @@ const ProgramDownloadContent: React.FC<ProgramDownloadContentProps> = ({
       }}
     >
       {/* Фоновое изображение */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={bgImageSrc}
         alt="background"
         crossOrigin="anonymous"
+        src={bgImageSrc}
         style={{
           position: "absolute",
           top: bgTop,
@@ -105,17 +106,21 @@ const ProgramDownloadContent: React.FC<ProgramDownloadContentProps> = ({
 
           for (let i = 0; i < allLines.length; i++) {
             const line = allLines[i];
+
             if (/^\d+\./.test(line.trim())) {
               const authors: string[] = [];
               let j = i + 1;
+
               while (j < allLines.length) {
                 const nextLine = allLines[j];
+
                 if (
                   nextLine.trim().startsWith("сл.") ||
                   nextLine.trim().startsWith("муз.") ||
                   nextLine.trim().startsWith("аранж.")
                 ) {
                   let formattedLine = nextLine.trim();
+
                   if (formattedLine.startsWith("аранж.")) {
                     if (authors.length > 0) {
                       // Объединяем с предыдущим автором через запятую
@@ -253,8 +258,6 @@ const ProgramDownload = forwardRef<
       setIsLoading(true);
 
       try {
-        console.log(`🎬 Начинаем создание PNG ${width}×${height}...`);
-
         // Загружаем шрифт
         const robotoSlab = new FontFace(
           "Roboto Slab",
@@ -265,13 +268,11 @@ const ProgramDownload = forwardRef<
           await robotoSlab.load();
           document.fonts.add(robotoSlab);
           await document.fonts.ready;
-          console.log("✅ Шрифт загружен");
-        } catch (error) {
-          console.warn("⚠️ Шрифт не загрузился", error);
-        }
+        } catch {}
 
         // Создаем временный контейнер
         const tempContainer = document.createElement("div");
+
         tempContainer.style.position = "fixed";
         tempContainer.style.top = "0";
         tempContainer.style.left = "0";
@@ -292,14 +293,12 @@ const ProgramDownload = forwardRef<
 
         // Загружаем фоновое изображение
         const bgImage = new Image();
+
         bgImage.crossOrigin = "anonymous";
         bgImage.src = backgroundUrl;
 
         await new Promise<void>((resolve, reject) => {
           bgImage.onload = () => {
-            console.log(
-              `✅ Фон загружен: ${bgImage.naturalWidth}×${bgImage.naturalHeight}`,
-            );
             resolve();
           };
           bgImage.onerror = reject;
@@ -312,6 +311,7 @@ const ProgramDownload = forwardRef<
 
         rawLines.forEach((line) => {
           const lowerLine = line.toLowerCase();
+
           if (
             lowerLine.startsWith("программа") ||
             lowerLine.startsWith("резерв")
@@ -323,14 +323,14 @@ const ProgramDownload = forwardRef<
           }
         });
 
-        console.log(`📋 Найдено секций: ${sections.length}`);
-
         // Подсчет песен
         let maxSongCount = 0;
+
         sections.forEach((section) => {
           const songCount = section.lines.filter((l) =>
             /^\d+\./.test(l.trim()),
           ).length;
+
           if (songCount > maxSongCount) maxSongCount = songCount;
         });
 
@@ -376,11 +376,8 @@ const ProgramDownload = forwardRef<
         const songMargin = 0.5 * Math.min(1, 12 / totalSongCount) + "em";
 
         // Определение двух колонок
-        const useTwoColumns = totalSongCount >= 8;
-        const lineHeight = 1.35;
         const paddingX = 180; // Увеличенные отступы для большого разрешения
         const paddingY = 280;
-        const gapBetweenColumns = 100;
 
         // Рассчитываем фон в режиме COVER
         const imgRatio = bgImage.naturalWidth / bgImage.naturalHeight;
@@ -402,12 +399,9 @@ const ProgramDownload = forwardRef<
           bgTop = (height - bgHeight) / 2;
         }
 
-        console.log(
-          `📐 Позиция фона: x=${bgLeft}, y=${bgTop}, w=${bgWidth}, h=${bgHeight}`,
-        );
-
         // Создаем внутренний контейнер с нужными стилями
         const tempContainerInner = document.createElement("div");
+
         tempContainerInner.style.fontFamily = FONT_FAMILY;
         tempContainerInner.style.fontWeight = "bold";
         tempContainerInner.style.width = `${width}px`;
@@ -423,28 +417,30 @@ const ProgramDownload = forwardRef<
 
         // Рендерим React компонент внутрь tempContainerInner
         const root = ReactDOM.createRoot(tempContainerInner);
+
         root.render(
           <ProgramDownloadContent
-            sections={sections}
-            songFontSize={songFontSize}
             authorFontSize={authorFontSize}
-            dynamicTitleFontSize={dynamicTitleFontSize}
-            songMargin={songMargin}
-            bgImageSrc={bgImage.src}
-            bgTop={bgTop}
-            bgLeft={bgLeft}
-            bgWidth={bgWidth}
             bgHeight={bgHeight}
-            width={width}
+            bgImageSrc={bgImage.src}
+            bgLeft={bgLeft}
+            bgTop={bgTop}
+            bgWidth={bgWidth}
+            dynamicTitleFontSize={dynamicTitleFontSize}
             height={height}
             paddingX={paddingX}
             paddingY={paddingY}
+            sections={sections}
+            songFontSize={songFontSize}
+            songMargin={songMargin}
+            width={width}
           />,
         );
 
         // Ждем загрузки изображения и рендера React
         await new Promise<void>((resolve) => {
           const img = tempContainerInner.querySelector("img");
+
           if (img && img.complete) {
             resolve();
           } else if (img) {
@@ -460,8 +456,6 @@ const ProgramDownload = forwardRef<
 
         // Даем время на отрисовку
         await new Promise((resolve) => setTimeout(resolve, 200));
-
-        console.log("🖼️ Конвертируем в PNG с высоким качеством...");
 
         // КОНВЕРТИРУЕМ с увеличенным pixelRatio для максимального качества
         const pixelRatio = 3; // Еще больше для 2480×3508
@@ -482,17 +476,16 @@ const ProgramDownload = forwardRef<
             fontFamily: FONT_FAMILY,
             fontWeight: "bold",
           },
-          filter: (node) => {
+          filter: () => {
             // Пропускаем все элементы
             return true;
           },
         });
 
-        console.log("✅ PNG создан, преобразуем в Blob...");
-
         // Создаем canvas для финальной обработки
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
+
         if (!ctx) throw new Error("Не удалось получить контекст canvas");
 
         // Устанавливаем ТОЧНОЕ разрешение
@@ -501,6 +494,7 @@ const ProgramDownload = forwardRef<
 
         // Загружаем изображение из dataUrl
         const img = new Image();
+
         await new Promise<void>((resolve) => {
           img.onload = () => resolve();
           img.src = dataUrl;
@@ -522,13 +516,10 @@ const ProgramDownload = forwardRef<
 
         if (!blob) throw new Error("Не удалось создать blob");
 
-        console.log(
-          `💾 Blob создан: ${(blob.size / 1024 / 1024).toFixed(2)} MB`,
-        );
-
         // Скачиваем файл
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
+
         a.href = url;
         a.download = `Программа.png`;
         document.body.appendChild(a);
@@ -539,21 +530,14 @@ const ProgramDownload = forwardRef<
         if (onDownload) {
           onDownload(blob);
         }
-
-        console.log(
-          `🎉 Изображение успешно создано: ${width}×${height} пикселей`,
-        );
-        console.log(
-          `📁 Размер файла: ${(blob.size / 1024 / 1024).toFixed(2)} MB`,
-        );
-      } catch (error) {
-        console.error("❌ Ошибка при создании изображения:", error);
+      } catch {
         alert("Не удалось создать изображение. Пожалуйста, попробуйте снова.");
       } finally {
         // Удаляем временные контейнеры
         const tempContainers = document.querySelectorAll(
           '[style*="z-index: 9999"]',
         );
+
         tempContainers.forEach((container) => {
           if (container.parentNode) {
             container.parentNode.removeChild(container);
@@ -570,5 +554,7 @@ const ProgramDownload = forwardRef<
     return null;
   },
 );
+
+ProgramDownload.displayName = "ProgramDownload";
 
 export default ProgramDownload;

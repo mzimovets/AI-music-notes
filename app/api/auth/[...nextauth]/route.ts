@@ -2,7 +2,7 @@ import NextAuth from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
-export const authOptions = {
+const authOptions = {
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -22,6 +22,7 @@ export const authOptions = {
           credentials?.password || "",
           data.doc.password,
         );
+
         if (!isValid) return null;
 
         return {
@@ -33,15 +34,17 @@ export const authOptions = {
     }),
   ],
 
-  session: { strategy: "jwt" },
+  session: { strategy: "jwt" as const },
 
   callbacks: {
     async jwt({ token, user }: any) {
       if (user) token.role = user.role;
+
       return token;
     },
     async session({ session, token }: any) {
       if (session.user) session.user.role = token.role;
+
       return session;
     },
   },

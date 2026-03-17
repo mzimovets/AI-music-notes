@@ -276,14 +276,12 @@
 
 "use client";
 
-import { Card, Button, Image } from "@heroui/react";
-import { useContext } from "react";
-import { SongsLibraryContext } from "../providers";
+import { Card, Image } from "@heroui/react";
 import { useRouter } from "next/navigation";
+
 import { categorySongs } from "@/components/constants";
 
 export default function Albums() {
-  const context = useContext(SongsLibraryContext) || {};
   const router = useRouter();
 
   return (
@@ -293,9 +291,9 @@ export default function Albums() {
           {categorySongs.map((post) => (
             <div key={post.key} className="flex flex-col items-center w-full">
               <Card
-                onPress={() => router.push(`/playlist/${post.key}`)}
                 isPressable
-                className="w-50 h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                onPress={() => router.push(`/playlist/${post.key}`)}
               >
                 {" "}
                 <Image

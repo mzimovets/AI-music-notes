@@ -3,11 +3,11 @@
 import type { ThemeProviderProps } from "next-themes";
 
 import * as React from "react";
-import { HeroUIProvider } from "@heroui/system";
-import { useRouter } from "next/navigation";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import { getData } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { HeroUIProvider } from "@heroui/system";
 import { ToastProvider } from "@heroui/toast";
+
 import { ServerSong } from "@/lib/types";
 
 export interface ProvidersProps {
@@ -43,9 +43,11 @@ export function SongsLibraryContextProvider({
 
 export function useSongsLibraryContext() {
   const context = React.useContext(SongsLibraryContext);
+
   if (!context) {
     throw new Error("component must be in SongsLibraryContext");
   }
+
   return context;
 }
 
@@ -60,6 +62,7 @@ export function AllSongsLibraryContextProvider({
   children: React.ReactNode;
 }) {
   const [allSongs, setAllSongs] = React.useState<ServerSong[]>([]);
+
   return (
     <AllSongsLibraryContext.Provider value={{ allSongs, setAllSongs }}>
       {children}
@@ -69,9 +72,11 @@ export function AllSongsLibraryContextProvider({
 
 export function useAllSongsLibraryContextProvider() {
   const context = React.useContext(AllSongsLibraryContext);
+
   if (!context) {
     throw new Error("component must be in AllSongsLibraryContext");
   }
+
   return context;
 }
 

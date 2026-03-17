@@ -1,35 +1,25 @@
 "use client";
-import { HugeiconsIcon } from "@hugeicons/react";
+
+import React, { useState } from "react";
+import { signOut, useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
   NavbarItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
-import {
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-} from "@heroui/modal";
-import { signOut } from "next-auth/react";
-import { useSession } from "next-auth/react";
+import { Modal, ModalContent, ModalHeader, ModalFooter } from "@heroui/modal";
 
-import { Link } from "@heroui/link";
+import { CamertonLogo } from "./camertonSvg";
+import { StackIcon } from "./icons/StackIcon";
+import ExitIcon from "./icons/ExitIcon";
 
 import ModalAddScore from "@/app/home/modalAddScore";
 import StackNameModal from "@/components/modalAddStack";
 
-import { usePathname, useRouter } from "next/navigation";
-import { CamertonLogo } from "./camertonSvg";
-import { useState } from "react";
-import React from "react";
-import { StackIcon } from "./icons/StackIcon";
-import ExitIcon from "./icons/ExitIcon";
-
 export const Navbar = () => {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -72,18 +62,26 @@ export const Navbar = () => {
   return (
     <>
       <HeroUINavbar
+        className="z-50 bg-navbar relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-gradient-to-r after:from-[#BD9673] after:to-[#7D5E42]"
         maxWidth="xl"
         position="sticky"
-        className="z-50 bg-navbar relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-[2px] after:bg-gradient-to-r after:from-[#BD9673] after:to-[#7D5E42]"
       >
         <NavbarContent className="basis-1/5 sm:basis-full" justify="start">
           <div
+            role="button"
+            style={{ display: "inline", cursor: "pointer" }}
+            tabIndex={0}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
               handleLogoClick();
             }}
-            style={{ display: "inline", cursor: "pointer" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleLogoClick();
+              }
+            }}
           >
             <div className="flex items-center">
               <CamertonLogo className="h-10 w-10 sm:h-12 sm:w-12 -translate-y-1" />
@@ -104,19 +102,19 @@ export const Navbar = () => {
               !pathname.startsWith("/stack") &&
               !pathname.startsWith("/stackView") && (
                 <Button
-                  onPress={handleOpenStack}
-                  radius="full"
                   isIconOnly
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+                  radius="full"
+                  onPress={handleOpenStack}
                 >
                   <StackIcon color="white" />
                 </Button>
               )}
             <Button
-              onPress={handleExit}
-              radius="full"
               isIconOnly
               className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+              radius="full"
+              onPress={handleExit}
             >
               <ExitIcon color="white" />
             </Button>
@@ -125,16 +123,16 @@ export const Navbar = () => {
       </HeroUINavbar>
       <StackNameModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        stackName={stackName}
         setStackName={setStackName}
+        stackName={stackName}
+        onClose={() => setIsModalOpen(false)}
         onConfirm={handleConfirmStack}
       />
       <Modal
-        isOpen={isExitModalOpen}
-        onOpenChange={setIsExitModalOpen}
-        placement="center"
         backdrop="blur"
+        isOpen={isExitModalOpen}
+        placement="center"
+        onOpenChange={setIsExitModalOpen}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (
@@ -151,9 +149,9 @@ export const Navbar = () => {
 
               <ModalFooter className="flex justify-center gap-4 pb-6">
                 <Button
+                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                   variant="bordered"
                   onPress={onClose}
-                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                 >
                   Отмена
                 </Button>
@@ -170,10 +168,10 @@ export const Navbar = () => {
         </ModalContent>
       </Modal>
       <Modal
-        isOpen={isExitStackModalOpen}
-        onOpenChange={setIsExitStackModalOpen}
-        placement="center"
         backdrop="blur"
+        isOpen={isExitStackModalOpen}
+        placement="center"
+        onOpenChange={setIsExitStackModalOpen}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (
@@ -192,9 +190,9 @@ export const Navbar = () => {
               </ModalHeader>
               <ModalFooter className="flex justify-center gap-4 pb-6">
                 <Button
+                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                   variant="bordered"
                   onPress={onClose}
-                  className="border-white/50 bg-white/40 backdrop-blur-md hover:bg-white/60 input-header"
                 >
                   Отмена
                 </Button>
