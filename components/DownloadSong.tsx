@@ -62,7 +62,8 @@ export const useDownloadSong = () => {
 
         if (!response.ok) throw new Error("Ошибка загрузки файла");
 
-        const blob = await response.blob();
+        const blobData = await response.blob();
+        const blob = new Blob([blobData], { type: blobData.type });
         const downloadUrl = window.URL.createObjectURL(blob);
 
         const link = document.createElement("a");
@@ -70,7 +71,7 @@ export const useDownloadSong = () => {
         link.href = downloadUrl;
         link.download = fileName;
         document.body.appendChild(link);
-        link.click();
+        link.dispatchEvent(new MouseEvent("click"));
         document.body.removeChild(link);
 
         window.URL.revokeObjectURL(downloadUrl);
