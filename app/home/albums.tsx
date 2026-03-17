@@ -308,7 +308,10 @@ export default function Albums() {
                 />
               </Card>
 
-              <p className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
+              <p
+                onClick={() => router.push(`/playlist/${post.key}`)}
+                className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px] cursor-pointer"
+              >
                 {post.name}
               </p>
             </div>
