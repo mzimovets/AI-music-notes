@@ -43,26 +43,30 @@ export const CategoryHeader = () => {
   const categoryObj = categorySongs.find((ctg) => ctg.key == category);
 
   return (
-    <div className="flex items-start gap-8 font-header w-full">
-      <Card className="h-47.5 flex-shrink-0">
-        {" "}
-        <Image
-          alt="album cover"
-          className="object-cover"
-          height={200}
-          src={`${process.env.NEXT_PUBLIC_BASIC_URL}/${categoryObj?.image}`}
-          width={200}
-        />
-      </Card>{" "}
-      <div className="flex flex-col gap-4 flex-grow">
-        <Card className="py-4">
+    <div className="flex flex-col md:flex-row gap-8">
+      {/* Левая колонка с изображением */}
+      <div className="w-full flex justify-center md:block md:w-auto md:grow-0">
+        <Card className="w-[200px] aspect-square">
+          <Image
+            alt="album cover"
+            className="object-cover w-full h-full"
+            src={`${process.env.NEXT_PUBLIC_BASIC_URL}/${categoryObj?.image}`}
+            width={200}
+            height={200}
+          />
+        </Card>
+      </div>
+
+      {/* Правая колонка с контентом */}
+      <div className="w-full md:flex-1">
+        <Card className="py-4 w-full h-full">
           <CardHeader className="py-0 flex-col items-start">
             <p className="font-header ">{categoryObj?.name || category}</p>
             <small className="text-default-500">
               {songs.length} {getSongWord(songs.length)}
             </small>
           </CardHeader>
-          <CardBody className="py-0">
+          <CardBody className="py-0 w-full">
             <Input
               type="search"
               placeholder="Поиск"
@@ -78,7 +82,7 @@ export const CategoryHeader = () => {
                 clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
               }}
             />
-            <Monogram className="h-6 mt-4 w-auto" />
+            <Monogram className="mt-4" />
           </CardBody>
         </Card>
       </div>
