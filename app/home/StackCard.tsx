@@ -1,8 +1,9 @@
 import { Card, Image } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { Stack } from "@/lib/types";
 
-export const StackCard = ({ stacks }) => {
+export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
   const router = useRouter();
   const { data: session } = useSession();
   const isRegent = session?.user?.role === "регент";
@@ -12,16 +13,18 @@ export const StackCard = ({ stacks }) => {
     return colors[Math.floor(Math.random() * colors.length)];
   };
 
-  const fillCard = (stack) => (
+  const onStackClick = (stack: Stack) => () => {
+    if (stack.isPublished) {
+      router.push(`/stackView/${stack._id}`);
+    } else {
+      router.push(`/stack/${stack._id}`);
+    }
+  };
+
+  const fillCard = (stack: Stack) => (
     <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
       <Card
-        onPress={() => {
-          if (stack.isPublished) {
-            router.push(`/stackView/${stack._id}`);
-          } else {
-            router.push(`/stack/${stack._id}`);
-          }
-        }}
+        onPress={onStackClick(stack)}
         isPressable
         className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
       >
@@ -44,8 +47,10 @@ export const StackCard = ({ stacks }) => {
         />
       </Card>
 
-      <p className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px]">
-        {/* {post.name} */}
+      <p
+        onClick={onStackClick(stack)}
+        className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px] cursor-pointer"
+      >
         {stack.name || "Сохраненная"}
       </p>
     </div>
