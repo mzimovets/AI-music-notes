@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useRef, useCallback, useState, useEffect} from "react";
+import { useClicker } from "@/components/useClicker";
 
 import { SideBarStack } from "./components/SideBarStack";
 
@@ -33,6 +34,7 @@ export default function Page() {
   } = useStackContext();
 
   const [joined, setJoined] = useState(false);
+  const viewerContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!stackResponse?.doc?._id || joined) return;
@@ -81,6 +83,34 @@ export default function Page() {
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
 
+  const scrollToPageByStep = useCallback((step: -1 | 1) => {
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+  
+    const pages = Array.from(
+      scope.querySelectorAll<HTMLElement>("[data-page-number]")
+    );
+    if (pages.length === 0) return;
+  
+    let activeIndex = 0;
+    let minDistance = Number.POSITIVE_INFINITY;
+    pages.forEach((page, index) => {
+      const distance = Math.abs(page.getBoundingClientRect().top);
+      if (distance < minDistance) {
+        minDistance = distance;
+        activeIndex = index;
+      }
+    });
+  
+    const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
+    pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+  
+  useClicker(useCallback((direction) => {
+    if (direction === "down") scrollToPageByStep(1);
+    if (direction === "up") scrollToPageByStep(-1);
+  }, [scrollToPageByStep]));
+
   return (
     <div>
       <ScrollToTop />
@@ -106,6 +136,8 @@ export default function Page() {
           {mainSongs.length} {getPluralForm(mainSongs.length)}
         </p>
       </div>
+
+      <div ref={viewerContainerRef}>
       {/* Тропарь */}
       {stackResponse.doc?.programSelected.includes("Трапеза") && (
         <StackViewer
@@ -151,6 +183,7 @@ export default function Page() {
           }
         />
       )}
+      </div>
     </div>
   );
 }
