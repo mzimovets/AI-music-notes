@@ -9,51 +9,68 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
 // --------- HID Clicker + WebSocket ---------
+// --------- HID Clicker + WebSocket ---------
 import HID from "node-hid";
 import { WebSocketServer } from "ws";
 
 const wss = new WebSocketServer({ port: 3001 });
 console.log("[clicker] WebSocket сервер запущен на ws://localhost:3001");
 
-const all = HID.devices().filter(
-  (d) => d.vendorId === 1452 && d.productId === 556
-);
-
 let device = null;
-for (const d of all) {
-  try {
-    device = new HID.HID(d.path);
-    console.log(`[clicker] Устройство открыто: usage=${d.usage}`);
-    break;
-  } catch (e) {}
-}
 
-if (!device) {
-  console.log("[clicker] Устройство не найдено");
-} else {
-  device.on("data", (data) => {
-    if (data[0] !== 0x03) return;
-
-    const btn = data[2];
-    let direction = null;
-    if (btn === 0x01) direction = "up";
-    else if (btn === 0x02) direction = "down";
-    if (!direction) return;
-
-    console.log(`[clicker] ${direction === "up" ? "↑" : "↓"} ${direction}`);
-
-    wss.clients.forEach((client) => {
-      if (client.readyState === 1) {
-        client.send(JSON.stringify({ type: "clicker", direction }));
-      }
-    });
+const broadcast = (action) => {
+  console.log(`[clicker] ${action}`);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({ type: "clicker", direction: action }));
+    }
   });
+};
 
-  process.on("SIGINT", () => {
-    device.close();
-    process.exit(0);
-  });
-}
+const connectDevice = () => {
+  if (device) return; // уже подключено
+
+  const all = HID.devices().filter(
+    (d) => d.vendorId === 1452 && d.productId === 556
+  );
+
+  for (const d of all) {
+    try {
+      device = new HID.HID(d.path);
+      console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
+
+      device.on("data", (data) => {
+        if (data[0] !== 0x03) return;
+
+        const btn = data[2];
+        const extra = data[1];
+        let action = null;
+
+        if (btn === 0x01) action = "up";
+        else if (btn === 0x02) action = "down";
+        else if (extra === 0x04 && btn === 0x00) action = "middle";
+
+        if (!action) return;
+        broadcast(action);
+      });
+
+      device.on("error", (err) => {
+        console.log("[clicker] Устройство отключено, жду переподключения...");
+        device = null; // сбрасываем, чтобы tryConnect снова нашёл
+      });
+
+      break;
+    } catch (e) {}
+  }
+};
+
+// Проверяем каждые 2 секунды
+setInterval(connectDevice, 2000);
+
+process.on("SIGINT", () => {
+  if (device) device.close();
+  process.exit(0);
+});
 // -------------------------------------------
 
 //--------NeDB---------

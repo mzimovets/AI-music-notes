@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-type Direction = 'up' | 'down';
+type Direction = 'up' | 'down' | 'middle';
 
 export function useClicker(onPress: (direction: Direction) => void) {
   useEffect(() => {
@@ -11,13 +11,18 @@ export function useClicker(onPress: (direction: Direction) => void) {
     ws.onerror = (e) => console.warn('[clicker] WebSocket ошибка', e);
 
     ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'clicker') {
-          onPress(data.direction);
-        }
-      } catch(e) {}
-    };
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'clicker') {
+            if (data.direction === 'middle') {
+              // Кидаем кастомное событие на window
+              window.dispatchEvent(new CustomEvent('clicker:middle'));
+            } else {
+              onPress(data.direction);
+            }
+          }
+        } catch(e) {}
+      };
 
     return () => ws.close();
   }, [onPress]);
