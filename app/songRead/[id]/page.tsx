@@ -2,16 +2,18 @@
 
 import { useParams } from "next/navigation";
 import { getSongById } from "@/lib/utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { CloseReadButton } from "./components/CloseReadButton";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
+import { useClicker } from "@/components/useClicker";
 
 export default function SongReadPage() {
   const { id } = useParams<{ id: string }>();
   const [song, setSong] = useState<any>(null);
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const viewerContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchSong = async () => {
@@ -26,21 +28,77 @@ export default function SongReadPage() {
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
-
-      if (currentY < lastScrollY) {
-        // прокрутка вверх — показать кнопку
-        setShowButton(true);
-      } else if (currentY > lastScrollY) {
-        // прокрутка вниз — скрыть кнопку
-        setShowButton(false);
-      }
-
+      if (currentY < lastScrollY) setShowButton(true);
+      else if (currentY > lastScrollY) setShowButton(false);
       setLastScrollY(currentY);
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
+
+  // Общая функция скролла — используется и клавиатурой и кликером
+  const scrollToPageByStep = useCallback((step: -1 | 1) => {
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+
+    const pages = Array.from(
+      scope.querySelectorAll<HTMLElement>("[data-page-number]")
+    );
+    if (pages.length === 0) return;
+
+    let activeIndex = 0;
+    let minDistance = Number.POSITIVE_INFINITY;
+    pages.forEach((page, index) => {
+      const distance = Math.abs(page.getBoundingClientRect().top);
+      if (distance < minDistance) {
+        minDistance = distance;
+        activeIndex = index;
+      }
+    });
+
+    const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
+    pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
+
+  // Клавиатура
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" || target.isContentEditable;
+    };
+
+    const isPageDown = (e: KeyboardEvent) =>
+      e.key === "PageDown" || e.code === "PageDown" || e.key === "ArrowDown";
+    const isPageUp = (e: KeyboardEvent) =>
+      e.key === "PageUp" || e.code === "PageUp" || e.key === "ArrowUp";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      if (isPageDown(e) || isPageUp(e)) e.preventDefault();
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      if (isPageDown(e)) scrollToPageByStep(1);
+      else if (isPageUp(e)) scrollToPageByStep(-1);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [scrollToPageByStep]);
+
+  // Кликер через WebSocket
+  useClicker(useCallback((direction) => {
+    if (direction === 'down') scrollToPageByStep(1);
+    if (direction === 'up') scrollToPageByStep(-1);
+  }, [scrollToPageByStep]));
 
   if (!song?.doc?.file?.filename) return null;
 
@@ -55,7 +113,7 @@ export default function SongReadPage() {
         <CloseReadButton />
       </div>
 
-      <div className="flex justify-center mb-2">
+      <div ref={viewerContainerRef} className="flex justify-center mb-2">
         <StackViewer
           fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
         />

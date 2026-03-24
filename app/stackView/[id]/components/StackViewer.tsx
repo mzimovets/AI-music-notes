@@ -34,7 +34,12 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
           Array.from({ length: pdfDoc.numPages }, (_, i) => {
             const pageNum = i + 1;
             return (
-              <div key={i} className="w-full flex justify-center mb-4">
+              <div
+                key={i}
+                className="w-full flex justify-center mb-4"
+                data-page-number={pageNum}
+                id={`pdf-page-${pageNum}`}
+              >
                 <Card className="w-200 h-auto relative flex items-center justify-center p-2 transition-colors duration-200">
                   <Pdfjs
                     fileUrl={fileUrl}

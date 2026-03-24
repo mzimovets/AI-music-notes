@@ -118,6 +118,13 @@ export const SideBarStack = ({ onPreview }) => {
   const { data: session } = useSession();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // После useState для isDrawerOpen
+useEffect(() => {
+  const handleMiddle = () => setIsDrawerOpen(prev => !prev);
+  window.addEventListener('clicker:middle', handleMiddle);
+  return () => window.removeEventListener('clicker:middle', handleMiddle);
+}, []);
+
   const handleSongClick = (songId: string) => {
     setIsDrawerOpen(false);
 
