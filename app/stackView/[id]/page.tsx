@@ -1,6 +1,8 @@
 "use client";
-import { useRef, useCallback, useState, useEffect} from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { useClicker } from "@/components/useClicker";
+import { ClickerIndicator } from "@/components/ClickerIndicator";
 
 import { SideBarStack } from "./components/SideBarStack";
 
@@ -14,6 +16,8 @@ import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
 
 export default function Page() {
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -86,12 +90,12 @@ export default function Page() {
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
     const scope = viewerContainerRef.current;
     if (!scope) return;
-  
+
     const pages = Array.from(
-      scope.querySelectorAll<HTMLElement>("[data-page-number]")
+      scope.querySelectorAll<HTMLElement>("[data-page-number]"),
     );
     if (pages.length === 0) return;
-  
+
     let activeIndex = 0;
     let minDistance = Number.POSITIVE_INFINITY;
     pages.forEach((page, index) => {
@@ -101,20 +105,33 @@ export default function Page() {
         activeIndex = index;
       }
     });
-  
-    const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
+
+    const targetIndex = Math.max(
+      0,
+      Math.min(pages.length - 1, activeIndex + step),
+    );
     pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
-  
-  useClicker(useCallback((direction) => {
-    if (direction === "down") scrollToPageByStep(1);
-    if (direction === "up") scrollToPageByStep(-1);
-  }, [scrollToPageByStep]));
+
+  useClicker(
+    useCallback(
+      (direction) => {
+        if (direction === "down") scrollToPageByStep(1);
+        if (direction === "up") scrollToPageByStep(-1);
+      },
+      [scrollToPageByStep],
+    ),
+  );
 
   return (
     <div>
       <ScrollToTop />
       <SideBarStack onPreview={undefined} />
+      {isRegent && (
+        <div className="fixed left-3 bottom-3 z-40">
+          <ClickerIndicator />
+        </div>
+      )}
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
@@ -138,51 +155,51 @@ export default function Page() {
       </div>
 
       <div ref={viewerContainerRef}>
-      {/* Тропарь */}
-      {stackResponse.doc?.programSelected.includes("Трапеза") && (
-        <StackViewer
-          fileUrl={
-            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
-            ""
-          }
-        />
-      )}
+        {/* Тропарь */}
+        {stackResponse.doc?.programSelected.includes("Трапеза") && (
+          <StackViewer
+            fileUrl={
+              `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
+              ""
+            }
+          />
+        )}
 
-      <SongsList songs={mainSongs} isReserved={false} />
+        <SongsList songs={mainSongs} isReserved={false} />
 
-      {reserveSongs.length > 0 && (
-        <>
-          <p
-            id={`reserve`}
-            className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
-          >
-            Резерв
-          </p>
-
-          <div className="justify-center flex gap-2 mb-2">
-            <p className="text-bold text-sm input-header justify-center text-default-500">
-              {reserveSongs.length} {getPluralForm(reserveSongs.length)}
+        {reserveSongs.length > 0 && (
+          <>
+            <p
+              id={`reserve`}
+              className="flex flex-col mt-2 text-default-500 text-center justify-center font-header gap-2 text-sm sm:text-base md:text-lg"
+            >
+              Резерв
             </p>
-          </div>
 
-          <div className="justify-center  gap-2 mb-6">
-            <SongsList
-              songs={reserveSongs}
-              isReserved={true}
-              onSongClick={scrollToReserveSong}
-            />
-          </div>
-        </>
-      )}
-      {/* Кондак */}
-      {stackResponse.doc?.programSelected.includes("Трапеза") && (
-        <StackViewer
-          fileUrl={
-            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
-            ""
-          }
-        />
-      )}
+            <div className="justify-center flex gap-2 mb-2">
+              <p className="text-bold text-sm input-header justify-center text-default-500">
+                {reserveSongs.length} {getPluralForm(reserveSongs.length)}
+              </p>
+            </div>
+
+            <div className="justify-center  gap-2 mb-6">
+              <SongsList
+                songs={reserveSongs}
+                isReserved={true}
+                onSongClick={scrollToReserveSong}
+              />
+            </div>
+          </>
+        )}
+        {/* Кондак */}
+        {stackResponse.doc?.programSelected.includes("Трапеза") && (
+          <StackViewer
+            fileUrl={
+              `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
+              ""
+            }
+          />
+        )}
       </div>
     </div>
   );

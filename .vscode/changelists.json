@@ -1,0 +1,21 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "app/stackView/[id]/page.tsx",
+        "app/songRead/[id]/page.tsx",
+        ".vscode/changelists.json",
+        "components/ClickerIndicator.tsx",
+        "components/useClicker.tsx",
+        "server/index.js",
+        "components/ClickerIcon.tsx",
+        "next.config.js",
+        "package.json",
+        "public/sw.js",
+        "public/workbox-6b22235a.js"
+      ]
+    }
+  ],
+  "active": "Default"
+}
