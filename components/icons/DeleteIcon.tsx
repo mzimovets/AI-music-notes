@@ -1,4 +1,4 @@
-export const DeleteIcon = (props) => {
+export const DeleteIcon = (props: any) => {
   return (
     <svg
       aria-hidden="true"

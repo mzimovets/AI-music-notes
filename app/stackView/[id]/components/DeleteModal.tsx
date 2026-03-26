@@ -13,7 +13,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
 
-export const DeleteModal = (props) => {
+export const DeleteModal = (props: any) => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { isDeleteModalOpen, setIsDeleteModalOpen } = props;

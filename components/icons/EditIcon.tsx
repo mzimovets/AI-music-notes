@@ -1,4 +1,4 @@
-export const EditIcon = (props) => {
+export const EditIcon = (props: any) => {
   return (
     <svg
       aria-hidden="true"

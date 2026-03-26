@@ -93,7 +93,6 @@ export default function Page() {
             errorMessage="Пожалуйста, введите пароль"
             className="input-header w-full max-w-sm"
             labelPlacement="outside"
-            classNames={{ endContent: "pointer-events-auto" }}
             endContent={
               <button
                 aria-label="toggle password visibility"

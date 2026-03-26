@@ -3,17 +3,18 @@
     {
       "name": "Default",
       "files": [
-        "app/stackView/[id]/page.tsx",
-        "app/songRead/[id]/page.tsx",
         ".vscode/changelists.json",
-        "components/ClickerIndicator.tsx",
-        "components/useClicker.tsx",
-        "server/index.js",
-        "components/ClickerIcon.tsx",
+        "app/api/auth/[...nextauth]/route.ts",
+        "app/api/socket/route.ts",
+        "app/authPage/components/EyeFilledIcon.tsx",
+        "app/authPage/components/EyeSlashFilledIcon.tsx",
+        "app/stackView/[id]/components/DeleteModal.tsx",
+        "components/icons/DeleteIcon.tsx",
+        "components/icons/EditIcon.tsx",
+        "components/icons/EyeIcon.tsx",
+        "app/authPage/page.tsx",
         "next.config.js",
-        "package.json",
-        "public/sw.js",
-        "public/workbox-6b22235a.js"
+        "components/ClickerIndicator.tsx"
       ]
     }
   ],

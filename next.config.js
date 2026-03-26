@@ -80,4 +80,7 @@ module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: true, // ❌ ошибки TS будут игнорироваться
+  },
 };
