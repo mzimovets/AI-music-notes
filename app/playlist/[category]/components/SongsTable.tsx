@@ -8,12 +8,15 @@ import {
   TableCell,
   Spinner,
   Pagination,
+  Card,
+  Link,
 } from "@heroui/react";
 import { useTableCell } from "./useTableCell";
 import { usePlaylistContext } from "../PlaylistContextProvider";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
+import { TableEmptyContent } from "./TableEmptyContent";
 
 export const SongsTable = () => {
   const renderCell = useTableCell();
@@ -57,99 +60,174 @@ export const SongsTable = () => {
     { name: "ДЕЙСТВИЯ", uid: "actions", align: "end" },
   ];
 
+  const pagination =
+    pages > 1 ? (
+      <Pagination
+        page={page}
+        total={pages}
+        onChange={setPage}
+        className="pb-4"
+        classNames={{
+          wrapper: "font-header",
+          item: [
+            "font-pagination",
+            "text-gray-700",
+            "data-[hover=true]:text-white",
+            "data-[hover=true]:bg-gradient-to-r",
+            "data-[hover=true]:from-[#BD9673]",
+            "data-[hover=true]:to-[#7D5E42]",
+          ].join(" "),
+          cursor: [
+            "font-pagination",
+            "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
+            "text-white",
+            "font-bold",
+          ].join(" "),
+        }}
+      />
+    ) : null;
+
   return (
     <div className="space-y-4 flex flex-col w-full">
-      <Table
-        isStriped
-        isHeaderSticky
-        aria-label="Таблица песен"
-        className="mt-4  w-full box-border" //как оставить отступы, но чтобы при этом ширина совпадала?
-        classNames={{
-          base: "max-h-[520px] overflow-scroll",
-          table: "min-h-[200px]",
-        }}
-        // onRowAction={(key) => {
-        //   router.push(`/song/${key}`);
-        // }}
-        bottomContent={
-          pages > 1 ? (
-            <Pagination
-              page={page}
-              total={pages}
-              onChange={setPage}
-              className="pb-4"
-              classNames={{
-                wrapper: "font-header",
-                item: [
-                  "font-pagination",
-                  "text-gray-700",
-                  "data-[hover=true]:text-white",
-                  "data-[hover=true]:bg-gradient-to-r",
-                  "data-[hover=true]:from-[#BD9673]",
-                  "data-[hover=true]:to-[#7D5E42]",
-                ].join(" "),
-                cursor: [
-                  "font-pagination",
-                  "bg-gradient-to-r from-[#BD9673] to-[#7D5E42]",
-                  "text-white",
-                  "font-bold",
-                ].join(" "),
-              }}
-            />
-          ) : null
-        }
-      >
-        <TableHeader columns={columns}>
-          {(column) => (
-            <TableColumn
-              key={column.uid}
-              align={column.align}
-              className="w-1/3 card-header"
-            >
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-
-        <TableBody
-          items={items}
-          isLoading={!songs}
-          loadingContent={<Spinner label="Загрузка..." />}
-          emptyContent={
-            <div className="py-10 text-center">
-              <div className="mx-auto w-16 h-16 mb-4 text-gray-300">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Zm3.75 11.625a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
-                  />
-                </svg>
-              </div>
-              <p className="text-gray-500 text-lg font-medium mb-2">
-                Ничего не найдено
-              </p>
-              <p className="text-gray-400 text-sm">
-                Попробуйте изменить запрос
-              </p>
-            </div>
-          }
+      {/* Десктопная таблица */}
+      <div className="hidden md:block w-full overflow-x-auto">
+        <Table
+          isStriped
+          isHeaderSticky
+          aria-label="Таблица песен"
+          className="mt-4 w-full box-border"
+          bottomContent={pagination}
         >
-          {(item) => (
-            <TableRow key={item._id}>
-              {(columnKey) => (
-                <TableCell>{renderCell(item, columnKey)}</TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          <TableHeader columns={columns}>
+            {(column) => (
+              <TableColumn
+                key={column.uid}
+                align={column.align}
+                className="card-header"
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+
+          <TableBody
+            items={items}
+            isLoading={!songs}
+            loadingContent={<Spinner label="Загрузка..." />}
+            emptyContent={<TableEmptyContent />}
+          >
+            {(item) => (
+              <TableRow key={item._id}>
+                {(columnKey) => (
+                  <TableCell>{renderCell(item, columnKey)}</TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Мобильные карточки */}
+      <div className="block md:hidden space-y-4">
+        <Card className="p-4 flex gap-4">
+          {items?.map((item) => (
+            <Card key={item._id} className="p-4">
+              {/* Кликабельный контейнер для названия и автора */}
+              <Link href={`/song/${item._id}`} className="block mb-3">
+                <div className="flex flex-col gap-1 p-2 bg-gray-50 rounded-lg hover:bg-gray-100 active:bg-gray-200 transition-colors">
+                  {/* Название (предположим, что это column.uid = 'name' или 'title') */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Название:
+                    </span>
+                    <span className="text-sm font-semibold text-right">
+                      {renderCell(item, "name") || renderCell(item, "title")}
+                    </span>
+                  </div>
+                  {/* Автор (предположим, что это column.uid = 'author' или 'artist') */}
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Автор:
+                    </span>
+                    <span className="text-sm text-right text-gray-700">
+                      {renderCell(item, "author") || renderCell(item, "artist")}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+
+              {/* Остальные поля с маленькими заголовками */}
+              {columns
+                .filter(
+                  (column) =>
+                    !["name", "title", "author", "artist"].includes(column.uid),
+                )
+                .map((column) => (
+                  <div
+                    key={column.uid}
+                    className="flex justify-between py-2 border-b border-gray-100 last:border-0"
+                  >
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      {column.name}:
+                    </span>
+                    <span className="text-sm text-right">
+                      {renderCell(item, column.uid)}
+                    </span>
+                  </div>
+                ))}
+            </Card>
+          ))}
+
+          {/* Пагинация для мобильных */}
+          <div className="mt-4">{pagination}</div>
+        </Card>
+      </div>
     </div>
   );
+
+  // return (
+  //   <div className="space-y-4 flex flex-col w-full">
+  //     <Table
+  //       isStriped
+  //       isHeaderSticky
+  //       aria-label="Таблица песен"
+  //       className="mt-4  w-full box-border"
+  //       // classNames={{
+  //       //   base: "max-h-[520px] overflow-scroll",
+  //       //   table: "min-h-[200px]",
+  //       // }}
+  //       // onRowAction={(key) => {
+  //       //   router.push(`/song/${key}`);
+  //       // }}
+  //       bottomContent={pagination}
+  //     >
+  //       <TableHeader columns={columns}>
+  //         {(column) => (
+  //           <TableColumn
+  //             key={column.uid}
+  //             align={column.align}
+  //             className="w-1/3 card-header"
+  //           >
+  //             {column.name}
+  //           </TableColumn>
+  //         )}
+  //       </TableHeader>
+
+  //       <TableBody
+  //         items={items}
+  //         isLoading={!songs}
+  //         loadingContent={<Spinner label="Загрузка..." />}
+  //         emptyContent={<TableEmptyContent />}
+  //       >
+  //         {(item) => (
+  //           <TableRow key={item._id}>
+  //             {(columnKey) => (
+  //               <TableCell>{renderCell(item, columnKey)}</TableCell>
+  //             )}
+  //           </TableRow>
+  //         )}
+  //       </TableBody>
+  //     </Table>
+  //   </div>
+  // );
 };

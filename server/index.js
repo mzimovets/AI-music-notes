@@ -139,9 +139,10 @@ import { fileURLToPath } from "url";
 import multer from "multer";
 import cors from "cors";
 
+console.log("process.env.NEXT_PUBLIC_BASIC_URL", process.env.NEXT_PUBLIC_BASIC_URL);
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: [process.env.NEXT_PUBLIC_BASIC_URL, "http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })

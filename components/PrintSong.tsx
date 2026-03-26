@@ -100,7 +100,8 @@ import { useRef, useState, useCallback } from "react";
 export const usePrintSong = () => {
   const context = useSongContext();
   const [isLoading, setIsLoading] = useState(false);
-  const iframeRef = useRef(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  
 
   const handlePrint = useCallback(
     (song?: ServerSong) => {
@@ -109,32 +110,40 @@ export const usePrintSong = () => {
       console.log("handlePrint", filename, iframeRef.current);
       if (!filename) return;
 
-      const fileUrl = `/uploads/${filename}`;
-
       if (iframeRef.current) {
         setIsLoading(true);
+        const iframeEl = iframeRef.current;
+        const printFilename = filename;
 
-        // Сбрасываем src для корректного срабатывания onload при повторном нажатии
-        iframeRef.current.src = "";
+        // Сбрасываем src для корректного срабатывания onload при повторном нажатии.
+        // В проде доступ к `contentWindow` может блокироваться браузером для кросс-ориджных фреймов,
+        // поэтому печать делаем на стороне дочерней страницы.
+        iframeEl.src = "";
 
-        iframeRef.current.onload = () => {
-          try {
-            const iframeWindow = iframeRef.current.contentWindow;
-            if (iframeWindow) {
-              iframeWindow.focus();
-              iframeWindow.print();
-            }
-          } catch (error) {
-            console.error("Ошибка печати:", error);
-            alert(
-              "Ошибка доступа к печати (CORS). Проверьте настройки сервера.",
-            );
-          } finally {
+        const onMessage = (event: MessageEvent) => {
+          if (event.data?.type === "print:after" && event.data?.filename === printFilename) {
             setIsLoading(false);
+            window.removeEventListener("message", onMessage);
           }
         };
 
-        iframeRef.current.src = fileUrl;
+        window.addEventListener("message", onMessage);
+        const timeoutId = window.setTimeout(() => {
+          setIsLoading(false);
+          window.removeEventListener("message", onMessage);
+        }, 12000);
+
+        iframeRef.current.src = "";
+
+        iframeRef.current.onload = () => {
+          // Очищаем timeout, если дочерняя страница уже загрузилась.
+          // Печать выполняется внутри `/print/[filename]`.
+          window.clearTimeout(timeoutId);
+          window.removeEventListener("message", onMessage);
+          setTimeout(() => setIsLoading(false), 1500);
+        };
+
+        iframeRef.current.src = `/print/${encodeURIComponent(filename)}`;
       }
     },
     [context],
@@ -148,11 +157,13 @@ export const usePrintSong = () => {
       <iframe
         ref={iframeRef}
         style={{
-          position: "absolute",
-          width: 0,
-          height: 0,
+          position: "fixed",
+          left: "-10000px",
+          top: "0",
+          width: "1px",
+          height: "1px",
           border: 0,
-          visibility: "hidden",
+          visibility: "visible",
         }}
         title="PDF Print Frame"
       />

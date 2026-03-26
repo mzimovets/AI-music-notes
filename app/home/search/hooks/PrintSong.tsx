@@ -4,37 +4,47 @@ import { useRef, useState, useCallback } from "react";
 
 export const usePrintSong = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const iframeRef = useRef(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   const handlePrint = (song?: ServerSong) => {
     const filename = song?.file?.filename;
 
     if (!filename) return;
 
-    const fileUrl = `/uploads/${filename}`;
-
     if (iframeRef.current) {
       setIsLoading(true);
 
-      // Сбрасываем src для корректного срабатывания onload при повторном нажатии
-      iframeRef.current.src = "";
+      const iframeEl = iframeRef.current;
+      const printFilename = filename;
 
-      iframeRef.current.onload = () => {
-        try {
-          const iframeWindow = iframeRef.current.contentWindow;
-          if (iframeWindow) {
-            iframeWindow.focus();
-            iframeWindow.print();
-          }
-        } catch (error) {
-          console.error("Ошибка печати:", error);
-          alert("Ошибка доступа к печати (CORS). Проверьте настройки сервера.");
-        } finally {
+      // Печать выполняем на стороне дочерней страницы `/print/[filename]`,
+      // чтобы не упираться в ограничения кросс-ориджного доступа к `contentWindow`.
+      iframeEl.src = "";
+
+      const onMessage = (event: MessageEvent) => {
+        if (
+          event.data?.type === "print:after" &&
+          event.data?.filename === printFilename
+        ) {
           setIsLoading(false);
+          window.removeEventListener("message", onMessage);
         }
       };
 
-      iframeRef.current.src = fileUrl;
+      window.addEventListener("message", onMessage);
+      const timeoutId = window.setTimeout(() => {
+        setIsLoading(false);
+        window.removeEventListener("message", onMessage);
+      }, 12000);
+
+      iframeEl.onload = () => {
+        window.clearTimeout(timeoutId);
+        window.removeEventListener("message", onMessage);
+        setTimeout(() => setIsLoading(false), 1500);
+      };
+
+      console.log("iframeEl.src", `/print/${encodeURIComponent(filename)}`);
+      iframeEl.src = `/print/${encodeURIComponent(filename)}`;
     }
   };
 
@@ -46,11 +56,13 @@ export const usePrintSong = () => {
       <iframe
         ref={iframeRef}
         style={{
-          position: "absolute",
-          width: 0,
-          height: 0,
+          position: "fixed",
+          left: "-10000px",
+          top: "0",
+          width: "1px",
+          height: "1px",
           border: 0,
-          visibility: "hidden",
+          visibility: "visible",
         }}
         title="PDF Print Frame"
       />
