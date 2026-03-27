@@ -18,6 +18,12 @@ console.log("[clicker] WebSocket сервер запущен на ws://localhost
 
 let device = null;
 
+// Обработчик новых соединений WebSocket
+wss.on("connection", (ws) => {
+  // Отправляем текущий статус при подключении клиента
+  ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
+});
+
 const broadcast = (action) => {
   console.log(`[clicker] ${action}`);
   wss.clients.forEach((client) => {
@@ -27,17 +33,29 @@ const broadcast = (action) => {
   });
 };
 
+const broadcastConnected = (isConnected) => {
+  console.log(`[clicker] Отправляю статус подключения: ${isConnected}`);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(
+        JSON.stringify({ type: "clicker-connected", connected: isConnected }),
+      );
+    }
+  });
+};
+
 const connectDevice = () => {
   if (device) return; // уже подключено
 
   const all = HID.devices().filter(
-    (d) => d.vendorId === 1452 && d.productId === 556
+    (d) => d.vendorId === 1452 && d.productId === 556,
   );
 
   for (const d of all) {
     try {
       device = new HID.HID(d.path);
       console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
+      broadcastConnected(true);
 
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
@@ -56,6 +74,7 @@ const connectDevice = () => {
 
       device.on("error", (err) => {
         console.log("[clicker] Устройство отключено, жду переподключения...");
+        broadcastConnected(false);
         device = null; // сбрасываем, чтобы tryConnect снова нашёл
       });
 
@@ -109,13 +128,16 @@ const createDefaultUsersIfEmpty = async () => {
         for (const user of defaultUsers) {
           if (!user.password) {
             console.warn(
-              `Warning: Password for user ${user.username} is not set. Skipping user creation.`
+              `Warning: Password for user ${user.username} is not set. Skipping user creation.`,
             );
             continue;
           }
           try {
             const hashedPassword = await bcrypt.hash(user.password, 10);
-            const userWithHashedPassword = { ...user, password: hashedPassword };
+            const userWithHashedPassword = {
+              ...user,
+              password: hashedPassword,
+            };
             database.insert(userWithHashedPassword, (err, doc) => {
               if (err) {
                 console.log("Ошибка добавления пользователя:", err);
@@ -128,7 +150,7 @@ const createDefaultUsersIfEmpty = async () => {
           }
         }
       }
-    }
+    },
   );
 };
 
@@ -144,7 +166,7 @@ app.use(
     origin: ["http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-  })
+  }),
 );
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -193,7 +215,9 @@ app.get("/", (req, res) => {
 
 app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
-    return res.status(400).json({ status: "error", message: "Файл не загружен" });
+    return res
+      .status(400)
+      .json({ status: "error", message: "Файл не загружен" });
   }
 
   const fileData = {
@@ -210,7 +234,9 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   database.insert(fileData, (err, doc) => {
     if (err) {
       console.log("err", err);
-      return res.status(500).json({ status: "error", message: "Не удалось сохранить запись" });
+      return res
+        .status(500)
+        .json({ status: "error", message: "Не удалось сохранить запись" });
     }
     console.log("adding file:", fileData.originalName);
     res.json({ status: "ok", doc });

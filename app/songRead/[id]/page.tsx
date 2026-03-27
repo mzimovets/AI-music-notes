@@ -3,13 +3,17 @@
 import { useParams } from "next/navigation";
 import { getSongById } from "@/lib/utils";
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { CloseReadButton } from "./components/CloseReadButton";
+import { ClickerIndicator } from "@/components/ClickerIndicator";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { useClicker } from "@/components/useClicker";
 
 export default function SongReadPage() {
   const { id } = useParams<{ id: string }>();
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [song, setSong] = useState<any>(null);
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -43,7 +47,7 @@ export default function SongReadPage() {
     if (!scope) return;
 
     const pages = Array.from(
-      scope.querySelectorAll<HTMLElement>("[data-page-number]")
+      scope.querySelectorAll<HTMLElement>("[data-page-number]"),
     );
     if (pages.length === 0) return;
 
@@ -57,7 +61,10 @@ export default function SongReadPage() {
       }
     });
 
-    const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
+    const targetIndex = Math.max(
+      0,
+      Math.min(pages.length - 1, activeIndex + step),
+    );
     pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
@@ -95,10 +102,15 @@ export default function SongReadPage() {
   }, [scrollToPageByStep]);
 
   // Кликер через WebSocket
-  useClicker(useCallback((direction) => {
-    if (direction === 'down') scrollToPageByStep(1);
-    if (direction === 'up') scrollToPageByStep(-1);
-  }, [scrollToPageByStep]));
+  useClicker(
+    useCallback(
+      (direction) => {
+        if (direction === "down") scrollToPageByStep(1);
+        if (direction === "up") scrollToPageByStep(-1);
+      },
+      [scrollToPageByStep],
+    ),
+  );
 
   if (!song?.doc?.file?.filename) return null;
 
@@ -112,6 +124,11 @@ export default function SongReadPage() {
       >
         <CloseReadButton />
       </div>
+      {isRegent && (
+        <div className="fixed left-3 bottom-3 z-40">
+          <ClickerIndicator />
+        </div>
+      )}
 
       <div ref={viewerContainerRef} className="flex justify-center mb-2">
         <StackViewer
