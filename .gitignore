@@ -13,6 +13,10 @@
 /.next/
 /out/
 
+#db
+/server/database.db
+/server/uploads/*
+
 # production
 /build
 
