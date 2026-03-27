@@ -60,3 +60,19 @@ After modifying the `.npmrc` file, you need to run `pnpm install` again to ensur
 Licensed under the [MIT license](https://github.com/heroui-inc/next-app-template/blob/main/LICENSE).
 
 # AI-music-notes
+
+## .ENV файл
+
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_BASIC_URL=http://localhost:3000
+NEXT_PUBLIC_BASIC_BACK_URL=http://localhost:4000
+
+## .env.local
+
+NEXTAUTH_SECRET=
+REGENT_PASSWORD=
+SINGER_PASSWORD=
+NEXTAUTH_URL=http://192.168.1.85:3000
+NEXT_PUBLIC_BASIC_URL=http://192.168.1.85:3000
+
