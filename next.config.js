@@ -55,28 +55,23 @@ const withPWA = require("next-pwa")({
 module.exports = withPWA({
   reactStrictMode: true,
 
-  async rewrites() {
-    const basicBackUrl = process.env.NEXT_PUBLIC_BASIC_BACK_URL;
-    if (!basicBackUrl || basicBackUrl === "undefined" || basicBackUrl === "null") {
-      throw new Error(
-        "NEXT_PUBLIC_BASIC_BACK_URL is not set. Add it to `.env.local` in the project root (AI-music-notes)."
-      );
-    }
-
-    return [
-      {
-        source: "/uploads/:path*",
-        destination: `${basicBackUrl}/uploads/:path*`,
-      },
-    ];
-  },
-});
-
-module.exports = {
   eslint: {
     ignoreDuringBuilds: true,
   },
   typescript: {
-    ignoreBuildErrors: true, // ❌ ошибки TS будут игнорироваться
+    ignoreBuildErrors: true,
   },
-};
+
+  async rewrites() {
+    console.log(
+      "NEXT_PUBLIC_BASIC_BACK_URL =",
+      process.env.NEXT_PUBLIC_BASIC_BACK_URL,
+    );
+    return [
+      {
+        source: "/uploads/:path*",
+        destination: `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/:path*`,
+      },
+    ];
+  },
+});
