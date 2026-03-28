@@ -46,8 +46,8 @@ export const SortableSong: React.FC<SortableSongProps> = ({
   return (
     <div ref={setNodeRef} style={style} className="touch-none select-none">
       <Card
-        className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${
-          isDragging ? "shadow-xl opacity-50" : "shadow-sm"
+        className={`p-3 mb-2 flex-row items-center justify-between gap-4 transition-all duration-200 ${
+          isDragging ? "shadow-xl opacity-50" : "shadow-sm hover:shadow-md hover:scale-[1.02]"
         } cursor-pointer`}
       >
       <Button

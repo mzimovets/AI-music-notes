@@ -725,7 +725,7 @@ useEffect(() => {
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer"
+                                      className={`touch-none select-none w-[85%] ml-auto p-3 shadow-sm bg-white border border-default-200 rounded-xl mt-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${session?.user?.role === "регент" ? "flex flex-col gap-2 mb-3 min-h-[100px] items-start" : "mb-2"}`}
                                       onClick={() =>
                                         handleSongClick(`meal_start`)
                                       }
@@ -781,7 +781,7 @@ useEffect(() => {
                                     ))}
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer"
+                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                                       onClick={() =>
                                         handleSongClick(`meal_end`)
                                       }
