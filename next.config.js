@@ -1,3 +1,8 @@
+// Ensure env vars are available in next.config.js (especially in dev).
+// Next loads env files for the app runtime, but config evaluation can happen
+// before they're applied in some setups.
+require("dotenv").config();
+
 const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
