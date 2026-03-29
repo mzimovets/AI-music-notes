@@ -13,11 +13,14 @@ import { useTableCell } from "./useTableCell";
 import { usePlaylistContext } from "../PlaylistContextProvider";
 import { useMemo, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 
 export const SongsTable = () => {
   const renderCell = useTableCell();
   const router = useRouter();
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
 
   const { songsResponse, searchValue } = usePlaylistContext();
   const songs = songsResponse?.docs;
@@ -51,11 +54,12 @@ export const SongsTable = () => {
     setPage(1);
   }, [searchValue]);
 
-  const columns = [
+  const allColumns = [
     { name: "НАЗВАНИЕ", uid: "name", align: "start" },
     { name: "АВТОР", uid: "author", align: "center" },
     { name: "ДЕЙСТВИЯ", uid: "actions", align: "end" },
   ];
+  const columns = isRegent ? allColumns : allColumns.filter((c) => c.uid !== "actions");
 
   return (
     <div className="space-y-4 flex flex-col w-full">
