@@ -43,9 +43,9 @@ export const CategoryHeader = () => {
   const categoryObj = categorySongs.find((ctg) => ctg.key == category);
 
   return (
-    <div className="flex flex-col md:flex-row gap-8">
+    <div className="flex flex-col md:flex-row gap-8" >
       {/* Левая колонка с изображением */}
-      <div className="w-full flex justify-center md:block md:w-auto md:grow-0">
+      <div className="flex justify-center md:block md:w-auto md:grow-0">
         <Card className="w-[200px] aspect-square">
           <Image
             alt="album cover"
@@ -58,7 +58,7 @@ export const CategoryHeader = () => {
       </div>
 
       {/* Правая колонка с контентом */}
-      <div className="w-full md:flex-1">
+      <div className="md:flex-1" style={{flexGrow: 1}}>
         <Card className="py-4 w-full h-full">
           <CardHeader className="py-0 flex-col items-start">
             <p className="font-header ">{categoryObj?.name || category}</p>
