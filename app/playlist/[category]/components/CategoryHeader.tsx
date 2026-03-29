@@ -66,7 +66,7 @@ export const CategoryHeader = () => {
               {songs.length} {getSongWord(songs.length)}
             </small>
           </CardHeader>
-          <CardBody className="py-0 w-full">
+          <CardBody className="py-0 w-full flex-col">
             <Input
               type="search"
               placeholder="Поиск"
@@ -82,7 +82,9 @@ export const CategoryHeader = () => {
                 clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
               }}
             />
-            <Monogram className="mt-4" />
+            <div className="max-h-16">
+              <Monogram className="mt-4 mx-auto max-h-8" />
+            </div>
           </CardBody>
         </Card>
       </div>

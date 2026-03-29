@@ -100,7 +100,7 @@ export const Search = ({ allSongs }: { allSongs: ServerSong[] }) => {
 
   return (
     <>
-      <div className="flex flex-col text-center justify-center font-header gap-4 relative mt-4">
+      <div className="flex flex-col w-full text-center justify-center font-header gap-4 mt-4">
         <Input
           ref={inputRef}
           type="search"
@@ -120,9 +120,9 @@ export const Search = ({ allSongs }: { allSongs: ServerSong[] }) => {
               <SearchIcon className="text-default-400" />
             </div>
           }
-          className="w-100 mx-auto"
+          className="md:w-100 mx-auto"
           classNames={{
-            inputWrapper: "bg-[#FFFAF5] rounded-md",
+            inputWrapper: "bg-[#FFFAF5] rounded-md w-full",
             input: "text-sm",
             clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
           }}
