@@ -300,26 +300,28 @@ export const Sidebar2 = ({ onPreview }) => {
     const reserveSongs = stackSongs.filter((song) => song.isReserve);
 
     const songInfoText = (song) => {
-      let lines = [];
+      const musicSelected = programSelected.includes("Музыка") && song.author;
+      const lyricsSelected =
+        programSelected.includes("Слова") && song.authorLyrics;
+      const arrangeSelected =
+        programSelected.includes("Аранжировка") && song.authorArrange;
 
-      if (programSelected.includes("Музыка") && song.author) {
-        lines.push(`муз. ${song.author}`);
+      const parts: string[] = [];
+
+      if (
+        musicSelected &&
+        lyricsSelected &&
+        song.author === song.authorLyrics
+      ) {
+        parts.push(`сл. и муз. ${song.author}`);
+      } else {
+        if (musicSelected) parts.push(`муз. ${song.author}`);
+        if (lyricsSelected) parts.push(`сл. ${song.authorLyrics}`);
       }
-      if (programSelected.includes("Слова") && song.authorLyrics) {
-        if (song.author === song.authorLyrics) {
-          lines.push(`сл. и муз. ${song.author}`);
-        } else {
-          // добавляем автора музыки только если чип "Музыка" активен
-          lines.push(
-            `сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`,
-          );
-        }
-      }
-      // больше не добавляем автора музыки по умолчанию
-      if (programSelected.includes("Аранжировка") && song.authorArrange) {
-        lines.push(`аранж. ${song.authorArrange}`);
-      }
-      return lines;
+
+      if (arrangeSelected) parts.push(`аранж. ${song.authorArrange}`);
+
+      return parts;
     };
 
     let text = "";
@@ -667,7 +669,7 @@ export const Sidebar2 = ({ onPreview }) => {
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer"
+                                      className="touch-none select-none w-[85%] ml-auto p-3 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl mt-1 mb-3 min-h-[100px] items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                                       onClick={() =>
                                         handleSongClick(`meal_start`)
                                       }
@@ -720,7 +722,7 @@ export const Sidebar2 = ({ onPreview }) => {
                                     ))}
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer"
+                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 flex flex-col gap-2 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                                       onClick={() =>
                                         handleSongClick(`meal_end`)
                                       }
@@ -880,21 +882,20 @@ export const Sidebar2 = ({ onPreview }) => {
                                           {index + 1}. {song.name}
                                         </span>
                                         <span className="text-sm input-header text-default-500">
-                                          {programSelected.includes("Музыка") &&
-                                          song.author
-                                            ? `муз. ${song.author}`
-                                            : ""}
-                                          {programSelected.includes("Слова") &&
-                                          song.authorLyrics
-                                            ? song.author === song.authorLyrics
-                                              ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                              : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                            : ""}
-                                          {programSelected.includes(
-                                            "Аранжировка",
-                                          ) && song.authorArrange
-                                            ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                            : ""}
+                                          {(() => {
+                                            const musicOn = programSelected.includes("Музыка") && song.author;
+                                            const lyricsOn = programSelected.includes("Слова") && song.authorLyrics;
+                                            const arrangeOn = programSelected.includes("Аранжировка") && song.authorArrange;
+                                            const parts: string[] = [];
+                                            if (musicOn && lyricsOn && song.author === song.authorLyrics) {
+                                              parts.push(`сл. и муз. ${song.author}`);
+                                            } else {
+                                              if (musicOn) parts.push(`муз. ${song.author}`);
+                                              if (lyricsOn) parts.push(`сл. ${song.authorLyrics}`);
+                                            }
+                                            if (arrangeOn) parts.push(`аранж. ${song.authorArrange}`);
+                                            return parts.join(", ");
+                                          })()}
                                         </span>
                                       </div>
                                     ))}
@@ -920,24 +921,20 @@ export const Sidebar2 = ({ onPreview }) => {
                                               {index + 1}. {song.name}
                                             </span>
                                             <span className="text-sm input-header text-default-500">
-                                              {programSelected.includes(
-                                                "Музыка",
-                                              ) && song.author
-                                                ? `муз. ${song.author}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Слова",
-                                              ) && song.authorLyrics
-                                                ? song.author ===
-                                                  song.authorLyrics
-                                                  ? `${programSelected.includes("Музыка") ? ", " : ""}сл. и муз. ${song.author}`
-                                                  : `${programSelected.includes("Музыка") ? ", " : ""}сл. ${song.authorLyrics}${programSelected.includes("Музыка") && song.author ? `, муз. ${song.author}` : ""}`
-                                                : ""}
-                                              {programSelected.includes(
-                                                "Аранжировка",
-                                              ) && song.authorArrange
-                                                ? `${(programSelected.includes("Музыка") && song.author) || (programSelected.includes("Слова") && song.authorLyrics) ? ", " : ""}аранж. ${song.authorArrange}`
-                                                : ""}
+                                              {(() => {
+                                                const musicOn = programSelected.includes("Музыка") && song.author;
+                                                const lyricsOn = programSelected.includes("Слова") && song.authorLyrics;
+                                                const arrangeOn = programSelected.includes("Аранжировка") && song.authorArrange;
+                                                const parts: string[] = [];
+                                                if (musicOn && lyricsOn && song.author === song.authorLyrics) {
+                                                  parts.push(`сл. и муз. ${song.author}`);
+                                                } else {
+                                                  if (musicOn) parts.push(`муз. ${song.author}`);
+                                                  if (lyricsOn) parts.push(`сл. ${song.authorLyrics}`);
+                                                }
+                                                if (arrangeOn) parts.push(`аранж. ${song.authorArrange}`);
+                                                return parts.join(", ");
+                                              })()}
                                             </span>
                                           </div>
                                         ))}

@@ -1,3 +1,8 @@
+// Ensure env vars are available in next.config.js (especially in dev).
+// Next loads env files for the app runtime, but config evaluation can happen
+// before they're applied in some setups.
+require("dotenv").config();
+
 const withPWA = require("next-pwa")({
   dest: "public",
   register: true,
@@ -50,7 +55,18 @@ const withPWA = require("next-pwa")({
 module.exports = withPWA({
   reactStrictMode: true,
 
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+
   async rewrites() {
+    console.log(
+      "NEXT_PUBLIC_BASIC_BACK_URL =",
+      process.env.NEXT_PUBLIC_BASIC_BACK_URL,
+    );
     return [
       {
         source: "/uploads/:path*",

@@ -6,17 +6,79 @@ import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.local" }); // явно указываем путь к файлу
+dotenv.config({ path: ".env.local" });
+
+// --------- HID Clicker + WebSocket ---------
+// --------- HID Clicker + WebSocket ---------
+import HID from "node-hid";
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: 3001 });
+console.log("[clicker] WebSocket сервер запущен на ws://localhost:3001");
+
+let device = null;
+
+const broadcast = (action) => {
+  console.log(`[clicker] ${action}`);
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({ type: "clicker", direction: action }));
+    }
+  });
+};
+
+const connectDevice = () => {
+  if (device) return; // уже подключено
+
+  const all = HID.devices().filter(
+    (d) => d.vendorId === 1452 && d.productId === 556
+  );
+
+  for (const d of all) {
+    try {
+      device = new HID.HID(d.path);
+      console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
+
+      device.on("data", (data) => {
+        if (data[0] !== 0x03) return;
+
+        const btn = data[2];
+        const extra = data[1];
+        let action = null;
+
+        if (btn === 0x01) action = "up";
+        else if (btn === 0x02) action = "down";
+        else if (extra === 0x04 && btn === 0x00) action = "middle";
+
+        if (!action) return;
+        broadcast(action);
+      });
+
+      device.on("error", (err) => {
+        console.log("[clicker] Устройство отключено, жду переподключения...");
+        device = null; // сбрасываем, чтобы tryConnect снова нашёл
+      });
+
+      break;
+    } catch (e) {}
+  }
+};
+
+// Проверяем каждые 2 секунды
+setInterval(connectDevice, 2000);
+
+process.on("SIGINT", () => {
+  if (device) device.close();
+  process.exit(0);
+});
+// -------------------------------------------
 
 //--------NeDB---------
 import Datastore from "nedb";
-
 import bcrypt from "bcryptjs";
 
 export const database = new Datastore("database.db");
 database.loadDatabase();
-
-// users
 
 const defaultUsers = [
   {
@@ -35,7 +97,6 @@ const defaultUsers = [
   },
 ];
 
-// Функция для создания пользователей, если база пуста
 const createDefaultUsersIfEmpty = async () => {
   database.count(
     { docType: { $in: ["admin", "user"] } },
@@ -48,16 +109,13 @@ const createDefaultUsersIfEmpty = async () => {
         for (const user of defaultUsers) {
           if (!user.password) {
             console.warn(
-              `Warning: Password for user ${user.username} is not set. Skipping user creation.`,
+              `Warning: Password for user ${user.username} is not set. Skipping user creation.`
             );
             continue;
           }
           try {
             const hashedPassword = await bcrypt.hash(user.password, 10);
-            const userWithHashedPassword = {
-              ...user,
-              password: hashedPassword,
-            };
+            const userWithHashedPassword = { ...user, password: hashedPassword };
             database.insert(userWithHashedPassword, (err, doc) => {
               if (err) {
                 console.log("Ошибка добавления пользователя:", err);
@@ -70,7 +128,7 @@ const createDefaultUsersIfEmpty = async () => {
           }
         }
       }
-    },
+    }
   );
 };
 
@@ -78,18 +136,15 @@ createDefaultUsersIfEmpty();
 
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-
 import multer from "multer";
-
 import cors from "cors";
 
-// CORS configuration – allow frontend apps to access the API
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: [process.env.NEXT_PUBLIC_BASIC_URL, "http://localhost:3000", "http://localhost:5173"],
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-  }),
+  })
 );
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -101,14 +156,11 @@ const storage = multer.diskStorage({
     cb(null, __dirname + "/uploads");
   },
   filename: function (req, file, cb) {
-    // decode possible latin1 encoding from browser
     let decodedName = Buffer.from(file.originalname, "latin1").toString("utf8");
 
-    // split name and extension
     const ext = decodedName.substring(decodedName.lastIndexOf("."));
     let baseName = decodedName.substring(0, decodedName.lastIndexOf("."));
 
-    // sanitize name (remove strange characters, normalize spaces)
     baseName = baseName
       .replace(/[^a-zA-Zа-яА-Я0-9-_ ]/g, "")
       .trim()
@@ -117,7 +169,6 @@ const storage = multer.diskStorage({
     let finalName = `${baseName}${ext}`;
     let counter = 1;
 
-    // check if file exists and add small numeric suffix if needed
     while (fs.existsSync(__dirname + "/uploads/" + finalName)) {
       finalName = `${baseName}_${counter}${ext}`;
       counter++;
@@ -140,21 +191,18 @@ app.get("/", (req, res) => {
   res.send("hello my dear");
 });
 
-// Загрузка файла
 app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
-    return res
-      .status(400)
-      .json({ status: "error", message: "Файл не загружен" });
+    return res.status(400).json({ status: "error", message: "Файл не загружен" });
   }
 
   const fileData = {
-    _id: Date.now().toString(), // или req.file.filename
+    _id: Date.now().toString(),
     originalName: req.file.filename,
     path: req.file.path,
     mimetype: req.file.mimetype,
     size: req.file.size,
-    ...req.body, // если есть дополнительные данные
+    ...req.body,
   };
 
   console.log("file data", fileData);
@@ -162,42 +210,24 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
   database.insert(fileData, (err, doc) => {
     if (err) {
       console.log("err", err);
-      return res
-        .status(500)
-        .json({ status: "error", message: "Не удалось сохранить запись" });
+      return res.status(500).json({ status: "error", message: "Не удалось сохранить запись" });
     }
-    console.log("adding file:", fileData.originalName); // Вот тут надо настроить чтобы название было нормальное, а не с битой кодировкой
+    console.log("adding file:", fileData.originalName);
     res.json({ status: "ok", doc });
   });
 });
 
-// Ноты
 songsRoutes(app, urlencodedParser, upload);
-
-// Пользователи
 usersRoutes(app, urlencodedParser);
-
-// Стопки
 stacksRoutes(app, urlencodedParser);
 
 const deleteOldFiles = (fileName) => {
-  // Считываем все файлы и удаяем файл, если его имя не совпадает с fileName
   fs.readdirSync(__dirname + "/uploads").forEach((file) => {
     console.log(file);
     if (file !== fileName) {
-      // Удаляем
       fs.unlinkSync(__dirname + `/uploads/${file}`);
     }
   });
 };
 
-// app.post("/upload", upload.single("docx"), function (req, res, next) {
-//   console.log("POST /upload", req.file);
-
-//   const fileName = req.file.originalname;
-//   deleteOldFiles(fileName);
-//   res.json({ status: "ok" });
-// });
-
-// Serve uploaded files (PDF, PNG, etc.)
 app.use("/uploads", express.static(__dirname + "/uploads"));
