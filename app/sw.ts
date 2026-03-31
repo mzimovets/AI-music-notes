@@ -16,6 +16,18 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Кэшируем сессию NextAuth — без этого оффлайн видно "не авторизован"
+    // (defaultCache ставит /api/auth/* как NetworkOnly — переопределяем ДО него)
+    {
+      matcher: /\/api\/auth\/session/,
+      handler: "NetworkFirst",
+      options: {
+        cacheName: "auth-session",
+        networkTimeoutSeconds: 3,
+        expiration: { maxEntries: 1, maxAgeSeconds: 24 * 60 * 60 },
+        cacheableResponse: { statuses: [0, 200] },
+      },
+    },
     // Кэшируем загруженные PDF и картинки с бэкенда (через rewrite /uploads/*)
     {
       matcher: /^\/uploads\/.*/,
