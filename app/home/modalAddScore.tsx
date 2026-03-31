@@ -157,14 +157,29 @@ export default function ModalAddScore() {
 
   return (
     <>
+      {/* Desktop button */}
       <Button
-        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  text-2xl font-normal shadow-md relative overflow-hidden group"
+        className="hidden md:flex bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
         onPress={onOpen}
         radius="full"
         isIconOnly
       >
         <AddSongIcon />
       </Button>
+
+      {/* Mobile button */}
+      <Button
+        // className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+        // className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full   font-normal shadow-md relative overflow-hidden group"
+        className="sm:hidden w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+        onPress={onOpen}
+        radius="full"
+        isIconOnly
+        startContent={<AddSongIcon />}
+      >
+        Новая партитура
+      </Button>
+
 
       <Modal
         isDismissable={false}

@@ -5,14 +5,19 @@ import {
   NavbarContent,
   NavbarItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
 import {
   Modal,
   ModalContent,
   ModalHeader,
-  ModalBody,
   ModalFooter,
 } from "@heroui/modal";
+import {
+  Popover, PopoverTrigger, PopoverContent,
+  Button
+} from "@heroui/react";
+
+
+
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
@@ -28,7 +33,7 @@ import React from "react";
 import { StackIcon } from "./icons/StackIcon";
 import ExitIcon from "./icons/ExitIcon";
 
-export const Navbar = () => {
+export const NavbarNoteLib = () => {
   const { data: session, status } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
@@ -69,7 +74,7 @@ export const Navbar = () => {
     router.push("/");
   };
 
-  return (
+return (
     <>
       <HeroUINavbar
         maxWidth="xl"
@@ -89,11 +94,17 @@ export const Navbar = () => {
               <CamertonLogo className="h-10 w-10 sm:h-12 sm:w-12 -translate-y-1" />
               <p className="font-navbarBrand text-inherit text-sm sm:text-base">
                 Нотная библиотека
+                {/* Пѣснопѣвецъ */}
+                      {/* Песнопевец */}
+                      {/* Лик */}
+                      {/* Ликъ */}
+                      {/* Нотная библиотека */}
               </p>
             </div>
           </div>
         </NavbarContent>
 
+        {/* Десктопная версия кнопок */}
         <NavbarContent
           className="hidden sm:flex basis-1/5 sm:basis-full"
           justify="end"
@@ -122,7 +133,58 @@ export const Navbar = () => {
             </Button>
           </NavbarItem>
         </NavbarContent>
+
+        {/* Мобильная версия - бургер-меню */}
+        <NavbarContent className="flex sm:hidden" justify="end">
+          <Popover placement="bottom-end">
+            <PopoverTrigger>
+              <Button
+                isIconOnly
+                radius="full"
+                variant="light"
+                // className="text-white"
+                className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+              >
+                =
+                {/* <MenuIcon size={24} /> */}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="flex flex-col gap-2 p-3 min-w-[200px]">
+              {/* Кнопка Add Score (если нужна) */}
+              {showStackButtons && (
+                <div className="w-full">
+                  <ModalAddScore />
+                </div>
+              )}
+              
+              {/* Кнопка Stack */}
+              {showStackButtons &&
+                !pathname.startsWith("/stack") &&
+                !pathname.startsWith("/stackView") && (
+                  <Button
+                    onPress={handleOpenStack}
+                    radius="full"
+                    className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+                    startContent={<StackIcon color="white" />}
+                  >
+                    Новая стопка
+                  </Button>
+                )}
+              
+              {/* Кнопка Exit */}
+              <Button
+                onPress={handleExit}
+                radius="full"
+                className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+                startContent={<ExitIcon color="white" />}
+              >
+                Выход
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </NavbarContent>
       </HeroUINavbar>
+      
       <StackNameModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
