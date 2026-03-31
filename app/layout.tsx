@@ -19,23 +19,24 @@ const ALL_CATEGORIES = [
 ];
 
 async function warmPageCache() {
-  if (!("serviceWorker" in navigator)) return;
-  await new Promise((r) => setTimeout(r, 5000));
+  console.log("[WarmCache] Начинаю прогрев кэша...");
 
-  // Просто делаем fetch — SW (Serwist) перехватит и закэширует в pages-rsc / others
   const prefetch = async (url: string) => {
     try {
-      await fetch(url, { credentials: "same-origin" });
-    } catch {}
+      const res = await fetch(url, { credentials: "same-origin" });
+      if (res.ok) console.log(`[WarmCache] ✓ ${url}`);
+      else console.warn(`[WarmCache] ✗ ${url} (${res.status})`);
+    } catch (e) {
+      console.warn(`[WarmCache] ✗ ${url}`, e);
+    }
   };
 
   await prefetch("/");
   for (const cat of ALL_CATEGORIES) {
     await prefetch(`/playlist/${cat}`);
-    await new Promise((r) => setTimeout(r, 300));
+    await new Promise((r) => setTimeout(r, 200));
   }
 
-  // Кэшируем страницы песен: читаем список с API и обходим
   try {
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
@@ -45,10 +46,12 @@ async function warmPageCache() {
       const songs = await res.json();
       for (const song of songs) {
         await prefetch(`/song/${song._id}`);
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, 150));
       }
     }
   } catch {}
+
+  console.log("[WarmCache] Готово!");
 }
 
 export default function RootLayout({
@@ -57,12 +60,34 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(() => warmPageCache())
-        .catch(() => {});
-    }
+    if (!("serviceWorker" in navigator)) return;
+
+    const registerAndWarm = async () => {
+      await navigator.serviceWorker.register("/sw.js");
+
+      // Ждём пока SW активен
+      await navigator.serviceWorker.ready;
+
+      // Ждём пока SW возьмёт контроль над страницей (clientsClaim).
+      // Без этого fetch() в warmPageCache обходит SW и ничего не кэшируется.
+      if (!navigator.serviceWorker.controller) {
+        await new Promise<void>((resolve) => {
+          navigator.serviceWorker.addEventListener(
+            "controllerchange",
+            () => resolve(),
+            { once: true },
+          );
+          // Fallback: через 4 сек всё равно запускаем
+          setTimeout(resolve, 4000);
+        });
+      }
+
+      // Небольшая пауза чтобы не нагружать при старте
+      await new Promise((r) => setTimeout(r, 2000));
+      warmPageCache();
+    };
+
+    registerAndWarm().catch(() => {});
   }, []);
 
   return (
