@@ -1,6 +1,12 @@
 import { defaultCache } from "@serwist/next/worker";
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
-import { Serwist } from "serwist";
+import {
+  CacheFirst,
+  CacheableResponsePlugin,
+  ExpirationPlugin,
+  NetworkFirst,
+  Serwist,
+} from "serwist";
 
 declare global {
   interface ServiceWorkerGlobalScope extends SerwistGlobalConfig {
@@ -20,23 +26,28 @@ const serwist = new Serwist({
     // (defaultCache ставит /api/auth/* как NetworkOnly — переопределяем ДО него)
     {
       matcher: /\/api\/auth\/session/,
-      handler: "NetworkFirst",
-      options: {
+      handler: new NetworkFirst({
         cacheName: "auth-session",
         networkTimeoutSeconds: 3,
-        expiration: { maxEntries: 1, maxAgeSeconds: 24 * 60 * 60 },
-        cacheableResponse: { statuses: [0, 200] },
-      },
+        plugins: [
+          new ExpirationPlugin({ maxEntries: 1, maxAgeSeconds: 24 * 60 * 60 }),
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+        ],
+      }),
     },
     // Кэшируем загруженные PDF и картинки с бэкенда (через rewrite /uploads/*)
     {
       matcher: /^\/uploads\/.*/,
-      handler: "CacheFirst",
-      options: {
+      handler: new CacheFirst({
         cacheName: "uploads-cache",
-        expiration: { maxEntries: 200, maxAgeSeconds: 30 * 24 * 60 * 60 },
-        cacheableResponse: { statuses: [0, 200] },
-      },
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 200,
+            maxAgeSeconds: 30 * 24 * 60 * 60,
+          }),
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+        ],
+      }),
     },
     // defaultCache покрывает: Next.js static, images, Google Fonts, pages (NetworkFirst), RSC
     ...defaultCache,
