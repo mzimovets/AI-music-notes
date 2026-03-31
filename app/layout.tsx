@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
 import { metadata, viewport } from "./metadata";
@@ -12,11 +13,58 @@ import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
 
+const ALL_CATEGORIES = [
+  "spiritual_chants", "easter", "carols", "folk",
+  "soviet", "military", "childrens", "other",
+];
+
+async function warmPageCache() {
+  if (!("serviceWorker" in navigator)) return;
+  await new Promise((r) => setTimeout(r, 5000));
+
+  // Просто делаем fetch — SW (Serwist) перехватит и закэширует в pages-rsc / others
+  const prefetch = async (url: string) => {
+    try {
+      await fetch(url, { credentials: "same-origin" });
+    } catch {}
+  };
+
+  await prefetch("/");
+  for (const cat of ALL_CATEGORIES) {
+    await prefetch(`/playlist/${cat}`);
+    await new Promise((r) => setTimeout(r, 300));
+  }
+
+  // Кэшируем страницы песен: читаем список с API и обходим
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
+      { credentials: "same-origin" },
+    );
+    if (res.ok) {
+      const songs = await res.json();
+      for (const song of songs) {
+        await prefetch(`/song/${song._id}`);
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+  } catch {}
+}
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(() => warmPageCache())
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <html
       suppressHydrationWarning
