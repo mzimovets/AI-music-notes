@@ -1,5 +1,4 @@
 "use client";
-import { useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
 import { metadata, viewport } from "./metadata";
@@ -12,83 +11,13 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
-
-const ALL_CATEGORIES = [
-  "spiritual_chants", "easter", "carols", "folk",
-  "soviet", "military", "childrens", "other",
-];
-
-async function warmPageCache() {
-  console.log("[WarmCache] Начинаю прогрев кэша...");
-
-  const prefetch = async (url: string) => {
-    try {
-      const res = await fetch(url, { credentials: "same-origin" });
-      if (res.ok) console.log(`[WarmCache] ✓ ${url}`);
-      else console.warn(`[WarmCache] ✗ ${url} (${res.status})`);
-    } catch (e) {
-      console.warn(`[WarmCache] ✗ ${url}`, e);
-    }
-  };
-
-  await prefetch("/");
-  for (const cat of ALL_CATEGORIES) {
-    await prefetch(`/playlist/${cat}`);
-    await new Promise((r) => setTimeout(r, 200));
-  }
-
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      { credentials: "same-origin" },
-    );
-    if (res.ok) {
-      const songs = await res.json();
-      for (const song of songs) {
-        await prefetch(`/song/${song._id}`);
-        await new Promise((r) => setTimeout(r, 150));
-      }
-    }
-  } catch {}
-
-  console.log("[WarmCache] Готово!");
-}
+import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-
-    const registerAndWarm = async () => {
-      await navigator.serviceWorker.register("/sw.js");
-
-      // Ждём пока SW активен
-      await navigator.serviceWorker.ready;
-
-      // Ждём пока SW возьмёт контроль над страницей (clientsClaim).
-      // Без этого fetch() в warmPageCache обходит SW и ничего не кэшируется.
-      if (!navigator.serviceWorker.controller) {
-        await new Promise<void>((resolve) => {
-          navigator.serviceWorker.addEventListener(
-            "controllerchange",
-            () => resolve(),
-            { once: true },
-          );
-          // Fallback: через 4 сек всё равно запускаем
-          setTimeout(resolve, 4000);
-        });
-      }
-
-      // Небольшая пауза чтобы не нагружать при старте
-      await new Promise((r) => setTimeout(r, 2000));
-      warmPageCache();
-    };
-
-    registerAndWarm().catch(() => {});
-  }, []);
 
   return (
     <html
@@ -126,6 +55,7 @@ export default function RootLayout({
         className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
       >
         <SessionProvider>
+          <ServiceWorkerManager />
           <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
             <div className="relative flex flex-col">
               <AllSongsLibraryContextProvider>
