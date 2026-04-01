@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
 import { AddSongIcon } from "@/components/icons/AddSongIcon";
 import { useAllSongsLibraryContextProvider } from "../providers";
+import { enqueue, storeFile } from "@/lib/offline-queue";
 
 export const songs = [
   { label: "Духовные канты", key: "spiritual_chants" },
@@ -107,7 +108,38 @@ export default function ModalAddScore() {
 
   const handleSave = async (onClose: () => void) => {
     if (!validateForm()) return;
+    setIsSaved(true);
 
+    if (!navigator.onLine) {
+      // ── Офлайн: сохраняем в очередь ──────────────────────────────
+      const fileDbKey = await storeFile(selectedFile as File);
+      const tempId = Math.random().toString();
+      enqueue({
+        type: "song.create",
+        tempId,
+        name,
+        author: author || "",
+        authorLyrics: authorLyrics || "",
+        authorArrange: authorArrange || "",
+        category,
+        fileDbKey,
+        filename: (selectedFile as File).name,
+      });
+      addToast({
+        title: <span className="font-bold text-white">Сохранено офлайн</span>,
+        description: (
+          <span className="text-white">
+            «{name}» добавится на сервер при восстановлении соединения
+          </span>
+        ),
+        timeout: 4000,
+        classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+      });
+      onClose();
+      return;
+    }
+
+    // ── Онлайн: обычный путь ────────────────────────────────────────
     const data: Song = {
       name,
       author,
@@ -117,41 +149,67 @@ export default function ModalAddScore() {
       authorArrange,
       authorLyrics,
     };
-    setIsSaved(true);
 
-    const response = await addSong(data, window.location.pathname);
+    try {
+      const response = await addSong(data, window.location.pathname);
 
-    addToast({
-      title: <span className="font-bold text-white">Партитура добавлена</span>,
-      description: (
-        <div
-          onClick={() => router.push(`/song/${response.doc._id}`)}
-          className="text-white"
-        >
-          <div className="flex gap-6">
-            <div className="flex flex-col">
-              <span className="font-bold text-lg">{name}</span>
-              <span className="text-sm opacity-90 mt-1">
-                {getCategoryDisplay(category, "full")}
-              </span>
-            </div>
-            {author && (
-              <div className="flex flex-col border-l border-white/30 pl-6">
-                <span className="text-sm opacity-75">Автор</span>
-                <span className="font-medium mt-1">{author}</span>
+      addToast({
+        title: <span className="font-bold text-white">Партитура добавлена</span>,
+        description: (
+          <div
+            onClick={() => router.push(`/song/${response.doc._id}`)}
+            className="text-white"
+          >
+            <div className="flex gap-6">
+              <div className="flex flex-col">
+                <span className="font-bold text-lg">{name}</span>
+                <span className="text-sm opacity-90 mt-1">
+                  {getCategoryDisplay(category, "full")}
+                </span>
               </div>
-            )}
+              {author && (
+                <div className="flex flex-col border-l border-white/30 pl-6">
+                  <span className="text-sm opacity-75">Автор</span>
+                  <span className="font-medium mt-1">{author}</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ),
-      timeout: 5000,
-      shouldShowTimeoutProgress: true,
-      classNames: {
-        base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white",
-      },
-    });
+        ),
+        timeout: 5000,
+        shouldShowTimeoutProgress: true,
+        classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+      });
 
-    await fetchAllSongs();
+      await fetchAllSongs();
+      window.dispatchEvent(new CustomEvent("sw-sync-needed"));
+    } catch (e) {
+      // navigator.onLine может быть true даже без интернета — сохраняем офлайн
+      console.warn("[Song] Сеть недоступна, сохраняем офлайн:", e);
+      const fileDbKey = await storeFile(selectedFile as File);
+      const tempId = Math.random().toString();
+      enqueue({
+        type: "song.create",
+        tempId,
+        name,
+        author: author || "",
+        authorLyrics: authorLyrics || "",
+        authorArrange: authorArrange || "",
+        category,
+        fileDbKey,
+        filename: (selectedFile as File).name,
+      });
+      addToast({
+        title: <span className="font-bold text-white">Сохранено офлайн</span>,
+        description: (
+          <span className="text-white">
+            «{name}» добавится на сервер при восстановлении соединения
+          </span>
+        ),
+        timeout: 4000,
+        classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+      });
+    }
     onClose();
   };
 

@@ -110,7 +110,7 @@ export default function Page() {
       {stackResponse.doc?.programSelected.includes("Трапеза") && (
         <StackViewer
           fileUrl={
-            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
+            `/uploads/${mealFilesMap[stackResponse.doc?.mealType].start}` ||
             ""
           }
         />
@@ -146,7 +146,7 @@ export default function Page() {
       {stackResponse.doc?.programSelected.includes("Трапеза") && (
         <StackViewer
           fileUrl={
-            `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
+            `/uploads/${mealFilesMap[stackResponse.doc?.mealType].end}` ||
             ""
           }
         />

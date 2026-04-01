@@ -1,4 +1,5 @@
 import { removeStack } from "@/actions/actions";
+import { enqueue } from "@/lib/offline-queue";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import {
@@ -23,8 +24,15 @@ export const DeleteModal = (props) => {
   const handleConfirmDelete = async () => {
     try {
       setIsDeleting(true);
+      if (!navigator.onLine) {
+        enqueue({ type: "stack.delete", id: params.id });
+        window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
+        router.push(`/`);
+        return;
+      }
       const response = await removeStack(params.id);
       if (response) {
+        window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
         router.push(`/`);
         // router.refresh();
       } else {

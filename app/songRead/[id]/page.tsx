@@ -1,37 +1,23 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { getSongById } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { CloseReadButton } from "./components/CloseReadButton";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
+import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 
 export default function SongReadPage() {
-  const { id } = useParams<{ id: string }>();
-  const [song, setSong] = useState<any>(null);
+  const { songResponse } = useSongContext();
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  useEffect(() => {
-    const fetchSong = async () => {
-      if (!id) return;
-      const data = await getSongById(id);
-      setSong(data);
-    };
-    fetchSong();
-  }, [id]);
-
-  // Скрытие кнопки при скролле
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
 
       if (currentY < lastScrollY) {
-        // прокрутка вверх — показать кнопку
         setShowButton(true);
       } else if (currentY > lastScrollY) {
-        // прокрутка вниз — скрыть кнопку
         setShowButton(false);
       }
 
@@ -42,7 +28,7 @@ export default function SongReadPage() {
     return () => window.removeEventListener("scroll", onScroll);
   }, [lastScrollY]);
 
-  if (!song?.doc?.file?.filename) return null;
+  if (!songResponse?.doc?.file?.filename) return null;
 
   return (
     <div>
@@ -57,7 +43,7 @@ export default function SongReadPage() {
 
       <div className="flex justify-center mb-2">
         <StackViewer
-          fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
+          fileUrl={`/uploads/${songResponse.doc.file.filename}`}
         />
       </div>
     </div>

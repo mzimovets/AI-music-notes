@@ -35,21 +35,81 @@ const serwist = new Serwist({
         ],
       }),
     },
-    // Кэшируем загруженные PDF и картинки с бэкенда (через rewrite /uploads/*)
+    // Кэшируем PDF и картинки с бэкенда (через rewrite /uploads/*)
     {
-      matcher: /^\/uploads\/.*/,
+      matcher: ({ request }: { request: Request }) => {
+        const path = new URL(request.url).pathname;
+        return path.startsWith("/uploads/");
+      },
       handler: new CacheFirst({
         cacheName: "uploads-cache",
         plugins: [
           new ExpirationPlugin({
-            maxEntries: 200,
+            maxEntries: 500,
             maxAgeSeconds: 30 * 24 * 60 * 60,
           }),
           new CacheableResponsePlugin({ statuses: [0, 200] }),
         ],
       }),
     },
-    // defaultCache покрывает: Next.js static, images, Google Fonts, pages (NetworkFirst), RSC
+    // Кэшируем статические картинки категорий из public/songs/
+    {
+      matcher: ({ request }: { request: Request }) => {
+        const path = new URL(request.url).pathname;
+        return path.startsWith("/songs/") && /\.(jpg|jpeg|png|webp)$/i.test(path);
+      },
+      handler: new CacheFirst({
+        cacheName: "category-images",
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 50,
+            maxAgeSeconds: 30 * 24 * 60 * 60,
+          }),
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+        ],
+      }),
+    },
+    // HTML страниц — только не-RSC запросы
+    {
+      matcher: ({ request }: { request: Request }) => {
+        if (request.method !== "GET") return false;
+        if (request.headers.get("RSC") === "1") return false; // RSC идёт в отдельный кэш
+        const path = new URL(request.url).pathname;
+        return (
+          path === "/" ||
+          /^\/(playlist|song|stack|stackView|songRead)\/[^/]+/.test(path)
+        );
+      },
+      handler: new NetworkFirst({
+        cacheName: "pages",
+        networkTimeoutSeconds: 1,
+        plugins: [
+          new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 }),
+          new CacheableResponsePlugin({ statuses: [200] }),
+        ],
+      }),
+    },
+    // RSC-пейлоады — клиентская навигация Next.js App Router (отдельный кэш)
+    {
+      matcher: ({ request }: { request: Request }) => {
+        if (request.method !== "GET") return false;
+        if (request.headers.get("RSC") !== "1") return false;
+        const path = new URL(request.url).pathname;
+        return (
+          path === "/" ||
+          /^\/(playlist|song|stack|stackView|songRead)\/[^/]+/.test(path)
+        );
+      },
+      handler: new NetworkFirst({
+        cacheName: "pages-rsc-app",
+        networkTimeoutSeconds: 1,
+        plugins: [
+          new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 }),
+          new CacheableResponsePlugin({ statuses: [200] }),
+        ],
+      }),
+    },
+    // defaultCache покрывает: Next.js static, images, Google Fonts, RSC payloads
     ...defaultCache,
   ],
 });

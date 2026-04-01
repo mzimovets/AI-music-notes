@@ -163,9 +163,15 @@ export const Sidebar2 = ({ onPreview }) => {
     }
   };
 
-  // TODO: выенсти
   useEffect(() => {
     getSongs();
+  }, []);
+
+  // Обновляем список при добавлении новой песни через навбар
+  useEffect(() => {
+    const handler = () => getSongs();
+    window.addEventListener("sw-sync-needed", handler);
+    return () => window.removeEventListener("sw-sync-needed", handler);
   }, []);
 
   // TODO: выенсти

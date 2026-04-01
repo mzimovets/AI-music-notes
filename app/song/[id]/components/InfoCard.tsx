@@ -16,6 +16,7 @@ import {
   ModalFooter,
 } from "@heroui/modal";
 import { editSong, removeSong } from "@/actions/actions";
+import { enqueue, storeFile } from "@/lib/offline-queue";
 import { Song } from "@/lib/types";
 import { useSession } from "next-auth/react";
 
@@ -39,7 +40,7 @@ export const InfoCard = () => {
 
   const onLoad = async () => {
     setSelectedFile(
-      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`,
+      `/uploads/${song.doc.file.filename}`,
     ); //song.doc.file
   };
 
@@ -53,6 +54,29 @@ export const InfoCard = () => {
   };
 
   const handleSave = async () => {
+    if (!navigator.onLine) {
+      let fileDbKey: string | undefined;
+      let filename: string | undefined;
+      if (selectedFile && typeof selectedFile !== "string") {
+        fileDbKey = await storeFile(selectedFile as File);
+        filename = (selectedFile as File).name;
+      }
+      enqueue({
+        type: "song.edit",
+        id: song.doc._id,
+        name,
+        author: author || "",
+        authorLyrics: authorLyrics || "",
+        authorArrange: authorArrange || "",
+        category,
+        docType: "song",
+        fileDbKey,
+        filename,
+      });
+      setIsEdit(false);
+      return;
+    }
+
     const data: Partial<Song> = {
       docType: "song",
       name,
@@ -65,7 +89,7 @@ export const InfoCard = () => {
       data.file = selectedFile;
     }
 
-    const editSaveSong = await editSong(song.doc._id, data);
+    await editSong(song.doc._id, data);
     setIsEdit(false);
   };
 
@@ -83,9 +107,21 @@ export const InfoCard = () => {
     try {
       setIsDeleting(true);
       // Здесь добавьте запрос на удаление песни
+      if (!navigator.onLine) {
+        enqueue({ type: "song.delete", id: song.doc._id });
+        window.dispatchEvent(new CustomEvent("sw-delete-song", {
+          detail: { id: song.doc._id, filename: song.doc.file?.filename },
+        }));
+        router.push(`/playlist/${song.doc.category}`);
+        return;
+      }
+
       const response = await removeSong(song.doc._id);
 
       if (response) {
+        window.dispatchEvent(new CustomEvent("sw-delete-song", {
+          detail: { id: song.doc._id, filename: song.doc.file?.filename },
+        }));
         router.push(`/playlist/${song.doc.category}`);
         router.refresh();
       } else {
