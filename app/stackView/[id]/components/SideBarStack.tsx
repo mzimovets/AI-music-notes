@@ -116,6 +116,7 @@ import { useRouter } from "next/navigation";
 export const SideBarStack = ({ onPreview }) => {
   const router = useRouter();
   const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // После useState для isDrawerOpen
@@ -158,6 +159,28 @@ useEffect(() => {
     programSelected,
     setProgramSelected,
   } = useStackContext();
+  const stackId = stackResponse?.doc?._id;
+  const isInitialSyncSkippedRef = useRef(false);
+
+  useEffect(() => {
+    isInitialSyncSkippedRef.current = false;
+  }, [stackId]);
+
+  useEffect(() => {
+    if (!isRegent || !stackId) return;
+
+    if (!isInitialSyncSkippedRef.current) {
+      isInitialSyncSkippedRef.current = true;
+      return;
+    }
+
+    socket.emit("stack-updated", {
+      stackId,
+      songs: stackSongs,
+      mealType,
+      programSelected,
+    });
+  }, [isRegent, mealType, programSelected, stackId, stackSongs]);
 
   const searchRef = useRef(null);
   const sensors = useSensors(
@@ -200,17 +223,7 @@ useEffect(() => {
       instanceId: `${Date.now()}-${Math.random()}`,
       isReserve: !!isReserve,
     };
-    setStackSongs((prev) => {
-      const newStack = [...prev, newSongEntry];
-
-      // Отправка обновленного стека через socket
-      socket.emit("stack-updated", {
-        stackId: stackResponse.doc._id,
-        songs: newStack,
-      });
-
-      return newStack;
-    });
+    setStackSongs((prev) => [...prev, newSongEntry]);
 
     // Только для песен в резерве
     if (isReserve && !programSelected.includes("reserved")) {

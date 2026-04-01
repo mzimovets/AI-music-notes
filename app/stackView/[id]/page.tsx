@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useCallback, useState, useEffect} from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { useClicker } from "@/components/useClicker";
 
 import { SideBarStack } from "./components/SideBarStack";
@@ -12,6 +12,13 @@ import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
+
+type StackUpdatedPayload = {
+  stackId: string;
+  songs: any[];
+  mealType: string | null;
+  programSelected: string[];
+};
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
@@ -33,33 +40,38 @@ export default function Page() {
     setProgramSelected,
   } = useStackContext();
 
-  const [joined, setJoined] = useState(false);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
+  const stackId = stackResponse?.doc?._id;
 
   useEffect(() => {
-    if (!stackResponse?.doc?._id || joined) return;
+    if (!stackId) return;
 
-    const stackId = stackResponse.doc._id;
-
-    socket.emit("join-stack", stackId);
-
-    const handleUpdate = (updatedSongs) => {
-      setStackSongs(updatedSongs);
+    const joinCurrentStack = () => {
+      socket.emit("join-stack", stackId);
     };
 
+    const handleUpdate = (payload: StackUpdatedPayload) => {
+      if (!payload || payload.stackId !== stackId) return;
+      setStackSongs(payload.songs || []);
+      setProgramSelected(payload.programSelected || []);
+      setMealType(payload.mealType || null);
+    };
+
+    joinCurrentStack();
+    socket.on("connect", joinCurrentStack);
     socket.on("stack-updated", handleUpdate);
-    setJoined(true);
 
     return () => {
+      socket.off("connect", joinCurrentStack);
       socket.off("stack-updated", handleUpdate);
     };
-  }, [stackResponse, joined]);
+  }, [stackId, setMealType, setProgramSelected, setStackSongs]);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
     setProgramSelected(stackResponse.doc?.programSelected || []);
     setMealType(stackResponse.doc?.mealType || null);
-  }, [stackResponse]);
+  }, [stackResponse, setMealType, setProgramSelected, setStackSongs]);
 
   useEffect(() => {
     const onScroll = () => {
