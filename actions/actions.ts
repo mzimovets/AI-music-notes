@@ -58,7 +58,8 @@ export async function updateStack({
     cover,
     id,
   });
-  revalidatePath(currentUrl);
+  revalidatePath(`/stack/${id}`);
+  revalidatePath(`/stackView/${id}`);
   return response;
 }
 

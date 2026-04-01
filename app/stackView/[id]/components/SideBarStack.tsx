@@ -105,6 +105,7 @@ import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
 import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
 import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
 import { updateStack } from "@/actions/actions";
+import { recacheStack } from "@/lib/recache";
 import { useParams } from "next/navigation";
 import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
 import { DeleteModal } from "./DeleteModal";
@@ -178,9 +179,8 @@ useEffect(() => {
       stackId,
       songs: stackSongs,
       mealType,
-      programSelected,
     });
-  }, [isRegent, mealType, programSelected, stackId, stackSongs]);
+  }, [isRegent, mealType, stackId, stackSongs]);
 
   const searchRef = useRef(null);
   const sensors = useSensors(
@@ -395,7 +395,7 @@ useEffect(() => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const save = async () => {
-    const resp = await updateStack({
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
@@ -404,6 +404,8 @@ useEffect(() => {
       id: params.id,
       name: stackResponse.doc?.name,
     });
+    await recacheStack(params.id);
+    router.push("/");
   };
 
   return (

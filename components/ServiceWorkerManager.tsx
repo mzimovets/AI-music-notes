@@ -378,17 +378,32 @@ export function ServiceWorkerManager() {
   useEffect(() => {
     const handler = async (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      if (!id || !("caches" in window) || !navigator.onLine) return;
+      if (!id || !("caches" in window) || !navigator.onLine) {
+        window.dispatchEvent(new CustomEvent("sw-recache-done", { detail: id }));
+        return;
+      }
       console.log(`[Sync] Перекэшируем стопку ${id}`);
+
+      // Показываем анимацию сразу
       setProgress({ current: 0, total: 2, done: false });
+
+      // Удаляем stale-кэш до фетча — NetworkFirst будет вынужден идти в сеть
+      await deleteFromAllCaches(`/stack/${id}`);
+      await deleteFromAllCaches(`/stackView/${id}`);
+
       const urls = [`/stack/${id}`, `/stackView/${id}`];
       for (let i = 0; i < urls.length; i++) {
         try {
-          const res = await fetch(urls[i], { credentials: "same-origin", cache: "reload" });
-          console.log(`[Sync] ${res.ok ? "✓" : "✗"} ${urls[i]}`);
+          // HTML-версия → кэш pages (прямой переход / F5)
+          await fetch(urls[i], { credentials: "same-origin", cache: "reload" });
+          // RSC-версия → кэш pages-rsc-app (клиентская навигация Next.js)
+          await fetch(urls[i], { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" } });
+          console.log(`[Sync] ✓ ${urls[i]}`);
         } catch {}
         setProgress({ current: i + 1, total: 2, done: i === 1 });
       }
+
+      window.dispatchEvent(new CustomEvent("sw-recache-done", { detail: id }));
       setTimeout(() => setProgress(null), 2000);
     };
     window.addEventListener("sw-recache-stack", handler);
