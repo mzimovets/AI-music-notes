@@ -17,6 +17,7 @@ import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
 import { DownArrIcon } from "@/components/icons/DownArrIcon";
 import { Search } from "./home/search/Search";
 import { useSession } from "next-auth/react";
+import { getBackendBaseUrl } from "@/lib/client-url";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -29,12 +30,12 @@ export default function Home() {
   const [showStacks, setShowStacks] = useState(false);
 
   useEffect(() => {
+    const backUrl = getBackendBaseUrl();
+
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-        );
+        const response = await fetch(`${backUrl}/songs`);
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -64,9 +65,7 @@ export default function Home() {
 
     const fetchAllStacks = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stacks`,
-        );
+        const response = await fetch(`${backUrl}/stacks`);
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {

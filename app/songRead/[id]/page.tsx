@@ -6,6 +6,7 @@ import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { useClicker } from "@/components/useClicker";
 import { useSongContext } from "@/app/song/[id]/SongContextProvider";
+import { getUploadPath } from "@/lib/client-url";
 
 export default function SongReadPage() {
   const { songResponse } = useSongContext();
@@ -108,7 +109,7 @@ export default function SongReadPage() {
 
       <div ref={viewerContainerRef} className="flex justify-center mb-2">
         <StackViewer
-          fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${songResponse.doc.file.filename}`}
+          fileUrl={getUploadPath(songResponse.doc.file.filename)}
         />
       </div>
     </div>

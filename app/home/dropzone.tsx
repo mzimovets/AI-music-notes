@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useId } from "react";
 import Dropzone from "dropzone";
 import "dropzone/dist/dropzone.css";
 import { Button, Card } from "@heroui/react";
+import { getBackendBaseUrl } from "@/lib/client-url";
 
 // Объявляем интерфейс ПЕРЕД функцией компонента
 interface MyDropzoneProps {
@@ -62,7 +63,7 @@ export default function MyDropzone({
 
     // Инициализация Dropzone
     const dz = new Dropzone(`#${dropzoneId}`, {
-      url: `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/api/upload`,
+      url: `${getBackendBaseUrl()}/api/upload`,
       maxFilesize: 5,
       acceptedFiles: ".pdf",
       paramName: "file",

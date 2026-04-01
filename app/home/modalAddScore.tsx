@@ -24,6 +24,7 @@ import { getCategoryDisplay } from "@/lib/utils";
 import { AddSongIcon } from "@/components/icons/AddSongIcon";
 import { useAllSongsLibraryContextProvider } from "../providers";
 import { enqueue, storeFile } from "@/lib/offline-queue";
+import { getBackendBaseUrl } from "@/lib/client-url";
 
 export const songs = [
   { label: "Духовные канты", key: "spiritual_chants" },
@@ -80,9 +81,7 @@ export default function ModalAddScore() {
 
   const fetchAllSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
 
       if (data.status === "ok" && data.docs) {

@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
+import { getUploadPath, getUploadUrl } from "@/lib/client-url";
 
 // Показывает центрированное сообщение с анимацией, размеры как при нажатии «Поделиться»
 const showCenterMessage = () => {
@@ -46,7 +47,7 @@ export const useDownloadSong = () => {
 
     setIsDownloading(true);
     try {
-      const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${manualSong?.file?.filename}`;
+      const fileUrl = getUploadPath(manualSong?.file?.filename);
       const fileName = manualSong?.file.filename;
 
       const response = await fetch(fileUrl);
@@ -67,7 +68,7 @@ export const useDownloadSong = () => {
     } catch (error) {
       console.error("Ошибка при скачивании:", error);
       window.open(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${manualSong?.file?.filename}`,
+        getUploadUrl(manualSong?.file?.filename),
         "_blank",
       );
       showCenterMessage();

@@ -28,6 +28,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { TrashBinIcon } from "./icons/TrashBinIcon";
 import { EmptyIcon } from "./icons/DragIcon";
+import { getBackendBaseUrl } from "@/lib/client-url";
 
 const SortableSong = ({ song, onRemove, index }) => {
   const {
@@ -99,9 +100,7 @@ export const Sidebar = () => {
 
   const getSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {

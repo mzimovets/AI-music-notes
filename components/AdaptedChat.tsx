@@ -10,6 +10,7 @@ import {
   MessageInput,
 } from "@chatscope/chat-ui-kit-react";
 import "@chatscope/chat-ui-kit-styles/dist/default/styles.min.css";
+import { getClickerWebSocketUrl } from "@/lib/client-url";
 
 interface ChatProps {
   userId: string;
@@ -20,7 +21,7 @@ export default function AdaptedChat({ userId }: ChatProps) {
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
-    const s = io("http://localhost:3001");
+    const s = io(getClickerWebSocketUrl().replace(/^ws/, "http"));
     setSocket(s);
 
     s.on("connect", () => console.log("Connected to Socket.IO"));

@@ -112,6 +112,7 @@ import { DeleteModal } from "./DeleteModal";
 import { SidebarButton } from "./SidebarButton";
 import { socket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
@@ -192,9 +193,7 @@ useEffect(() => {
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {

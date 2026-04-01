@@ -5,9 +5,10 @@
 
 @font-face {
   font-family: "Roboto Slab";
-  src: url("/fonts/roboto-slab/RobotoSlab-VariableFont_wght.ttf") format("ttf");
-  font-weight: 700;
+  src: url("/fonts/RobotoSlab-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
 }
 
 /* Навбар */
@@ -84,6 +85,7 @@
 
 .input-header {
   font-family: "Roboto Slab", serif;
+  font-weight: 400;
 }
 
 .font-bold {
