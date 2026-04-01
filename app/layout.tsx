@@ -12,6 +12,7 @@ import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
 import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
+import { DirectChatWidget } from "@/components/DirectChatWidget";
 
 export default function RootLayout({
   children,
@@ -61,6 +62,7 @@ export default function RootLayout({
               <AllSongsLibraryContextProvider>
                 <NavbarWrapper />
                 <MainWrapper>{children}</MainWrapper>
+                <DirectChatWidget />
               </AllSongsLibraryContextProvider>
               <footer className="w-full flex items-center justify-center py-3"></footer>
             </div>
