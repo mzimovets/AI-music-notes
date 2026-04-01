@@ -1,0 +1,18 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "app/stackView/[id]/components/SideBarStack.tsx",
+        "app/stackView/[id]/page.tsx",
+        "lib/socket.js",
+        "server/index.js",
+        "server/node_modules/.package-lock.json",
+        "server/package.json",
+        ".vscode/changelists.json",
+        "server/database.db"
+      ]
+    }
+  ],
+  "active": "Default"
+}
