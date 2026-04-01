@@ -50,7 +50,7 @@ export const CategoryHeader = () => {
           alt="album cover"
           className="object-cover"
           height={200}
-          src={`${process.env.NEXT_PUBLIC_BASIC_URL}/${categoryObj?.image}`}
+          src={categoryObj?.image}
           width={200}
         />
       </Card>{" "}

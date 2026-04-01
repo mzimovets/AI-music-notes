@@ -10,6 +10,7 @@ import {
 import { useState } from "react";
 import { useStackContext } from "./StackContextProvider";
 import { removeStack } from "@/actions/actions";
+import { enqueue } from "@/lib/offline-queue";
 import { useParams, useRouter } from "next/navigation";
 import { TrashBinIcon } from "./icons/TrashBinIcon";
 
@@ -23,8 +24,15 @@ export const DeleteStackModal = () => {
   const handleConfirmDelete = async () => {
     try {
       setIsDeleting(true);
+      if (!navigator.onLine) {
+        enqueue({ type: "stack.delete", id: params.id });
+        window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
+        router.push(`/`);
+        return;
+      }
       const response = await removeStack(params.id);
       if (response) {
+        window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
         router.push(`/`);
         router.refresh();
       } else {
