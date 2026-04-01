@@ -1,10 +1,69 @@
 import { database } from "../index.js";
 
 export const usersRoutes = (app, urlencodedParser) => {
+  const userDocumentQuery = (username) => ({
+    username,
+    docType: { $in: ["admin", "user"] },
+  });
+
+  app.get("/user/:username/settings", (req, res) => {
+    const username = req.params.username;
+
+    database.findOne(userDocumentQuery(username), (err, doc) => {
+      if (err) {
+        console.log("Error finding user settings:", err);
+        return res.status(500).json({ error: err });
+      }
+
+      if (!doc) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      res.json({
+        status: "ok",
+        settings: {
+          chatVisible: doc.settings?.chatVisible !== false,
+        },
+      });
+    });
+  });
+
+  app.put("/user/:username/settings", urlencodedParser, (req, res) => {
+    const username = req.params.username;
+    const chatVisible = req.body?.chatVisible !== false;
+
+    database.update(
+      userDocumentQuery(username),
+      {
+        $set: {
+          "settings.chatVisible": chatVisible,
+        },
+      },
+      {},
+      (err, updatedCount) => {
+        if (err) {
+          console.log("Error updating user settings:", err);
+          return res.status(500).json({ error: err });
+        }
+
+        if (!updatedCount) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        res.json({
+          status: "ok",
+          settings: {
+            chatVisible,
+          },
+        });
+      },
+    );
+  });
+
   app.get("/user/:username", (req, res) => {
     const identifier = req.params.username;
     console.log("GET /user/:username called with username:", identifier);
-    const query = { username: identifier };
+    const query = userDocumentQuery(identifier);
     database.findOne(query, (err, doc) => {
       if (err) {
         console.log("Error finding user:", err);

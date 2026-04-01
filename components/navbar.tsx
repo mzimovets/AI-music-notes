@@ -1,11 +1,11 @@
 "use client";
-import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Navbar as HeroUINavbar,
   NavbarContent,
   NavbarItem,
 } from "@heroui/navbar";
 import { Button } from "@heroui/button";
+import { Switch } from "@heroui/switch";
 import {
   Modal,
   ModalContent,
@@ -16,27 +16,37 @@ import {
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 
-import { Link } from "@heroui/link";
-
 import ModalAddScore from "@/app/home/modalAddScore";
 import StackNameModal from "@/components/modalAddStack";
+import {
+  getChatVisibilityFromDatabase,
+  getStoredChatVisibility,
+  isChatEligibleUser,
+  saveChatVisibilityToDatabase,
+  setStoredChatVisibility,
+  syncChatVisibilityFromDatabase,
+} from "@/lib/chat-settings";
 
 import { usePathname, useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import React from "react";
 import { StackIcon } from "./icons/StackIcon";
 import ExitIcon from "./icons/ExitIcon";
+import SettingsIcon from "./icons/SettingsIcon";
 
 export const Navbar = () => {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isExitStackModalOpen, setIsExitStackModalOpen] = useState(false);
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [isChatVisible, setIsChatVisible] = useState(true);
 
   const router = useRouter();
   const pathname = usePathname();
+  const username = session?.user?.name?.toLowerCase() || "";
 
   const handleOpenStack = () => setIsModalOpen(true);
 
@@ -55,6 +65,30 @@ export const Navbar = () => {
   };
 
   const showStackButtons = session?.user?.role === "регент";
+  const showSettingsButton = isChatEligibleUser(username);
+
+  useEffect(() => {
+    if (!showSettingsButton) {
+      setIsChatVisible(true);
+      return;
+    }
+
+    setIsChatVisible(getStoredChatVisibility(username));
+
+    let isCancelled = false;
+
+    syncChatVisibilityFromDatabase(username)
+      .then((nextValue) => {
+        if (!isCancelled) {
+          setIsChatVisible(nextValue);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [showSettingsButton, username]);
 
   const handleLogoClick = () => {
     if (pathname.startsWith("/stack")) {
@@ -67,6 +101,24 @@ export const Navbar = () => {
   const handleExitStackConfirm = () => {
     setIsExitStackModalOpen(false);
     router.push("/");
+  };
+
+  const handleChatVisibilityChange = (isSelected: boolean) => {
+    setIsChatVisible(isSelected);
+    setStoredChatVisibility(username, isSelected);
+
+    saveChatVisibilityToDatabase(username, isSelected)
+      .then((nextValue) => {
+        setIsChatVisible(nextValue);
+      })
+      .catch(() => {
+        getChatVisibilityFromDatabase(username)
+          .then((nextValue) => {
+            setIsChatVisible(nextValue);
+            setStoredChatVisibility(username, nextValue);
+          })
+          .catch(() => {});
+      });
   };
 
   return (
@@ -112,6 +164,16 @@ export const Navbar = () => {
                   <StackIcon color="white" />
                 </Button>
               )}
+            {showSettingsButton && (
+              <Button
+                onPress={() => setIsSettingsModalOpen(true)}
+                radius="full"
+                isIconOnly
+                className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+              >
+                <SettingsIcon color="white" />
+              </Button>
+            )}
             <Button
               onPress={handleExit}
               radius="full"
@@ -207,6 +269,44 @@ export const Navbar = () => {
               </ModalFooter>
             </>
           )}
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isSettingsModalOpen}
+        onOpenChange={setIsSettingsModalOpen}
+        placement="center"
+        backdrop="blur"
+      >
+        <ModalContent className="bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_20px_60px_rgba(0,0,0,0.2)] rounded-2xl">
+          <ModalHeader className="flex flex-col gap-1 pt-6">
+            <h3 className="text-2xl font-bold text-gray-900">Настройки</h3>
+            <p className="text-sm text-gray-600 input-header">
+              Управление отображением личного чата
+            </p>
+          </ModalHeader>
+          <ModalBody className="pb-2">
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-[#eadfd4] bg-[#fcfaf8] px-4 py-4">
+              <div>
+                <p className="text-base font-semibold text-[#473424]">Показывать чат</p>
+                <p className="text-sm text-[#8b735d]">
+                  Если выключить, кнопка чата и окно чата будут скрыты
+                </p>
+              </div>
+              <Switch
+                isSelected={isChatVisible}
+                onValueChange={handleChatVisibilityChange}
+                aria-label="Показывать чат"
+              />
+            </div>
+          </ModalBody>
+          <ModalFooter className="pt-0 pb-6">
+            <Button
+              className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md hover:shadow-lg transition-all input-header"
+              onPress={() => setIsSettingsModalOpen(false)}
+            >
+              Закрыть
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </>

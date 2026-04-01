@@ -218,19 +218,102 @@ const io = new SocketIOServer(httpServer, {
 const CHAT_ROOM_ID = "private-chat-regent-bishop";
 const CHAT_ALLOWED_USERS = ["regent", "bishop"];
 const CHAT_ALLOWED_USERS_SET = new Set(CHAT_ALLOWED_USERS);
+const CHAT_RETENTION_MS = 6 * 60 * 60 * 1000;
+const CHAT_CLEANUP_INTERVAL_MS = 60 * 1000;
+const CHAT_STATE_DOC_PREFIX = "chat-state:";
 const chatSocketsByUser = new Map(
   CHAT_ALLOWED_USERS.map((username) => [username, new Set()])
 );
 
 const getChatUserRoom = (username) => `private-chat-user:${username}`;
+const getChatStateDocId = (username) => `${CHAT_STATE_DOC_PREFIX}${username}`;
+const getChatExpiryCutoff = () =>
+  new Date(Date.now() - CHAT_RETENTION_MS).toISOString();
 
 const getChatCompanion = (username) =>
   CHAT_ALLOWED_USERS.find((item) => item !== username) || null;
 
-const getChatHistory = () =>
+const getChatState = (username) =>
   new Promise((resolve, reject) => {
+    database.findOne(
+      { _id: getChatStateDocId(username), docType: "chatState" },
+      (err, doc) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(doc || null);
+      }
+    );
+  });
+
+const upsertChatState = (username, patch = {}) =>
+  new Promise((resolve, reject) => {
+    const stateDoc = {
+      _id: getChatStateDocId(username),
+      docType: "chatState",
+      roomId: CHAT_ROOM_ID,
+      username,
+      ...patch,
+    };
+
+    database.update(
+      { _id: stateDoc._id },
+      { $set: stateDoc },
+      { upsert: true },
+      (err, updatedCount) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(updatedCount || 0);
+      }
+    );
+  });
+
+const cleanupExpiredChatMessages = () =>
+  new Promise((resolve, reject) => {
+    database.remove(
+      {
+        docType: "chatMessage",
+        roomId: CHAT_ROOM_ID,
+        createdAt: { $lt: getChatExpiryCutoff() },
+      },
+      { multi: true },
+      (err, removedCount) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        resolve(removedCount || 0);
+      }
+    );
+  });
+
+const getChatVisibilityQuery = async (username) => {
+  const chatState = await getChatState(username);
+  const expiryCutoff = getChatExpiryCutoff();
+
+  if (chatState?.clearedAt && chatState.clearedAt > expiryCutoff) {
+    return { createdAt: { $gt: chatState.clearedAt } };
+  }
+
+  return { createdAt: { $gte: expiryCutoff } };
+};
+
+const getChatHistory = async (username) => {
+  const visibilityQuery = await getChatVisibilityQuery(username);
+
+  return new Promise((resolve, reject) => {
     database
-      .find({ docType: "chatMessage", roomId: CHAT_ROOM_ID })
+      .find({
+        docType: "chatMessage",
+        roomId: CHAT_ROOM_ID,
+        ...visibilityQuery,
+      })
       .sort({ createdAt: 1 })
       .exec((err, docs) => {
         if (err) {
@@ -241,15 +324,19 @@ const getChatHistory = () =>
         resolve(docs || []);
       });
   });
+};
 
-const getUnreadChatCount = (username) =>
-  new Promise((resolve, reject) => {
+const getUnreadChatCount = async (username) => {
+  const visibilityQuery = await getChatVisibilityQuery(username);
+
+  return new Promise((resolve, reject) => {
     database.count(
       {
         docType: "chatMessage",
         roomId: CHAT_ROOM_ID,
         receiver: username,
         isRead: false,
+        ...visibilityQuery,
       },
       (err, count) => {
         if (err) {
@@ -261,15 +348,19 @@ const getUnreadChatCount = (username) =>
       }
     );
   });
+};
 
-const markChatAsRead = (username, readAt) =>
-  new Promise((resolve, reject) => {
+const markChatAsRead = async (username, readAt) => {
+  const visibilityQuery = await getChatVisibilityQuery(username);
+
+  return new Promise((resolve, reject) => {
     database.update(
       {
         docType: "chatMessage",
         roomId: CHAT_ROOM_ID,
         receiver: username,
         isRead: false,
+        ...visibilityQuery,
       },
       {
         $set: {
@@ -288,17 +379,19 @@ const markChatAsRead = (username, readAt) =>
       }
     );
   });
+};
 
 const insertChatMessage = (messageDoc) =>
   new Promise((resolve, reject) => {
-    database.insert(messageDoc, (err, doc) => {
-      if (err) {
-        reject(err);
-        return;
-      }
+    database
+      .insert(messageDoc, (err, doc) => {
+        if (err) {
+          reject(err);
+          return;
+        }
 
-      resolve(doc);
-    });
+        resolve(doc);
+      });
   });
 
 const getOnlineChatUsers = () =>
@@ -341,6 +434,31 @@ const unregisterChatSocket = (socket) => {
   delete socket.data.chatUsername;
 };
 
+const refreshChatUnreadCounts = async () => {
+  const unreadCounts = await Promise.all(
+    CHAT_ALLOWED_USERS.map(async (username) => ({
+      username,
+      unreadCount: await getUnreadChatCount(username),
+    }))
+  );
+
+  unreadCounts.forEach(({ username, unreadCount }) => {
+    io.to(getChatUserRoom(username)).emit("chat:unread-count", unreadCount);
+  });
+};
+
+const runChatCleanup = async () => {
+  try {
+    const removedCount = await cleanupExpiredChatMessages();
+
+    if (removedCount > 0) {
+      await refreshChatUnreadCounts();
+    }
+  } catch (error) {
+    console.error("Ошибка очистки старых сообщений чата:", error);
+  }
+};
+
 io.on("connection", (socket) => {
   socket.on("join-stack", (stackId) => {
     if (!stackId) return;
@@ -367,8 +485,10 @@ io.on("connection", (socket) => {
     registerChatSocket(socket, username);
 
     try {
+      await cleanupExpiredChatMessages();
+
       const [messages, unreadCount] = await Promise.all([
-        getChatHistory(),
+        getChatHistory(username),
         getUnreadChatCount(username),
       ]);
 
@@ -411,6 +531,7 @@ io.on("connection", (socket) => {
     };
 
     try {
+      await cleanupExpiredChatMessages();
       const savedMessage = await insertChatMessage(messageDoc);
       io.to(CHAT_ROOM_ID).emit("chat:new-message", savedMessage);
 
@@ -439,6 +560,7 @@ io.on("connection", (socket) => {
     const readAt = new Date().toISOString();
 
     try {
+      await cleanupExpiredChatMessages();
       const updatedCount = await markChatAsRead(username, readAt);
       const unreadCount = await getUnreadChatCount(username);
 
@@ -455,6 +577,28 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("chat:clear", async () => {
+    const username = socket.data.chatUsername;
+
+    if (!CHAT_ALLOWED_USERS_SET.has(username)) {
+      return;
+    }
+
+    const clearedAt = new Date().toISOString();
+
+    try {
+      await cleanupExpiredChatMessages();
+      await upsertChatState(username, { clearedAt });
+
+      io.to(getChatUserRoom(username)).emit("chat:cleared", {
+        clearedAt,
+        unreadCount: 0,
+      });
+    } catch (error) {
+      console.error("Ошибка персональной очистки чата:", error);
+    }
+  });
+
   socket.on("disconnect", () => {
     const hadRegisteredChatUser = Boolean(socket.data.chatUsername);
     unregisterChatSocket(socket);
@@ -464,6 +608,9 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+runChatCleanup();
+setInterval(runChatCleanup, CHAT_CLEANUP_INTERVAL_MS);
 
 httpServer.listen(PORT, () => {
   console.log("express on 4000");
