@@ -1,35 +1,28 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { getSongById } from "@/lib/utils";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { CloseReadButton } from "./components/CloseReadButton";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { useClicker } from "@/components/useClicker";
+import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 
 export default function SongReadPage() {
-  const { id } = useParams<{ id: string }>();
-  const [song, setSong] = useState<any>(null);
+  const { songResponse } = useSongContext();
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const fetchSong = async () => {
-      if (!id) return;
-      const data = await getSongById(id);
-      setSong(data);
-    };
-    fetchSong();
-  }, [id]);
-
-  // Скрытие кнопки при скролле
-  useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
-      if (currentY < lastScrollY) setShowButton(true);
-      else if (currentY > lastScrollY) setShowButton(false);
+
+      if (currentY < lastScrollY) {
+        setShowButton(true);
+      } else if (currentY > lastScrollY) {
+        setShowButton(false);
+      }
+
       setLastScrollY(currentY);
     };
 
@@ -100,7 +93,7 @@ export default function SongReadPage() {
     if (direction === 'up') scrollToPageByStep(-1);
   }, [scrollToPageByStep]));
 
-  if (!song?.doc?.file?.filename) return null;
+  if (!songResponse?.doc?.file?.filename) return null;
 
   return (
     <div>
@@ -115,7 +108,7 @@ export default function SongReadPage() {
 
       <div ref={viewerContainerRef} className="flex justify-center mb-2">
         <StackViewer
-          fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
+          fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${songResponse.doc.file.filename}`}
         />
       </div>
     </div>

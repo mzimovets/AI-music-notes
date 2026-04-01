@@ -13,6 +13,7 @@ import { TrashBinIcon } from "./components/icons/TrashBinIcon";
 import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
 import { updateStack } from "@/actions/actions";
+import { enqueue } from "@/lib/offline-queue";
 import { holidays } from "./components/Sidebar2";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -73,7 +74,7 @@ export default function StackPage() {
   const handleClosePreview = () => setIsPreviewModalOpen(false);
   const handlePreview = (song) => {
     setSelectedFile(
-      `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`,
+      `/uploads/${song.file.filename}`,
     );
     setIsPreviewModalOpen(true);
   };
@@ -89,31 +90,59 @@ export default function StackPage() {
   const save = async () => {
     const finalName = stackName?.trim() ? stackName : "Стопка";
 
-    await updateStack({
-      stack: stackSongs,
-      mealType,
-      programSelected,
-      isPublished: false,
-      currentUrl: window.location.pathname,
-      id: params.id,
-      cover: stackCover,
-      name: finalName,
-    });
+    if (!navigator.onLine) {
+      enqueue({
+        type: "stack.update",
+        id: params.id,
+        songs: stackSongs,
+        isPublished: false,
+        mealType: mealType ?? null,
+        programSelected: programSelected as string[],
+        name: finalName,
+        cover: stackCover || "",
+      });
+    } else {
+      await updateStack({
+        stack: stackSongs,
+        mealType,
+        programSelected,
+        isPublished: false,
+        currentUrl: window.location.pathname,
+        id: params.id,
+        cover: stackCover,
+        name: finalName,
+      });
+      window.dispatchEvent(new CustomEvent("sw-recache-stack", { detail: params.id }));
+    }
 
     router.push(`/`);
   };
 
   const publicStack = async () => {
-    const resp = await updateStack({
-      stack: stackSongs,
-      mealType,
-      programSelected,
-      isPublished: true,
-      currentUrl: window.location.pathname,
-      id: params.id,
-      cover: stackCover,
-      name: stackNameToSave,
-    });
+    if (!navigator.onLine) {
+      enqueue({
+        type: "stack.update",
+        id: params.id,
+        songs: stackSongs,
+        isPublished: true,
+        mealType: mealType ?? null,
+        programSelected: programSelected as string[],
+        name: stackNameToSave,
+        cover: stackCover || "",
+      });
+    } else {
+      await updateStack({
+        stack: stackSongs,
+        mealType,
+        programSelected,
+        isPublished: true,
+        currentUrl: window.location.pathname,
+        id: params.id,
+        cover: stackCover,
+        name: stackNameToSave,
+      });
+      window.dispatchEvent(new CustomEvent("sw-recache-stack", { detail: params.id }));
+    }
 
     router.push(`/`);
   };
@@ -238,7 +267,7 @@ export default function StackPage() {
                 </div>
                 <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                   <PdfTitlePage
-                    fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
+                    fileUrl={`/uploads/${song.file.filename}`}
                   />
                 </div>
               </div>
@@ -330,7 +359,7 @@ export default function StackPage() {
                   </div>
                   <div className="mt-1 mb-1 sm:mb-6 sm:mt-2">
                     <PdfTitlePage
-                      fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.file.filename}`}
+                      fileUrl={`/uploads/${song.file.filename}`}
                     />
                   </div>
                 </div>

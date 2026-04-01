@@ -9,11 +9,13 @@ import {
   Button,
   Input,
   useDisclosure,
+  addToast,
 } from "@heroui/react";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
 import { saveStack } from "@/actions/actions";
 import { StackIcon } from "./icons/StackIcon";
+import { enqueue } from "@/lib/offline-queue";
 
 interface StackAddModalProps {
   isOpen: boolean;
@@ -47,10 +49,38 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
     }
 
     const id = Math.random().toString();
-    const resp = await saveStack(stackName, id, window.location.pathname);
     setIsSaved(true);
-    onConfirm(stackName);
-    router.push(`/stack/${id}`);
+
+    if (!navigator.onLine) {
+      // Новая стопка офлайн — страница не закэширована, идём на главную
+      enqueue({ type: "stack.create", id, name: stackName });
+      addToast({
+        title: <span className="font-bold text-white">Сохранено офлайн</span>,
+        description: (
+          <span className="text-white">
+            «{stackName}» добавится на сервер при восстановлении соединения
+          </span>
+        ),
+        timeout: 4000,
+        classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+      });
+      onConfirm(stackName);
+      onClose();
+      router.push("/");
+      return;
+    }
+
+    try {
+      await saveStack(stackName, id, window.location.pathname);
+      onConfirm(stackName);
+      router.push(`/stack/${id}`);
+    } catch (e) {
+      // navigator.onLine может быть true даже без интернета — сохраняем офлайн
+      console.warn("[Stack] Сеть недоступна, сохраняем офлайн:", e);
+      enqueue({ type: "stack.create", id, name: stackName });
+      onConfirm(stackName);
+      router.push("/");
+    }
     onClose();
   };
 

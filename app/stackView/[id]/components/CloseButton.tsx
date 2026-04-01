@@ -6,6 +6,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
 import { removeStack, updateStack } from "@/actions/actions";
+import { enqueue } from "@/lib/offline-queue";
 
 export const CloseButton = () => {
   const router = useRouter();
@@ -28,7 +29,12 @@ export const CloseButton = () => {
 
   const handleCloseStack = async () => {
     if (!stackResponse?.doc?.songs?.length) {
-      await removeStack(params.id);
+      if (!navigator.onLine) {
+        enqueue({ type: "stack.delete", id: params.id });
+      } else {
+        await removeStack(params.id);
+      }
+      window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
     }
 
     setIsOpen(false);

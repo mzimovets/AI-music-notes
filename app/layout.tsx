@@ -11,12 +11,14 @@ import { siteConfig } from "@/config/site";
 import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
+import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
 
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <html
       suppressHydrationWarning
@@ -53,6 +55,7 @@ export default function RootLayout({
         className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
       >
         <SessionProvider>
+          <ServiceWorkerManager />
           <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
             <div className="relative flex flex-col">
               <AllSongsLibraryContextProvider>

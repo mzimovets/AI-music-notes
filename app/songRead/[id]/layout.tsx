@@ -1,14 +1,24 @@
 import React from "react";
-import { getStackById } from "@/lib/stack-requests";
-import { StackContextProvider } from "@/app/stack/[id]/components/StackContextProvider";
+import { getSongById } from "@/lib/utils";
+import { SongContextProvider } from "@/app/song/[id]/SongContextProvider";
 
 export default async function SongReadLayout({ children, params }) {
-  const { id } = await params; // <-- обязательно await
-  const stack = await getStackById(id);
+  const { id } = await params;
+
+  let song;
+  try {
+    song = await getSongById(id);
+  } catch (e) {
+    song = { status: "ok", doc: { _id: id } };
+  }
+
+  if (!song?.doc) {
+    song = { status: "ok", doc: { _id: id } };
+  }
 
   return (
-    <StackContextProvider stackResponse={stack}>
-      <div className="stack-view-layout">{children}</div>
-    </StackContextProvider>
+    <SongContextProvider songResponse={song}>
+      <div>{children}</div>
+    </SongContextProvider>
   );
 }
