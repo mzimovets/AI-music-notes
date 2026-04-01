@@ -189,10 +189,10 @@ export default function ModalAddScore() {
         size="3xl"
         backdrop="blur"
         classNames={{
-          base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
+          base: "mt-50 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
         }}
       >
-        <ModalContent className="p-10 bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
+        <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
           {(onClose) => (
             <>
               <div className="absolute top-3 left-2 z-50">
@@ -200,7 +200,8 @@ export default function ModalAddScore() {
               </div>
 
               {/* Заголовок */}
-              <ModalHeader className="p-0 flex flex-col text-center justify-center font-header gap-4">
+              {/* className="p-0 flex flex-col text-center justify-center font-header gap-4" */}
+              <ModalHeader className="mx-auto text-center font-header">
                 Добавить новую партитуру
               </ModalHeader>
 

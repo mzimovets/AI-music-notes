@@ -157,7 +157,7 @@ return (
                 !pathname.startsWith("/stack") &&
                 !pathname.startsWith("/stackView") && (
                   <Button
-                    onPress={handleOpenStack}
+                    onPress={handleOpenStack} // Надо как-то делать чтобы popover закрывался
                     radius="full"
                     className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
                     startContent={<StackIcon color="white" />}
