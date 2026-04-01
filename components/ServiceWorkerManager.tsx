@@ -419,6 +419,38 @@ export function ServiceWorkerManager() {
     return () => window.removeEventListener("sw-recache-stack", handler);
   }, []);
 
+  // Перекэширование конкретной песни после её изменения
+  useEffect(() => {
+    const handler = async (e: Event) => {
+      const id = (e as CustomEvent<string>).detail;
+      if (!id || !("caches" in window) || !navigator.onLine) {
+        window.dispatchEvent(new CustomEvent("sw-recache-done", { detail: id }));
+        return;
+      }
+      console.log(`[Sync] Перекэшируем песню ${id}`);
+
+      // Показываем анимацию сразу
+      setProgress({ current: 0, total: 1, done: false });
+
+      // Удаляем stale-кэш до фетча — NetworkFirst будет вынужден идти в сеть
+      await deleteFromAllCaches(`/song/${id}`);
+
+      try {
+        // HTML-версия → кэш pages (прямой переход / F5)
+        await fetch(`/song/${id}`, { credentials: "same-origin", cache: "reload" });
+        // RSC-версия → кэш pages-rsc-app (клиентская навигация Next.js)
+        await fetch(`/song/${id}`, { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" } });
+        console.log(`[Sync] ✓ /song/${id}`);
+      } catch {}
+      setProgress({ current: 1, total: 1, done: true });
+
+      window.dispatchEvent(new CustomEvent("sw-recache-done", { detail: id }));
+      setTimeout(() => setProgress(null), 2000);
+    };
+    window.addEventListener("sw-recache-song", handler);
+    return () => window.removeEventListener("sw-recache-song", handler);
+  }, []);
+
   // Typewriter states
   const [typeIndex, setTypeIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
