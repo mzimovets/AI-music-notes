@@ -92,13 +92,8 @@ return (
           >
             <div className="flex items-center">
               <CamertonLogo className="h-10 w-10 sm:h-12 sm:w-12 -translate-y-1" />
-              <p className="font-navbarBrand text-inherit text-sm sm:text-base">
+              <p className="hidden sm:flex font-navbarBrand text-inherit text-sm sm:text-base">
                 Нотная библиотека
-                {/* Пѣснопѣвецъ */}
-                      {/* Песнопевец */}
-                      {/* Лик */}
-                      {/* Ликъ */}
-                      {/* Нотная библиотека */}
               </p>
             </div>
           </div>
