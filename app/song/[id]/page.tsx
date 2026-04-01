@@ -36,7 +36,7 @@ export default async function PricingPage({
           {song.doc.file?.filename && (
             <div className="relative inline-block">
               <DocViewer
-                fileUrl={`${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song.doc.file.filename}`}
+                fileUrl={`/uploads/${song.doc.file.filename}`}
               />
               <EyeSongPageView
                 songId={id}
