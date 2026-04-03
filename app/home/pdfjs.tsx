@@ -9,9 +9,11 @@ interface PdfViewerProps {
   fileUrl: string | File;
   pageNum: number;
   setPdfDoc?: (doc: any) => void;
+  onLoadStart?: () => void;
+  onLoadEnd?: () => void;
 }
 
-export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
+export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoadEnd }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const renderTaskRef = useRef<any>(null);
   const [pdfDoc, setPdfDocState] = useState<any>(null);
@@ -131,11 +133,11 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc }: PdfViewerProps) {
         renderTaskRef.current = page.render(renderContext);
         await renderTaskRef.current.promise;
       } catch (err: any) {
-        if (err?.name === "RenderingCancelledException") {
-          // Render cancelled, do nothing
-        } else {
+        if (err?.name !== "RenderingCancelledException") {
           console.error("Ошибка при рендеринге страницы PDF:", err);
         }
+      } finally {
+        onLoadEnd?.();
       }
     };
 
