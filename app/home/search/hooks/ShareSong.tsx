@@ -2,6 +2,7 @@
 
 import { addToast } from "@heroui/react";
 import { LinkIcon } from "@/components/icons/LinkIcon";
+import { getUploadUrl } from "@/lib/client-url";
 
 export const useShareSong = () => {
   const handleShare = async (manualSongData = null) => {
@@ -21,7 +22,7 @@ export const useShareSong = () => {
       return;
     }
 
-    const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${file.filename}`;
+    const fileUrl = getUploadUrl(file.filename);
 
     try {
       const shareUrl = fileUrl;

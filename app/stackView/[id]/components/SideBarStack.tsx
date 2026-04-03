@@ -64,6 +64,14 @@ import {
   ScrollShadow,
   Chip,
   Divider,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from "@heroui/react";
 import { Select, SelectItem } from "@heroui/react";
 import { Input } from "@heroui/input";
@@ -105,17 +113,21 @@ import ProgramDownload from "@/app/stack/[id]/components/ProgramDownload";
 import DownloadPngIcon from "@/app/stack/[id]/components/icons/DownloadPngIcon";
 import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
 import { updateStack } from "@/actions/actions";
+import { recacheStack } from "@/lib/recache";
 import { useParams } from "next/navigation";
 import { SaveIcon } from "@/app/stack/[id]/components/icons/SaveIcon";
+import { UnpublishIcon } from "@/app/stack/[id]/components/icons/UnpublishIcon";
 import { DeleteModal } from "./DeleteModal";
 import { SidebarButton } from "./SidebarButton";
 import { socket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
 export const SideBarStack = ({ onPreview }) => {
   const router = useRouter();
   const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // После useState для isDrawerOpen
@@ -158,6 +170,27 @@ useEffect(() => {
     programSelected,
     setProgramSelected,
   } = useStackContext();
+  const stackId = stackResponse?.doc?._id;
+  const isInitialSyncSkippedRef = useRef(false);
+
+  useEffect(() => {
+    isInitialSyncSkippedRef.current = false;
+  }, [stackId]);
+
+  useEffect(() => {
+    if (!isRegent || !stackId) return;
+
+    if (!isInitialSyncSkippedRef.current) {
+      isInitialSyncSkippedRef.current = true;
+      return;
+    }
+
+    socket.emit("stack-updated", {
+      stackId,
+      songs: stackSongs,
+      mealType,
+    });
+  }, [isRegent, mealType, stackId, stackSongs]);
 
   const searchRef = useRef(null);
   const sensors = useSensors(
@@ -169,9 +202,7 @@ useEffect(() => {
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {
@@ -200,17 +231,7 @@ useEffect(() => {
       instanceId: `${Date.now()}-${Math.random()}`,
       isReserve: !!isReserve,
     };
-    setStackSongs((prev) => {
-      const newStack = [...prev, newSongEntry];
-
-      // Отправка обновленного стека через socket
-      socket.emit("stack-updated", {
-        stackId: stackResponse.doc._id,
-        songs: newStack,
-      });
-
-      return newStack;
-    });
+    setStackSongs((prev) => [...prev, newSongEntry]);
 
     // Только для песен в резерве
     if (isReserve && !programSelected.includes("reserved")) {
@@ -380,9 +401,11 @@ useEffect(() => {
 
   const params = useParams<{ id: string }>();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isUnpublishModalOpen, setIsUnpublishModalOpen] = useState(false);
+  const [isActionsOpen, setIsActionsOpen] = useState(false);
 
   const save = async () => {
-    const resp = await updateStack({
+    await updateStack({
       stack: stackSongs,
       mealType,
       programSelected,
@@ -391,6 +414,37 @@ useEffect(() => {
       id: params.id,
       name: stackResponse.doc?.name,
     });
+    await recacheStack(params.id);
+    socket.emit("stack-visibility-changed", {
+      stackId: params.id,
+      isPublished: true,
+      stackData: {
+        _id: params.id,
+        name: stackResponse.doc?.name,
+        songs: stackSongs,
+        mealType,
+        programSelected,
+        isPublished: true,
+        docType: "stack",
+      },
+    });
+    router.push("/");
+  };
+
+  const unpublish = async () => {
+    await updateStack({
+      stack: stackSongs,
+      mealType,
+      programSelected,
+      isPublished: false,
+      currentUrl: window.location.pathname,
+      id: params.id,
+      name: stackResponse.doc?.name,
+    });
+    await recacheStack(params.id);
+    socket.emit("stack-visibility-changed", { stackId: params.id, isPublished: false });
+    setIsUnpublishModalOpen(false);
+    router.push("/");
   };
 
   return (
@@ -399,6 +453,55 @@ useEffect(() => {
         isDeleteModalOpen={isDeleteModalOpen}
         setIsDeleteModalOpen={setIsDeleteModalOpen}
       />
+
+      <Modal
+        isOpen={isUnpublishModalOpen}
+        onOpenChange={setIsUnpublishModalOpen}
+        placement="center"
+      >
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col items-center text-center gap-2">
+                <h3 className="text-xl font-bold text-gray-900 card-header">
+                  Снять с публикации
+                </h3>
+              </ModalHeader>
+              <ModalBody>
+                <div className="space-y-3">
+                  <p className="text-gray-600 input-header text-sm">
+                    Стопка{" "}
+                    <span className="font-semibold text-gray-900">
+                      "{stackResponse.doc?.name}"
+                    </span>{" "}
+                    станет сохранённой и пропадёт у певчих.
+                  </p>
+                  <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <p className="text-sm font-semibold text-amber-800 input-header flex items-center gap-2">
+                      <span>⚠️</span> Певчие потеряют доступ к стопке
+                    </p>
+                  </div>
+                </div>
+              </ModalBody>
+              <ModalFooter>
+                <Button
+                  variant="light"
+                  onPress={onClose}
+                  className="input-header"
+                >
+                  Отмена
+                </Button>
+                <Button
+                  onPress={unpublish}
+                  className="input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                >
+                  Снять с публикации
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
       <div className="flex flex-wrap gap-3">
         <div
           className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-200
@@ -460,26 +563,69 @@ useEffect(() => {
                     </Button>
                   )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   {session?.user?.role === "регент" && (
-                    <>
-                      <Button
-                        radius="lg"
-                        size="sm"
-                        onPress={() => setIsDeleteModalOpen(true)}
-                        className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
-                      >
-                        <TrashBinIcon />
-                      </Button>
-                      <Button
-                        radius="lg"
-                        size="sm"
-                        onPress={save}
-                        className="min-w-0 px-3 bg-green-50 text-green-600 border border-green-200 hover:bg-green-100 hover:border-green-300 transition-all shadow-none"
-                      >
-                        <SaveIcon />
-                      </Button>
-                    </>
+                    <Popover
+                      isOpen={isActionsOpen}
+                      onOpenChange={setIsActionsOpen}
+                      placement="bottom-end"
+                      showArrow
+                    >
+                      <PopoverTrigger>
+                        <Button
+                          radius="lg"
+                          size="sm"
+                          isIconOnly
+                          className="min-w-0 px-2 bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-none"
+                        >
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="5" cy="12" r="2"/>
+                            <circle cx="12" cy="12" r="2"/>
+                            <circle cx="19" cy="12" r="2"/>
+                          </svg>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-1.5 min-w-[180px]">
+                        <div className="flex flex-col gap-0.5 w-full">
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            className="justify-start h-9 px-3 gap-2.5 input-header text-sm text-[#7D5E42] bg-transparent hover:bg-[#F7F0EA]"
+                            startContent={<UnpublishIcon size={18} color="#7D5E42" />}
+                            onPress={() => {
+                              setIsActionsOpen(false);
+                              setIsUnpublishModalOpen(true);
+                            }}
+                          >
+                            Снять с публикации
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            className="justify-start h-9 px-3 gap-2.5 input-header text-sm text-green-600 bg-transparent hover:bg-green-50"
+                            startContent={<SaveIcon size={18} />}
+                            onPress={() => {
+                              setIsActionsOpen(false);
+                              save();
+                            }}
+                          >
+                            Сохранить
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="flat"
+                            className="justify-start h-9 px-3 gap-2.5 input-header text-sm text-red-400 bg-transparent hover:bg-red-50"
+                            startContent={<TrashBinIcon />}
+                            onPress={() => {
+                              setIsActionsOpen(false);
+                              setIsDeleteModalOpen(true);
+                            }}
+                          >
+                            Удалить
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   )}
                   <Button
                     isIconOnly

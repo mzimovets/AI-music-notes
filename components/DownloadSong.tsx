@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback } from "react";
 import { useSongContext } from "../app/song/[id]/SongContextProvider";
+import { getUploadPath, getUploadUrl } from "@/lib/client-url";
 
 // Показывает центрированное сообщение с анимацией, размеры как при нажатии «Поделиться»
 const showCenterMessage = () => {
@@ -49,7 +50,9 @@ export const useDownloadSong = () => {
 
       setIsDownloading(true);
       try {
-        const fileUrl = `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`;
+        const filename =
+          song?.doc?.file?.filename || manualSong?.file?.filename;
+        const fileUrl = getUploadPath(filename);
         const fileName =
           manualSong?.file.filename ||
           song?.doc?.file?.originalName ||
@@ -73,7 +76,7 @@ export const useDownloadSong = () => {
       } catch (error) {
         console.error("Ошибка при скачивании:", error);
         window.open(
-          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/uploads/${song?.doc?.file?.filename || manualSong?.file?.filename}`,
+          getUploadUrl(song?.doc?.file?.filename || manualSong?.file?.filename),
           "_blank",
         );
         showCenterMessage();

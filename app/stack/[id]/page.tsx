@@ -14,6 +14,8 @@ import { Sidebar2 } from "./components/Sidebar2";
 import { Monogram } from "@/components/monogram";
 import { updateStack } from "@/actions/actions";
 import { enqueue } from "@/lib/offline-queue";
+import { recacheStack } from "@/lib/recache";
+import { socket } from "@/lib/socket";
 import { holidays } from "./components/Sidebar2";
 import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
@@ -112,7 +114,7 @@ export default function StackPage() {
         cover: stackCover,
         name: finalName,
       });
-      window.dispatchEvent(new CustomEvent("sw-recache-stack", { detail: params.id }));
+      await recacheStack(params.id);
     }
 
     router.push(`/`);
@@ -141,7 +143,21 @@ export default function StackPage() {
         cover: stackCover,
         name: stackNameToSave,
       });
-      window.dispatchEvent(new CustomEvent("sw-recache-stack", { detail: params.id }));
+      await recacheStack(params.id);
+      socket.emit("stack-visibility-changed", {
+        stackId: params.id,
+        isPublished: true,
+        stackData: {
+          _id: params.id,
+          name: stackNameToSave,
+          songs: stackSongs,
+          mealType,
+          programSelected,
+          isPublished: true,
+          cover: stackCover || "",
+          docType: "stack",
+        },
+      });
     }
 
     router.push(`/`);

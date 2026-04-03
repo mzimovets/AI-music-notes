@@ -2,10 +2,12 @@ import express from "express";
 const app = express();
 import bodyParser from "body-parser";
 import fs, { stat } from "fs";
+import { createServer } from "http";
 import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
 import dotenv from "dotenv";
+import { Server as SocketIOServer } from "socket.io";
 dotenv.config({ path: ".env.local" });
 
 // --------- HID Clicker + WebSocket ---------
@@ -13,12 +15,16 @@ dotenv.config({ path: ".env.local" });
 import HID from "node-hid";
 import { WebSocketServer } from "ws";
 
-const wss = new WebSocketServer({ port: 3001 });
-console.log("[clicker] WebSocket сервер запущен на ws://localhost:3001");
+let wss = null;
+try {
+  wss = new WebSocketServer({ port: 3001 });
+  console.log("[clicker] WebSocket сервер запущен на ws://localhost:3001");
+} catch (err) {}
 
 let device = null;
 
 const broadcast = (action) => {
+  if (!wss) return;
   console.log(`[clicker] ${action}`);
   wss.clients.forEach((client) => {
     if (client.readyState === 1) {
@@ -141,7 +147,7 @@ import cors from "cors";
 
 app.use(
   cors({
-    origin: [process.env.NEXT_PUBLIC_BASIC_URL, "http://localhost:3000", "http://localhost:5173"],
+    origin: true,
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
@@ -183,7 +189,43 @@ const urlencodedParser = bodyParser.urlencoded({ extended: false });
 app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
+const httpServer = createServer(app);
+
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: true,
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
+
+io.on("connection", (socket) => {
+  socket.on("join-stack", (stackId) => {
+    if (!stackId) return;
+    socket.join(stackId);
+  });
+
+  socket.on("stack-updated", (payload = {}) => {
+    const { stackId, songs = [], mealType = null } = payload;
+
+    if (!stackId) return;
+
+    socket.to(stackId).emit("stack-updated", {
+      stackId,
+      songs,
+      mealType,
+    });
+  });
+
+  socket.on("stack-visibility-changed", (payload = {}) => {
+    const { stackId, isPublished, deleted, stackData } = payload;
+    if (!stackId) return;
+    // broadcast to ALL connected clients (including sender)
+    io.emit("stack-visibility-changed", { stackId, isPublished, deleted, stackData });
+  });
+});
+
+httpServer.listen(PORT, () => {
   console.log("express on 4000");
 });
 

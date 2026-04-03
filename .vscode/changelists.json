@@ -1,0 +1,18 @@
+{
+  "changelists": [
+    {
+      "name": "Default",
+      "files": [
+        "public/sw.js",
+        "app/page.tsx",
+        "app/stack/[id]/page.tsx",
+        "app/stackView/[id]/components/DeleteModal.tsx",
+        "app/stackView/[id]/components/SideBarStack.tsx",
+        "app/stackView/[id]/page.tsx",
+        "server/index.js",
+        ".vscode/changelists.json"
+      ]
+    }
+  ],
+  "active": "Default"
+}

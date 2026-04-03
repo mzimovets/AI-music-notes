@@ -1,9 +1,10 @@
 "use client";
-import Pdfjs from "@/app/home/pdfjs";
-import { SwarrowIconWithCircle } from "@/components/swarrow";
-import { Card } from "@heroui/card";
-import { Pagination } from "@heroui/pagination";
 import { useState } from "react";
+
+import { Pagination } from "@heroui/pagination";
+
+import { PdfPageCard } from "@/components/PdfPageCard";
+import { SwarrowIconWithCircle } from "@/components/swarrow";
 
 export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -12,11 +13,12 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   return (
     <>
       <div className="pt-4 flex justify-center">
-        <Card
-          className={`w-200 h-auto flex items-center justify-center p-2 transition-colors duration-200`}
-        >
-          <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={pageNum} />
-        </Card>
+        <PdfPageCard
+          cardClassName="w-200 h-auto min-h-[420px]"
+          fileUrl={fileUrl}
+          pageNum={pageNum}
+          setPdfDoc={setPdfDoc}
+        />
       </div>
       <div
         className="sticky bottom-4 z-50 flex items-center justify-center gap-4 p-4 

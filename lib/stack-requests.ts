@@ -1,8 +1,9 @@
 import { StackSong } from "./types";
+import { getBackendBaseUrl } from "./client-url";
 
 export const postStack = async (name: string, id?: string) => {
   const resp = await fetch(
-    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}`,
+    `${getBackendBaseUrl()}/stack/${id}`,
     {
       method: "POST",
       headers: {
@@ -50,7 +51,7 @@ export const putStack = async ({
     updateData.cover = cover;
   }
   const resp = await fetch(
-    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}/update`,
+    `${getBackendBaseUrl()}/stack/${id}/update`,
     {
       method: "POST",
       headers: {
@@ -65,9 +66,7 @@ export const putStack = async ({
 };
 
 export const getStackById = async (id: string) => {
-  const data = await fetch(
-    `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stack/${id}`,
-  );
+  const data = await fetch(`${getBackendBaseUrl()}/stack/${id}`);
   const posts = await data.json();
   return posts;
 };

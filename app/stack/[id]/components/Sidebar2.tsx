@@ -100,9 +100,13 @@ import SidebarIcon from "./icons/SidebarIcon";
 import DownloadPngIcon from "./icons/DownloadPngIcon";
 import ProgramDownload from "./ProgramDownload";
 import { SidebarButton } from "@/app/stackView/[id]/components/SidebarButton";
+import { useParams } from "next/navigation";
+import { socket } from "@/lib/socket";
+import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
 export const Sidebar2 = ({ onPreview }) => {
+  const params = useParams<{ id: string }>();
   const {
     isOpen: isDrawerOpen,
     onOpen: onDrawerOpen,
@@ -142,6 +146,28 @@ export const Sidebar2 = ({ onPreview }) => {
     programSelected,
     setProgramSelected,
   } = useStackContext();
+  const stackId = params?.id;
+  const isInitialSyncSkippedRef = useRef(false);
+
+  useEffect(() => {
+    isInitialSyncSkippedRef.current = false;
+  }, [stackId]);
+
+  useEffect(() => {
+    if (!stackId) return;
+
+    if (!isInitialSyncSkippedRef.current) {
+      isInitialSyncSkippedRef.current = true;
+      return;
+    }
+
+    socket.emit("stack-updated", {
+      stackId,
+      songs: stackSongs,
+      mealType,
+      programSelected,
+    });
+  }, [mealType, programSelected, stackId, stackSongs]);
 
   const searchRef = useRef(null);
   const sensors = useSensors(
@@ -153,9 +179,7 @@ export const Sidebar2 = ({ onPreview }) => {
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {

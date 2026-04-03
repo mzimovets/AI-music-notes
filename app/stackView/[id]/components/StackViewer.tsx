@@ -1,22 +1,18 @@
 "use client";
-import Pdfjs from "@/app/home/pdfjs";
+import { useEffect, useState } from "react";
 
-import { Card } from "@heroui/card";
-import { Skeleton } from "@heroui/react";
-import { useState } from "react";
+import Pdfjs from "@/app/home/pdfjs";
+import { PdfPageCard } from "@/components/PdfPageCard";
 
 export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [pageLoading, setPageLoading] = useState<{ [key: number]: boolean }>(
-    {},
-  );
 
-  const handlePageLoadStart = (pageNum: number) => {
-    setPageLoading((prev) => ({ ...prev, [pageNum]: true }));
-  };
+  useEffect(() => {
+    setPdfDoc(null);
+  }, [fileUrl]);
 
-  const handlePageLoadEnd = (pageNum: number) => {
-    setPageLoading((prev) => ({ ...prev, [pageNum]: false }));
+  const handlePdfDoc = (doc: any) => {
+    setPdfDoc(doc);
   };
 
   return (
@@ -25,7 +21,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
         {/* Загружаем PDF и сохраняем pdfDoc */}
         <div style={{ display: "none" }}>
           {fileUrl && (
-            <Pdfjs fileUrl={fileUrl} setPdfDoc={setPdfDoc} pageNum={1} />
+            <Pdfjs fileUrl={fileUrl} pageNum={1} setPdfDoc={handlePdfDoc} />
           )}
         </div>
 
@@ -33,6 +29,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
         {pdfDoc &&
           Array.from({ length: pdfDoc.numPages }, (_, i) => {
             const pageNum = i + 1;
+
             return (
               <div
                 key={i}
@@ -40,17 +37,11 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 data-page-number={pageNum}
                 id={`pdf-page-${pageNum}`}
               >
-                <Card className="w-200 h-auto relative flex items-center justify-center p-2 transition-colors duration-200">
-                  <Pdfjs
-                    fileUrl={fileUrl}
-                    pageNum={pageNum}
-                    onLoadStart={() => handlePageLoadStart(pageNum)}
-                    onLoadEnd={() => handlePageLoadEnd(pageNum)}
-                  />
-                  {pageLoading[pageNum] ? (
-                    <Skeleton className="absolute top-0 left-0 w-200 h-auto" />
-                  ) : null}
-                </Card>
+                <PdfPageCard
+                  cardClassName="w-200 h-auto min-h-[520px]"
+                  fileUrl={fileUrl}
+                  pageNum={pageNum}
+                />
               </div>
             );
           })}

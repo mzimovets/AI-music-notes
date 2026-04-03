@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useCallback, useState, useEffect} from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import { useClicker } from "@/components/useClicker";
 
 import { SideBarStack } from "./components/SideBarStack";
@@ -12,10 +12,24 @@ import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
+import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+
+type StackUpdatedPayload = {
+  stackId: string;
+  songs: any[];
+  mealType: string | null;
+};
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isSinger = session?.user?.role !== "регент";
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -23,6 +37,12 @@ export default function Page() {
       const y = el.getBoundingClientRect().top + window.pageYOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
+  };
+
+  const handleClosePreview = () => setIsPreviewModalOpen(false);
+  const handlePreview = (song) => {
+    setSelectedFile(`/uploads/${song.file.filename}`);
+    setIsPreviewModalOpen(true);
   };
 
   const {
@@ -33,33 +53,46 @@ export default function Page() {
     setProgramSelected,
   } = useStackContext();
 
-  const [joined, setJoined] = useState(false);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
+  const stackId = stackResponse?.doc?._id;
 
   useEffect(() => {
-    if (!stackResponse?.doc?._id || joined) return;
+    if (!stackId) return;
 
-    const stackId = stackResponse.doc._id;
-
-    socket.emit("join-stack", stackId);
-
-    const handleUpdate = (updatedSongs) => {
-      setStackSongs(updatedSongs);
+    const joinCurrentStack = () => {
+      socket.emit("join-stack", stackId);
     };
 
+    const handleUpdate = (payload: StackUpdatedPayload) => {
+      if (!payload || payload.stackId !== stackId) return;
+      setStackSongs(payload.songs || []);
+      setMealType(payload.mealType || null);
+    };
+
+    const handleVisibilityChanged = ({ stackId: changedId, isPublished, deleted }: { stackId: string; isPublished?: boolean; deleted?: boolean }) => {
+      if (changedId !== stackId) return;
+      if (isSinger && (deleted || isPublished === false)) {
+        router.push("/");
+      }
+    };
+
+    joinCurrentStack();
+    socket.on("connect", joinCurrentStack);
     socket.on("stack-updated", handleUpdate);
-    setJoined(true);
+    socket.on("stack-visibility-changed", handleVisibilityChanged);
 
     return () => {
+      socket.off("connect", joinCurrentStack);
       socket.off("stack-updated", handleUpdate);
+      socket.off("stack-visibility-changed", handleVisibilityChanged);
     };
-  }, [stackResponse, joined]);
+  }, [stackId, setMealType, setStackSongs, isSinger, router]);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
     setProgramSelected(stackResponse.doc?.programSelected || []);
     setMealType(stackResponse.doc?.mealType || null);
-  }, [stackResponse]);
+  }, [stackResponse, setMealType, setProgramSelected, setStackSongs]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -114,7 +147,7 @@ export default function Page() {
   return (
     <div>
       <ScrollToTop />
-      <SideBarStack onPreview={undefined} />
+      <SideBarStack onPreview={handlePreview} />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
@@ -184,6 +217,12 @@ export default function Page() {
         />
       )}
       </div>
+
+      <ModalFilePreviewer
+        isOpen={isPreviewModalOpen}
+        onClose={handleClosePreview}
+        selectedFile={selectedFile}
+      />
     </div>
   );
 }

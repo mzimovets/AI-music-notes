@@ -37,7 +37,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
           className="object-cover w-full h-full"
           alt="Album cover"
           shadow="md"
-          src={`${process.env.NEXT_PUBLIC_BASIC_URL}/stacks/cover/${stack.cover || "white"}.png`}
+          src={`/stacks/cover/${stack.cover || "white"}.png`}
           width="100%"
         />
       </Card>

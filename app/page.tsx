@@ -16,22 +16,27 @@ import { StackCard } from "./home/StackCard";
 import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
 import { DownArrIcon } from "@/components/icons/DownArrIcon";
 import { Search } from "./home/search/Search";
+import { useSession } from "next-auth/react";
+import { getBackendBaseUrl } from "@/lib/client-url";
+import { socket } from "@/lib/socket";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [stacks, setStacks] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);
   const [showStacks, setShowStacks] = useState(false);
 
   useEffect(() => {
+    const backUrl = getBackendBaseUrl();
+
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-        );
+        const response = await fetch(`${backUrl}/songs`);
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -61,9 +66,7 @@ export default function Home() {
 
     const fetchAllStacks = async () => {
       try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/stacks`,
-        );
+        const response = await fetch(`${backUrl}/stacks`);
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -79,6 +82,27 @@ export default function Home() {
 
     fetchAllSongs();
     fetchAllStacks();
+
+    const handleVisibilityChanged = ({ stackId, isPublished, deleted, stackData }: { stackId: string; isPublished?: boolean; deleted?: boolean; stackData?: any }) => {
+      if (deleted) {
+        setStacks((prev) => prev.filter((s: any) => s._id !== stackId));
+      } else if (isPublished === false) {
+        setStacks((prev) => prev.map((s: any) => s._id === stackId ? { ...s, isPublished: false } : s));
+      } else if (isPublished === true) {
+        setStacks((prev) => {
+          const exists = prev.some((s: any) => s._id === stackId);
+          if (exists) {
+            return prev.map((s: any) => s._id === stackId ? { ...s, isPublished: true } : s);
+          }
+          return stackData ? [...prev, stackData] : prev;
+        });
+      }
+    };
+
+    socket.on("stack-visibility-changed", handleVisibilityChanged);
+    return () => {
+      socket.off("stack-visibility-changed", handleVisibilityChanged);
+    };
   }, []);
 
   return (
@@ -86,7 +110,7 @@ export default function Home() {
       <Search allSongs={allSongs} />
 
       {/* Stacks.tsx */}
-      {stacks.length > 0 && (
+      {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
         <div className="pb-0 flex items-center font-header gap-4 mt-8">
           {/* Оборачиваем текст в span с курсором */}
           <div
