@@ -20,6 +20,7 @@ import { useSession } from "next-auth/react";
 import { getBackendBaseUrl } from "@/lib/client-url";
 import { socket } from "@/lib/socket";
 import { QRModal } from "./home/QRModal";
+import { CacheStats } from "@/components/CacheStats";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -199,6 +200,8 @@ export default function Home() {
           <Albums />
         </Suspense>
       </section>
+
+      <CacheStats songsCount={allSongs.length} stacksCount={stacks.length} />
     </SongsLibraryContextProvider>
   );
 }
