@@ -52,6 +52,7 @@ export const useTableCell = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
+                    // TODO: в Safari не работает. Видимо не хватает разрешений
                     handleShare(song);
                   }}
                   className="text-lg text-default-400 cursor-pointer active:opacity-50"

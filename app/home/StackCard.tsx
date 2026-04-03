@@ -34,8 +34,8 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
         )}
         {/* Контент карточки */}
         <Image
+          className="object-cover w-full h-full"
           alt="Album cover"
-          height={200}
           shadow="md"
           src={`${process.env.NEXT_PUBLIC_BASIC_URL}/stacks/cover/${stack.cover || "white"}.png`}
           width="100%"

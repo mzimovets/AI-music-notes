@@ -222,7 +222,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         size="3xl"
         backdrop="blur"
         classNames={{
-          base: "mt-50 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
+          base: "mt-100 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
         }}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
