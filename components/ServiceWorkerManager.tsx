@@ -344,13 +344,18 @@ export function ServiceWorkerManager() {
   }, [status]);
 
   // Синхронизация по событию (новая песня/стопка добавлена)
+  // Задержка 5.5с чтобы тост успел показаться и исчезнуть
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
     const handler = () => {
       console.log("[Sync] Запрос на синхронизацию получен");
-      runSync();
+      timer = setTimeout(() => runSync(), 5500);
     };
     window.addEventListener("sw-sync-needed", handler);
-    return () => window.removeEventListener("sw-sync-needed", handler);
+    return () => {
+      window.removeEventListener("sw-sync-needed", handler);
+      clearTimeout(timer);
+    };
   }, []);
 
   // Удаление песни из кэша при её удалении из БД
