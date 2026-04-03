@@ -37,7 +37,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
           alt="Album cover"
           height={200}
           shadow="md"
-          src={`${process.env.NEXT_PUBLIC_BASIC_URL}/stacks/cover/${stack.cover || "white"}.png`}
+          src={`/stacks/cover/${stack.cover || "white"}.png`}
           width="100%"
         />
       </Card>

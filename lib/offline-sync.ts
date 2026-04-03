@@ -3,10 +3,11 @@
  */
 
 import { getQueue, dequeue, getFile, removeFile, type OfflineOp } from "./offline-queue";
-
-const BACK = process.env.NEXT_PUBLIC_BASIC_BACK_URL;
+import { getBackendBaseUrl } from "./client-url";
 
 async function execOp(op: OfflineOp): Promise<boolean> {
+  const backUrl = getBackendBaseUrl();
+
   try {
     switch (op.type) {
       // ── Создать песню ──────────────────────────────────────────────
@@ -25,7 +26,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
         fd.append("docType", "song");
         fd.append("file", file, op.filename);
 
-        const res = await fetch(`${BACK}/song/${op.tempId}`, {
+        const res = await fetch(`${backUrl}/song/${op.tempId}`, {
           method: "POST",
           body: fd,
         });
@@ -51,7 +52,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
           if (file) fd.append("file", file, op.filename);
         }
 
-        const res = await fetch(`${BACK}/song/${op.id}/true`, {
+        const res = await fetch(`${backUrl}/song/${op.id}/true`, {
           method: "POST",
           body: fd,
         });
@@ -61,13 +62,13 @@ async function execOp(op: OfflineOp): Promise<boolean> {
 
       // ── Удалить песню ───────────────────────────────────────────────
       case "song.delete": {
-        const res = await fetch(`${BACK}/song/${op.id}/true`);
+        const res = await fetch(`${backUrl}/song/${op.id}/true`);
         return res.ok;
       }
 
       // ── Создать стопку ──────────────────────────────────────────────
       case "stack.create": {
-        const res = await fetch(`${BACK}/stack/${op.id}`, {
+        const res = await fetch(`${backUrl}/stack/${op.id}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: op.name, _id: op.id, docType: "stack" }),
@@ -88,7 +89,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
         };
         if (op.cover) body.cover = op.cover;
 
-        const res = await fetch(`${BACK}/stack/${op.id}/update`, {
+        const res = await fetch(`${backUrl}/stack/${op.id}/update`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
@@ -98,7 +99,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
 
       // ── Удалить стопку ──────────────────────────────────────────────
       case "stack.delete": {
-        const res = await fetch(`${BACK}/stack/${op.id}/true`);
+        const res = await fetch(`${backUrl}/stack/${op.id}/true`);
         return res.ok;
       }
     }

@@ -102,6 +102,7 @@ import ProgramDownload from "./ProgramDownload";
 import { SidebarButton } from "@/app/stackView/[id]/components/SidebarButton";
 import { useParams } from "next/navigation";
 import { socket } from "@/lib/socket";
+import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
 export const Sidebar2 = ({ onPreview }) => {
@@ -178,9 +179,7 @@ export const Sidebar2 = ({ onPreview }) => {
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASIC_BACK_URL}/songs`,
-      );
+      const response = await fetch(`${getBackendBaseUrl()}/songs`);
       const data = await response.json();
       setSongsList(data.docs || []);
     } catch (e) {

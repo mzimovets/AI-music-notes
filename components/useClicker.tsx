@@ -1,10 +1,11 @@
 import { useEffect } from 'react';
+import { getClickerWebSocketUrl } from "@/lib/client-url";
 
 type Direction = 'up' | 'down' | 'middle';
 
 export function useClicker(onPress: (direction: Direction) => void) {
   useEffect(() => {
-    const ws = new WebSocket('ws://localhost:3001');
+    const ws = new WebSocket(getClickerWebSocketUrl());
 
     ws.onopen = () => console.log('[clicker] WebSocket подключён');
     ws.onclose = () => console.log('[clicker] WebSocket отключён');

@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { addToast } from "@heroui/react";
 import { processOfflineQueue } from "@/lib/offline-sync";
 import { getQueue } from "@/lib/offline-queue";
+import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
 
 const ALL_CATEGORIES = [
   "spiritual_chants",
@@ -28,7 +29,7 @@ const CATEGORY_IMAGES = [
   "/songs/other.jpg",
 ];
 
-const CACHE_STATE_KEY = "sw-cached-state-v2";
+const CACHE_STATE_KEY = "sw-cached-state-v3";
 
 interface Progress {
   current: number;
@@ -108,7 +109,7 @@ async function waitForSWController(): Promise<boolean> {
 }
 
 async function syncCache(onProgress: (p: Progress) => void) {
-  const backUrl = process.env.NEXT_PUBLIC_BASIC_BACK_URL;
+  const backUrl = getBackendBaseUrl();
   const prev = loadCachedState();
   const prevSongIds = new Set(prev.songs.map((s) => s.id));
   const prevStackIds = new Set(prev.stacks);
@@ -151,7 +152,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
     if (!currentSongIds.has(id)) {
       console.log(`[Sync] Удаляем /song/${id}`);
       await deleteFromAllCaches(`/song/${id}`);
-      if (filename) await deleteFromAllCaches(`/uploads/${filename}`);
+      if (filename) await deleteFromAllCaches(getUploadPath(filename));
     }
   }
   for (const id of prev.stacks) {
@@ -176,7 +177,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
     assetUrls.push(...CATEGORY_IMAGES);
     for (const { id } of currentSongs) pageUrls.push(`/song/${id}`, `/songRead/${id}`);
     for (const { filename } of currentSongs) {
-      if (filename) assetUrls.push(`/uploads/${filename}`);
+      if (filename) assetUrls.push(getUploadPath(filename));
     }
     for (const id of currentStacks) {
       pageUrls.push(`/stack/${id}`, `/stackView/${id}`);
@@ -185,7 +186,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
     // Инкрементально: только новые
     for (const { id } of newSongs) pageUrls.push(`/song/${id}`, `/songRead/${id}`);
     for (const { filename } of newSongs) {
-      if (filename) assetUrls.push(`/uploads/${filename}`);
+      if (filename) assetUrls.push(getUploadPath(filename));
     }
     for (const id of newStacks) {
       pageUrls.push(`/stack/${id}`, `/stackView/${id}`);
