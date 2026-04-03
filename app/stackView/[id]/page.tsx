@@ -12,6 +12,7 @@ import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
+import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 
 type StackUpdatedPayload = {
   stackId: string;
@@ -22,6 +23,8 @@ type StackUpdatedPayload = {
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -29,6 +32,12 @@ export default function Page() {
       const y = el.getBoundingClientRect().top + window.pageYOffset;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
+  };
+
+  const handleClosePreview = () => setIsPreviewModalOpen(false);
+  const handlePreview = (song) => {
+    setSelectedFile(`/uploads/${song.file.filename}`);
+    setIsPreviewModalOpen(true);
   };
 
   const {
@@ -124,7 +133,7 @@ export default function Page() {
   return (
     <div>
       <ScrollToTop />
-      <SideBarStack onPreview={undefined} />
+      <SideBarStack onPreview={handlePreview} />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 
           ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
@@ -194,6 +203,12 @@ export default function Page() {
         />
       )}
       </div>
+
+      <ModalFilePreviewer
+        isOpen={isPreviewModalOpen}
+        onClose={handleClosePreview}
+        selectedFile={selectedFile}
+      />
     </div>
   );
 }

@@ -19,6 +19,8 @@ import { editSong, removeSong } from "@/actions/actions";
 import { enqueue, storeFile } from "@/lib/offline-queue";
 import { Song } from "@/lib/types";
 import { useSession } from "next-auth/react";
+import { recacheSong } from "@/lib/recache-song";
+import { useParams } from "next/navigation";
 
 export const InfoCard = () => {
   const { data: session } = useSession();
@@ -29,6 +31,7 @@ export const InfoCard = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const context = useSongContext();
   const song = context.songResponse;
 
@@ -90,6 +93,7 @@ export const InfoCard = () => {
     }
 
     await editSong(song.doc._id, data);
+    await recacheSong(params.id);
     setIsEdit(false);
   };
 
