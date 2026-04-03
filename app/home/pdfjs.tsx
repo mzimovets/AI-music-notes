@@ -1,8 +1,5 @@
 "use client";
 
-import { Button, ButtonGroup } from "@heroui/button";
-import { Divider } from "@heroui/divider";
-import { relative } from "path";
 import React, { useEffect, useRef, useState } from "react";
 
 interface PdfViewerProps {
@@ -16,10 +13,19 @@ interface PdfViewerProps {
 export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoadEnd }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const renderTaskRef = useRef<any>(null);
+  const setPdfDocRef = useRef(setPdfDoc);
+  const onLoadStartRef = useRef(onLoadStart);
+  const onLoadEndRef = useRef(onLoadEnd);
   const [pdfDoc, setPdfDocState] = useState<any>(null);
-  const [scale, setScale] = useState(1);
+  const [scale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setPdfDocRef.current = setPdfDoc;
+    onLoadStartRef.current = onLoadStart;
+    onLoadEndRef.current = onLoadEnd;
+  }, [onLoadEnd, onLoadStart, setPdfDoc]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -41,6 +47,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           loadingTask = (pdfjsLib as any).getDocument(fileUrl);
         } else {
           const arrayBuffer = await fileUrl.arrayBuffer();
+
           loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer });
         }
 
@@ -49,7 +56,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         if (!isMounted) return;
 
         setPdfDocState(pdf);
-        setPdfDoc && setPdfDoc(pdf);
+        setPdfDocRef.current?.(pdf);
       } catch (err) {
         console.error("Ошибка при загрузке PDF:", err);
       }
@@ -64,7 +71,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
       }
       setPdfDocState(null);
     };
-  }, [fileUrl, setPdfDoc]);
+  }, [fileUrl]);
 
   useEffect(() => {
     const updateContainerWidth = () => {
@@ -79,8 +86,12 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
   useEffect(() => {
     if (!pdfDoc) return;
+
     if (!canvasRef.current) return;
+
     if (containerWidth === 0) return;
+
+    let isActive = true;
 
     const renderPage = async (num: number, userScale: number) => {
       if (renderTaskRef.current) {
@@ -88,6 +99,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
       }
 
       try {
+        onLoadStartRef.current?.();
         const page = await pdfDoc.getPage(num);
 
         const rotation = page.rotate || 0;
@@ -101,18 +113,13 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
         const outputScale = window.devicePixelRatio || 1;
 
-        // Scaled viewport for rendering with outputScale (for high DPI)
-        const scaledViewport = page.getViewport({
-          scale: baseScale * outputScale,
-          rotation,
-        });
-
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");
         if (!context) return;
 
         // Set canvas width to container width * outputScale for high DPI
         canvas.width = Math.floor(containerWidth * outputScale);
+
         // Set canvas height to maintain aspect ratio
         canvas.height = Math.floor(viewport.height * baseScale * outputScale);
 
@@ -137,18 +144,21 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           console.error("Ошибка при рендеринге страницы PDF:", err);
         }
       } finally {
-        onLoadEnd?.();
+        if (isActive) {
+          onLoadEndRef.current?.();
+        }
       }
     };
 
     renderPage(pageNum, scale);
 
     return () => {
+      isActive = false;
       if (renderTaskRef.current) {
         renderTaskRef.current.cancel();
       }
     };
-  }, [pdfDoc, pageNum, scale, containerWidth]);
+  }, [containerWidth, pageNum, pdfDoc, scale]);
 
   return (
     <div

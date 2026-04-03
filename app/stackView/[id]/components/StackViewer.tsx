@@ -1,23 +1,18 @@
 "use client";
-import Pdfjs from "@/app/home/pdfjs";
+import { useEffect, useState } from "react";
 
-import { Card } from "@heroui/card";
-import { Skeleton } from "@heroui/react";
-import { useState, useRef, useCallback } from "react";
+import Pdfjs from "@/app/home/pdfjs";
+import { PdfPageCard } from "@/components/PdfPageCard";
 
 export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
-  const [pageLoading, setPageLoading] = useState<{ [key: number]: boolean }>({});
-  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    setPdfDoc(null);
+  }, [fileUrl]);
 
   const handlePdfDoc = (doc: any) => {
     setPdfDoc(doc);
-    if (!initializedRef.current) {
-      initializedRef.current = true;
-      const initial: { [key: number]: boolean } = {};
-      for (let i = 1; i <= doc.numPages; i++) initial[i] = true;
-      setPageLoading(initial);
-    }
   };
 
   return (
@@ -26,7 +21,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
         {/* Загружаем PDF и сохраняем pdfDoc */}
         <div style={{ display: "none" }}>
           {fileUrl && (
-            <Pdfjs fileUrl={fileUrl} setPdfDoc={handlePdfDoc} pageNum={1} />
+            <Pdfjs fileUrl={fileUrl} pageNum={1} setPdfDoc={handlePdfDoc} />
           )}
         </div>
 
@@ -34,6 +29,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
         {pdfDoc &&
           Array.from({ length: pdfDoc.numPages }, (_, i) => {
             const pageNum = i + 1;
+
             return (
               <div
                 key={i}
@@ -41,16 +37,11 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 data-page-number={pageNum}
                 id={`pdf-page-${pageNum}`}
               >
-                <Card className="w-200 h-auto relative flex items-center justify-center p-2 transition-colors duration-200">
-                  {pageLoading[pageNum] && (
-                    <Skeleton className="absolute inset-0 z-10 rounded-xl" />
-                  )}
-                  <Pdfjs
-                    fileUrl={fileUrl}
-                    pageNum={pageNum}
-                    onLoadEnd={() => setPageLoading((prev) => ({ ...prev, [pageNum]: false }))}
-                  />
-                </Card>
+                <PdfPageCard
+                  cardClassName="w-200 h-auto min-h-[520px]"
+                  fileUrl={fileUrl}
+                  pageNum={pageNum}
+                />
               </div>
             );
           })}
