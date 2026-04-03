@@ -111,6 +111,23 @@ export default function Page() {
                       }
                     }
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace") {
+                      e.preventDefault();
+                      const newOtp = qrOtp.split("");
+                      if (qrOtp[i]) {
+                        newOtp[i] = "";
+                      } else if (i > 0) {
+                        newOtp[i - 1] = "";
+                        const prevInput = document.querySelector(
+                          `input[data-index="${i - 1}"]`,
+                        ) as HTMLInputElement;
+                        prevInput?.focus();
+                      }
+                      setQrOtp(newOtp.join(""));
+                      setQrError("");
+                    }
+                  }}
                   disabled={qrLoading}
                   data-index={i}
                   className="w-10 h-12 flex items-center justify-center rounded-xl border-2 border-[#BD9673] bg-white font-pheader text-xl text-[#7D5E42] text-center disabled:opacity-50"
