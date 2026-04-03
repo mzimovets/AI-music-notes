@@ -4,7 +4,7 @@ export const usersRoutes = (app, urlencodedParser) => {
   app.get("/user/:username", (req, res) => {
     const identifier = req.params.username;
     console.log("GET /user/:username called with username:", identifier);
-    const query = { username: identifier };
+    const query = { username: identifier, docType: { $in: ["user", "admin"] } };
     database.findOne(query, (err, doc) => {
       if (err) {
         console.log("Error finding user:", err);
