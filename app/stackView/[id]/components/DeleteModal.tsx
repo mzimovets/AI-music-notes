@@ -13,6 +13,7 @@ import {
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { TrashBinIcon } from "@/app/stack/[id]/components/icons/TrashBinIcon";
+import { socket } from "@/lib/socket";
 
 export const DeleteModal = (props) => {
   const router = useRouter();
@@ -27,12 +28,14 @@ export const DeleteModal = (props) => {
       if (!navigator.onLine) {
         enqueue({ type: "stack.delete", id: params.id });
         window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
+        socket.emit("stack-visibility-changed", { stackId: params.id, deleted: true });
         router.push(`/`);
         return;
       }
       const response = await removeStack(params.id);
       if (response) {
         window.dispatchEvent(new CustomEvent("sw-delete-stack", { detail: params.id }));
+        socket.emit("stack-visibility-changed", { stackId: params.id, deleted: true });
         router.push(`/`);
         // router.refresh();
       } else {

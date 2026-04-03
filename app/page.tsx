@@ -18,6 +18,7 @@ import { DownArrIcon } from "@/components/icons/DownArrIcon";
 import { Search } from "./home/search/Search";
 import { useSession } from "next-auth/react";
 import { getBackendBaseUrl } from "@/lib/client-url";
+import { socket } from "@/lib/socket";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -81,6 +82,27 @@ export default function Home() {
 
     fetchAllSongs();
     fetchAllStacks();
+
+    const handleVisibilityChanged = ({ stackId, isPublished, deleted, stackData }: { stackId: string; isPublished?: boolean; deleted?: boolean; stackData?: any }) => {
+      if (deleted) {
+        setStacks((prev) => prev.filter((s: any) => s._id !== stackId));
+      } else if (isPublished === false) {
+        setStacks((prev) => prev.map((s: any) => s._id === stackId ? { ...s, isPublished: false } : s));
+      } else if (isPublished === true) {
+        setStacks((prev) => {
+          const exists = prev.some((s: any) => s._id === stackId);
+          if (exists) {
+            return prev.map((s: any) => s._id === stackId ? { ...s, isPublished: true } : s);
+          }
+          return stackData ? [...prev, stackData] : prev;
+        });
+      }
+    };
+
+    socket.on("stack-visibility-changed", handleVisibilityChanged);
+    return () => {
+      socket.off("stack-visibility-changed", handleVisibilityChanged);
+    };
   }, []);
 
   return (
