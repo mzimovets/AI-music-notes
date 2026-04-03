@@ -4,8 +4,8 @@
       "name": "Default",
       "files": [
         "public/sw.js",
-        "app/page.tsx",
-        "components/CacheStats.tsx"
+        "components/CacheStats.tsx",
+        ".vscode/changelists.json"
       ]
     }
   ],
