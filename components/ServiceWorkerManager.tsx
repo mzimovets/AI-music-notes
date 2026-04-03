@@ -243,6 +243,15 @@ async function syncCache(onProgress: (p: Progress) => void) {
   onProgress({ current: total, total, done: true });
 }
 
+const CACHE_LABELS = [
+  "Загружаем ноты…",
+  "Синхронизируем стопки…",
+  "Подготавливаем медиа…",
+  "Обновляем библиотеку…",
+  "Оптимизируем данные…",
+  "Почти готово…",
+];
+
 export function ServiceWorkerManager() {
   const { status } = useSession();
   const syncing = useRef(false);
@@ -410,61 +419,160 @@ export function ServiceWorkerManager() {
     return () => window.removeEventListener("sw-recache-stack", handler);
   }, []);
 
+  // Typewriter states
+  const [typeIndex, setTypeIndex] = useState(0);
+  const [displayText, setDisplayText] = useState("");
+  const [typePhase, setTypePhase] = useState<"typing" | "waiting" | "erasing">("typing");
+  const [cursorOn, setCursorOn] = useState(true);
+
+  // Сброс при появлении/исчезновении прогресса
+  useEffect(() => {
+    if (!progress) return;
+    setTypeIndex(0);
+    setDisplayText("");
+    setTypePhase("typing");
+    setCursorOn(true);
+  }, [!!progress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Машинописный эффект
+  useEffect(() => {
+    if (!progress || progress.done) return;
+    const label = CACHE_LABELS[typeIndex];
+
+    if (typePhase === "typing") {
+      if (displayText.length >= label.length) {
+        setTypePhase("waiting");
+        return;
+      }
+      const t = setTimeout(() => setDisplayText(label.slice(0, displayText.length + 1)), 25);
+      return () => clearTimeout(t);
+    }
+
+    if (typePhase === "waiting") {
+      const t = setTimeout(() => setTypePhase("erasing"), 600);
+      return () => clearTimeout(t);
+    }
+
+    if (typePhase === "erasing") {
+      if (displayText.length === 0) {
+        setTypeIndex((i) => (i + 1) % CACHE_LABELS.length);
+        setTypePhase("typing");
+        return;
+      }
+      const t = setTimeout(() => setDisplayText(displayText.slice(0, -1)), 12);
+      return () => clearTimeout(t);
+    }
+  }, [progress, typePhase, displayText, typeIndex]);
+
+  // Мигание курсора только в паузе (waiting)
+  useEffect(() => {
+    if (typePhase !== "waiting") { setCursorOn(true); return; }
+    const iv = setInterval(() => setCursorOn((c) => !c), 500);
+    return () => clearInterval(iv);
+  }, [typePhase]);
+
   if (!progress || progress.total === 0) return null;
 
   const pct = Math.round((progress.current / progress.total) * 100);
-  const radius = 18;
+  const radius = 16;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - pct / 100);
-  const color = progress.done ? "#10b981" : "#6366f1";
 
   return (
     <div
       style={{
         position: "fixed",
-        bottom: 20,
+        bottom: 24,
         right: 20,
         zIndex: 9999,
-        background: "rgba(255,255,255,0.95)",
-        borderRadius: "50%",
-        width: 56,
-        height: 56,
-        boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
+        gap: 12,
+        background: "rgba(255,255,255,0.97)",
+        borderRadius: 40,
+        padding: "10px 16px 10px 18px",
+        boxShadow: "0 4px 20px rgba(125,94,66,0.18)",
+        border: "1px solid rgba(189,150,115,0.25)",
+        backdropFilter: "blur(8px)",
       }}
-      title={progress.done ? "Всё готово для работы оффлайн" : `Кэширование: ${pct}%`}
     >
-      <svg width="48" height="48" viewBox="0 0 48 48">
-        <circle cx="24" cy="24" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="4" />
+      {/* Текстовая подпись с typewriter */}
+      <span
+        style={{
+          fontFamily: '"Roboto Slab", serif',
+          fontSize: 12,
+          fontWeight: 500,
+          color: "#7D5E42",
+          whiteSpace: "nowrap",
+          minWidth: 160,
+        }}
+      >
+        {progress.done
+          ? "Готово к офлайн-работе"
+          : <>{displayText}<span style={{ opacity: cursorOn ? 1 : 0, transition: "opacity 0.1s" }}>|</span></>
+        }
+      </span>
+
+      {/* Круговой прогресс */}
+      <svg width="44" height="44" viewBox="0 0 44 44" style={{ flexShrink: 0 }}>
+        <defs>
+          <linearGradient id="pg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#BD9673" />
+            <stop offset="100%" stopColor="#7D5E42" />
+          </linearGradient>
+          <linearGradient id="pg-done" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#6ab187" />
+            <stop offset="100%" stopColor="#3d7a57" />
+          </linearGradient>
+        </defs>
+        {/* Трек */}
         <circle
-          cx="24"
-          cy="24"
-          r={radius}
+          cx="22" cy="22" r={radius}
           fill="none"
-          stroke={color}
-          strokeWidth="4"
+          stroke="rgba(189,150,115,0.18)"
+          strokeWidth="3.5"
+        />
+        {/* Прогресс */}
+        <circle
+          cx="22" cy="22" r={radius}
+          fill="none"
+          stroke={progress.done ? "url(#pg-done)" : "url(#pg-grad)"}
+          strokeWidth="3.5"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           style={{
             transform: "rotate(-90deg)",
-            transformOrigin: "24px 24px",
-            transition: "stroke-dashoffset 0.2s ease, stroke 0.3s ease",
+            transformOrigin: "22px 22px",
+            transition: "stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1)",
           }}
         />
-        <text
-          x="24"
-          y="24"
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontSize="10"
-          fontWeight="600"
-          fill={color}
-        >
-          {pct}%
-        </text>
+        {/* Процент или галочка */}
+        {progress.done ? (
+          <text
+            x="22" y="22"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="11"
+            fontWeight="700"
+            fill="url(#pg-done)"
+            style={{ fontFamily: '"Roboto Slab", serif' }}
+          >
+            ✓
+          </text>
+        ) : (
+          <text
+            x="22" y="22"
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="9"
+            fontWeight="600"
+            fill="#7D5E42"
+            style={{ fontFamily: '"Roboto Slab", serif' }}
+          >
+            {pct}%
+          </text>
+        )}
       </svg>
     </div>
   );
