@@ -104,7 +104,7 @@ export function CacheStats({
   };
 
   return (
-    <div className="flex justify-center mt-24 mb-16 text-[0.55rem] text-gray-400 font-header">
+    <div className="flex justify-center mt-24 mb-16 text-[0.4rem] text-gray-400 font-header">
       <span>
         Стопки:{" "}
         <span className="text-gray-500 font-medium">{stats.stacksCount}</span> •
