@@ -16,10 +16,13 @@ import { StackCard } from "./home/StackCard";
 import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
 import { DownArrIcon } from "@/components/icons/DownArrIcon";
 import { Search } from "./home/search/Search";
+import { useSession } from "next-auth/react";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
+  const { data: session } = useSession();
+  const isRegent = session?.user?.role === "регент";
   const [stacks, setStacks] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -86,7 +89,7 @@ export default function Home() {
       <Search allSongs={allSongs} />
 
       {/* Stacks.tsx */}
-      {stacks.length > 0 && (
+      {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
         <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
           {/* Оборачиваем текст в span с курсором */}
           <div

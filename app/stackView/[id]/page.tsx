@@ -17,7 +17,6 @@ type StackUpdatedPayload = {
   stackId: string;
   songs: any[];
   mealType: string | null;
-  programSelected: string[];
 };
 
 export default function Page() {
@@ -53,7 +52,6 @@ export default function Page() {
     const handleUpdate = (payload: StackUpdatedPayload) => {
       if (!payload || payload.stackId !== stackId) return;
       setStackSongs(payload.songs || []);
-      setProgramSelected(payload.programSelected || []);
       setMealType(payload.mealType || null);
     };
 
@@ -65,7 +63,7 @@ export default function Page() {
       socket.off("connect", joinCurrentStack);
       socket.off("stack-updated", handleUpdate);
     };
-  }, [stackId, setMealType, setProgramSelected, setStackSongs]);
+  }, [stackId, setMealType, setStackSongs]);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);

@@ -206,16 +206,14 @@ io.on("connection", (socket) => {
   });
 
   socket.on("stack-updated", (payload = {}) => {
-    const { stackId, songs = [], mealType = null, programSelected = [] } =
-      payload;
+    const { stackId, songs = [], mealType = null } = payload;
 
     if (!stackId) return;
 
-    io.emit("stack-updated", {
+    socket.to(stackId).emit("stack-updated", {
       stackId,
       songs,
       mealType,
-      programSelected,
     });
   });
 });
