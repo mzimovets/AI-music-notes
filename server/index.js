@@ -216,6 +216,13 @@ io.on("connection", (socket) => {
       mealType,
     });
   });
+
+  socket.on("stack-visibility-changed", (payload = {}) => {
+    const { stackId, isPublished, deleted, stackData } = payload;
+    if (!stackId) return;
+    // broadcast to ALL connected clients (including sender)
+    io.emit("stack-visibility-changed", { stackId, isPublished, deleted, stackData });
+  });
 });
 
 httpServer.listen(PORT, () => {

@@ -13,6 +13,8 @@ import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type StackUpdatedPayload = {
   stackId: string;
@@ -25,6 +27,9 @@ export default function Page() {
   const [lastScrollY, setLastScrollY] = useState(0);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const router = useRouter();
+  const { data: session } = useSession();
+  const isSinger = session?.user?.role !== "регент";
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -64,15 +69,24 @@ export default function Page() {
       setMealType(payload.mealType || null);
     };
 
+    const handleVisibilityChanged = ({ stackId: changedId, isPublished, deleted }: { stackId: string; isPublished?: boolean; deleted?: boolean }) => {
+      if (changedId !== stackId) return;
+      if (isSinger && (deleted || isPublished === false)) {
+        router.push("/");
+      }
+    };
+
     joinCurrentStack();
     socket.on("connect", joinCurrentStack);
     socket.on("stack-updated", handleUpdate);
+    socket.on("stack-visibility-changed", handleVisibilityChanged);
 
     return () => {
       socket.off("connect", joinCurrentStack);
       socket.off("stack-updated", handleUpdate);
+      socket.off("stack-visibility-changed", handleVisibilityChanged);
     };
-  }, [stackId, setMealType, setStackSongs]);
+  }, [stackId, setMealType, setStackSongs, isSinger, router]);
 
   useEffect(() => {
     setStackSongs(stackResponse.doc?.songs || []);
