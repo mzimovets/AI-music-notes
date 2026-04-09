@@ -64,6 +64,7 @@
     "@react-aria/visually-hidden": "3.8.27",
     "@react-pdf/renderer": "^4.3.1",
     "@serwist/next": "^9.5.7",
+    "@types/three": "^0.183.1",
     "bcryptjs": "^3.0.3",
     "clsx": "2.1.1",
     "devextreme": "^25.2.4",
@@ -80,6 +81,7 @@
     "next-auth": "^4.24.13",
     "next-themes": "0.4.6",
     "node-hid": "^3.3.0",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.296",
     "qrcode.react": "^4.2.0",
     "react": "18.3.1",
@@ -89,6 +91,7 @@
     "serwist": "^9.5.7",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
+    "three": "^0.183.2",
     "ws": "^8.20.0"
   },
   "devDependencies": {

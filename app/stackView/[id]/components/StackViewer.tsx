@@ -35,6 +35,8 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 key={i}
                 className="w-full flex justify-center mb-4"
                 data-page-number={pageNum}
+                data-file-url={String(fileUrl)}
+                data-page-num={String(pageNum)}
                 id={`pdf-page-${pageNum}`}
               >
                 <PdfPageCard
