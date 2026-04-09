@@ -38,7 +38,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
                 id={`pdf-page-${pageNum}`}
               >
                 <PdfPageCard
-                  cardClassName="w-200 h-auto min-h-[520px]"
+                  cardClassName="md:w-200 w-full h-auto min-h-[520px]"
                   fileUrl={fileUrl}
                   pageNum={pageNum}
                 />

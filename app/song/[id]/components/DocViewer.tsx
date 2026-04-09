@@ -14,7 +14,7 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
     <>
       <div className="pt-4 flex justify-center">
         <PdfPageCard
-          cardClassName="w-200 h-auto min-h-[420px]"
+          cardClassName="md:w-200 w-full h-auto min-h-[420px]"
           fileUrl={fileUrl}
           pageNum={pageNum}
           setPdfDoc={setPdfDoc}
