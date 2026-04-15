@@ -259,6 +259,14 @@ export default function Page() {
               </p>
             </div>
           )}
+
+          <Button
+            type="submit"
+            isLoading={isLoading}
+            className="input-header mt-2 px-10 py-2 rounded-lg bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white font-medium hover:opacity-90 transition-all"
+          >
+            {isLoading ? "" : "Войти"}
+          </Button>
         </Form>
         <div className="absolute bottom-3 right-2 z-0 pointer-events-none">
           <Pattern

@@ -4,12 +4,7 @@
       "name": "Default",
       "files": [
         "public/sw.js",
-        "app/page.tsx",
-        "server/index.js",
-        "app/api/auth/[...nextauth]/route.ts",
-        "app/authPage/page.tsx",
-        "package.json",
-        "app/home/QRModal.tsx",
+        "components/CacheStats.tsx",
         ".vscode/changelists.json"
       ]
     }

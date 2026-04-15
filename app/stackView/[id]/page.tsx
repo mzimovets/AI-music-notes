@@ -1,6 +1,7 @@
 "use client";
 import { useRef, useCallback, useState, useEffect } from "react";
 import { useClicker } from "@/components/useClicker";
+import { ClickerIndicator } from "@/components/ClickerIndicator";
 
 import { SideBarStack } from "./components/SideBarStack";
 
@@ -139,7 +140,7 @@ export default function Page() {
     pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
   
-  useClicker(useCallback((direction) => {
+  const { isConnected: clickerConnected } = useClicker(useCallback((direction) => {
     if (direction === "down") scrollToPageByStep(1);
     if (direction === "up") scrollToPageByStep(-1);
   }, [scrollToPageByStep]));
@@ -147,6 +148,7 @@ export default function Page() {
   return (
     <div>
       <ScrollToTop />
+      {!isSinger && <ClickerIndicator isConnected={clickerConnected} />}
       <SideBarStack onPreview={handlePreview} />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 

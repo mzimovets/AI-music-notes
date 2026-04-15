@@ -72,11 +72,7 @@ shadow-[0_4px_12px_rgba(0,0,0,0.18)]
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md hover:shadow-lg transition-all input-header"
                   onPress={() => {
                     onClose();
-                    if (window.history.length > 1) {
-                      router.push("/");
-                    } else {
-                      router.push("/song");
-                    }
+                    router.back();
                   }}
                 >
                   Закрыть

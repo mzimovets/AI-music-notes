@@ -46,6 +46,22 @@ const broadcast = (action) => {
   });
 };
 
+const broadcastStatus = (connected) => {
+  if (!wss) return;
+  wss.clients.forEach((client) => {
+    if (client.readyState === 1) {
+      client.send(JSON.stringify({ type: "clicker-connected", connected }));
+    }
+  });
+};
+
+// При подключении нового клиента сразу отправляем текущий статус
+if (wss) {
+  wss.on("connection", (ws) => {
+    ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
+  });
+}
+
 const connectDevice = () => {
   if (device) return; // уже подключено
 
@@ -57,6 +73,7 @@ const connectDevice = () => {
     try {
       device = new HID.HID(d.path);
       console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
+      broadcastStatus(true);
 
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
@@ -75,7 +92,8 @@ const connectDevice = () => {
 
       device.on("error", (err) => {
         console.log("[clicker] Устройство отключено, жду переподключения...");
-        device = null; // сбрасываем, чтобы tryConnect снова нашёл
+        device = null;
+        broadcastStatus(false);
       });
 
       break;
@@ -83,8 +101,12 @@ const connectDevice = () => {
   }
 };
 
-// Проверяем каждые 2 секунды
+// Подключаем сразу при старте, потом проверяем каждые 2 секунды
+connectDevice();
 setInterval(connectDevice, 2000);
+
+// Рассылаем актуальный статус всем клиентам каждую секунду
+setInterval(() => broadcastStatus(!!device), 1000);
 
 process.on("SIGINT", () => {
   if (device) device.close();
