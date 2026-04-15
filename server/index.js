@@ -3,6 +3,19 @@ const app = express();
 import bodyParser from "body-parser";
 import fs, { stat } from "fs";
 import { createServer } from "http";
+import { networkInterfaces } from "os";
+
+function getLocalIP() {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === "IPv4" && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return "localhost";
+}
 import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
@@ -197,6 +210,38 @@ const io = new SocketIOServer(httpServer, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+});
+
+// QR Sessions
+const qrSessions = new Map();
+
+app.post("/auth/qr/generate", (req, res) => {
+  const { socketId } = req.body;
+  const token =
+    Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = Date.now() + 5 * 60 * 1000;
+  qrSessions.set(token, { otp, socketId, expiresAt });
+  setTimeout(() => qrSessions.delete(token), 5 * 60 * 1000);
+  res.json({ token, otp, localIP: getLocalIP() });
+});
+
+app.post("/auth/qr/verify", (req, res) => {
+  const { token, otp } = req.body;
+  const session = qrSessions.get(token);
+  if (!session) return res.status(400).json({ error: "Сессия не найдена" });
+  if (Date.now() > session.expiresAt) {
+    qrSessions.delete(token);
+    return res.status(400).json({ error: "QR-код истёк" });
+  }
+  if (session.otp !== otp) return res.status(400).json({ error: "Неверный код" });
+
+  qrSessions.delete(token);
+
+  const targetSocket = io.sockets.sockets.get(session.socketId);
+  if (targetSocket) targetSocket.emit("qr-verified", { token });
+
+  res.json({ status: "ok", userId: "singer", username: "singer", role: "певчие" });
 });
 
 io.on("connection", (socket) => {
