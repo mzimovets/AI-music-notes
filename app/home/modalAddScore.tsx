@@ -11,8 +11,8 @@ import {
   Select,
   SelectItem,
   useDisclosure,
-  addToast,
 } from "@heroui/react";
+import { addToast } from "@heroui/toast";
 
 import MyDropzone from "./dropzone";
 import ModalFilePreviewer from "./modalFilePreviewer";
@@ -151,13 +151,12 @@ export default function ModalAddScore() {
 
     try {
       const response = await addSong(data, window.location.pathname);
-
       addToast({
         title: <span className="font-bold text-white">Партитура добавлена</span>,
         description: (
           <div
             onClick={() => router.push(`/song/${response.doc._id}`)}
-            className="text-white"
+            className="text-white cursor-pointer"
           >
             <div className="flex gap-6">
               <div className="flex flex-col">
