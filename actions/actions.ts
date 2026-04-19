@@ -59,7 +59,11 @@ export async function updateStack({
     id,
   });
   revalidatePath(`/stack/${id}`);
-  revalidatePath(`/stackView/${id}`);
+  // Не ревалидируем stackView, если сохранение пришло изнутри него —
+  // иначе Next.js перезагружает серверный компонент прямо во время просмотра.
+  if (!currentUrl?.includes("/stackView/")) {
+    revalidatePath(`/stackView/${id}`);
+  }
   return response;
 }
 
