@@ -14,7 +14,7 @@ import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton";
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
-import { DearFlipViewer, DearFlipViewerHandle, COVER_COLORS } from "./components/DearFlipViewer";
+import { SwipeBookViewer, SwipeBookViewerHandle } from "./components/SwipeBookViewer";
 import { updateStack } from "@/actions/actions";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -38,8 +38,8 @@ export default function Page() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const router = useRouter();
-  const { data: session } = useSession();
-  const isSinger = session?.user?.role !== "регент";
+  const { data: session, status: sessionStatus } = useSession();
+  const isSinger = sessionStatus === "loading" ? true : session?.user?.role !== "регент";
 
   const [viewMode, setViewMode] = useState<"scroll" | "book">("scroll");
   const [viewerHeight, setViewerHeight] = useState(() =>
@@ -47,14 +47,15 @@ export default function Page() {
   );
   const viewModeRef = useRef<"scroll" | "book">("scroll");
 
-  // DearFlip viewer ref — lets us call goToPage / getActivePage
-  const flipViewerRef = useRef<DearFlipViewerHandle>(null);
+  // SwipeBook viewer ref — lets us call goToPage / getActivePage
+  const flipViewerRef = useRef<SwipeBookViewerHandle>(null);
 
   // Page offsets per song/prayer (fetched once the mergedPdfUrl is known)
   const [mainSongPages, setMainSongPages] = useState<number[]>([]);
   const [reserveSongPages, setReserveSongPages] = useState<number[]>([]);
   const [trapezaStartPage, setTrapezaStartPage] = useState<number | undefined>();
   const [trapezaEndPage, setTrapezaEndPage] = useState<number | undefined>();
+  const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -144,9 +145,6 @@ export default function Page() {
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
 
-  // Cover colour from the stack's cover image name
-  const coverColor = COVER_COLORS[(stackResponse.doc as any)?.cover || ""] || "#BD9673";
-
   // Версия PDF — увеличивается при изменении состава книги, DearFlip перезагружает PDF
   const [pdfVersion, setPdfVersion] = useState(0);
   const mergedPdfUrl = stackId ? `/api/merge-stack/${stackId}?v=${pdfVersion}` : null;
@@ -224,6 +222,7 @@ export default function Page() {
         const te = entries.find((e) => e.kind === "trapeza-end");
         setTrapezaStartPage(ts?.pageOffset);
         setTrapezaEndPage(te?.pageOffset);
+        setContentRanges(entries.map((e) => ({ offset: e.pageOffset, count: e.pageCount })));
       })
       .catch(() => {});
   }, [mergedPdfUrl]);
@@ -286,13 +285,34 @@ export default function Page() {
     return () => { document.body.style.overflow = ""; };
   }, [viewMode]);
 
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const startHideTimer = useCallback(() => {
+    clearTimeout(hideTimer.current);
+    hideTimer.current = setTimeout(() => setShowButton(false), 3000);
+  }, []);
+
+  const handleBookTap = useCallback(() => {
+    setShowButton((v) => {
+      const next = !v;
+      clearTimeout(hideTimer.current);
+      if (next) startHideTimer();
+      return next;
+    });
+  }, [startHideTimer]);
+
   const handleViewModeChange = useCallback((mode: "scroll" | "book") => {
     if (mode === "book") {
-      // При открытии книги всегда загружаем свежий PDF (учитывает все накопленные изменения)
       setPdfVersion((v) => v + 1);
+      // Показать кнопки при входе и запустить автоскрытие
+      setShowButton(true);
+      startHideTimer();
+    } else {
+      clearTimeout(hideTimer.current);
+      setShowButton(true);
     }
     setViewMode(mode);
-  }, []);
+  }, [startHideTimer]);
 
   const handleGoToPage = useCallback((page: number) => {
     flipViewerRef.current?.goToPage(page);
@@ -304,19 +324,22 @@ export default function Page() {
       {viewMode === "book" && mergedPdfUrl && (
         <div className="fixed inset-0 z-20 bg-[#F7F4F1] flex flex-col">
           <div className="flex-1 overflow-hidden">
-            <DearFlipViewer
+            <SwipeBookViewer
               ref={flipViewerRef}
               key={mergedPdfUrl}
               pdfUrl={mergedPdfUrl}
               height={viewerHeight}
-              coverColor={coverColor}
+              contentRanges={contentRanges}
+              onTap={handleBookTap}
             />
           </div>
         </div>
       )}
 
       {viewMode === "scroll" && <ScrollToTop />}
-      {!isSinger && <ClickerIndicator isConnected={clickerConnected} />}
+      {!isSinger && (
+        <ClickerIndicator isConnected={clickerConnected} hidden={viewMode === "book" && !showButton} />
+      )}
       <SideBarStack
         onPreview={handlePreview}
         viewMode={viewMode}
@@ -326,6 +349,7 @@ export default function Page() {
         reserveSongPages={reserveSongPages}
         trapezaStartPage={trapezaStartPage}
         trapezaEndPage={trapezaEndPage}
+        forceVisible={viewMode === "book" ? showButton : undefined}
       />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200

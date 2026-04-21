@@ -8,7 +8,7 @@ import {
   ModalFooter,
 } from "@heroui/modal";
 import { useState } from "react";
-import { CloseIcon } from "@/app/stackView/[id]/components/icon/CloseIcon";
+import { CloseIcon } from "@/components/CloseIcon";
 import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 

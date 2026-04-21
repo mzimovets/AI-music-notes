@@ -1,9 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { PDFDocument, rgb } from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
 import path from "path";
 import fs from "fs/promises";
 
 export const runtime = "nodejs";
+
+// ─── Серверный кэш ────────────────────────────────────────────────────────────
+type CacheEntry = { bytes: Uint8Array; songPages: string; name: string };
+const pdfCache = new Map<string, CacheEntry>();
+const PDF_CACHE_MAX = 20;
+
+// Шрифт читается один раз и остаётся в памяти
+let cachedFontBytes: Buffer | null = null;
 
 const BACKEND_URL =
   process.env.NEXT_PUBLIC_BASIC_BACK_URL || "http://localhost:4000";
@@ -26,34 +35,25 @@ const MEAL_FILES_MAP: Record<string, { start: string; end: string }> = {
   vvedenie:            { start: "vvedenie-trop.pdf",           end: "vvedenie-kond.pdf" },
 };
 
-// Цвета обложек — совпадают с COVER_COLORS в DearFlipViewer.tsx
-const COVER_COLORS: Record<string, string> = {
-  blue:          "#4A90D9",
-  brown:         "#8B5E3C",
-  "dark-purple": "#5B2B8C",
-  green:         "#3A8C5C",
-  grey:          "#7A8A99",
-  ocean:         "#1A7A9A",
-  orange:        "#D9823A",
-  purple:        "#7A4AB0",
-  red:           "#C0392B",
-  salat:         "#7AB040",
-  white:         "#C8BEB5",
-  yellow:        "#D4A843",
+// Цвета подобраны по доминирующему цвету PNG-обложек из /public/stacks/cover/
+const COVER_COLORS: Record<string, [number, number, number]> = {
+  blue:         [0.42, 0.55, 0.72], // приглушённый синий
+  brown:        [0.55, 0.31, 0.13], // тёмно-коричневый
+  "dark-purple":[0.29, 0.20, 0.28], // тёмно-фиолетовый
+  green:        [0.30, 0.35, 0.10], // тёмно-оливковый
+  grey:         [0.22, 0.21, 0.19], // почти чёрный
+  ocean:        [0.13, 0.27, 0.38], // тёмно-синий морской
+  orange:       [0.78, 0.38, 0.10], // оранжевый
+  purple:       [0.52, 0.43, 0.65], // сиреневый
+  red:          [0.47, 0.18, 0.15], // тёмно-бордовый
+  salat:        [0.52, 0.62, 0.18], // жёлто-зелёный
+  white:        [0.82, 0.80, 0.76], // бежево-серый
+  yellow:       [0.73, 0.57, 0.10], // горчично-жёлтый
 };
-const DEFAULT_COVER_COLOR = "#BD9673";
-
-function hexToRgbFraction(hex: string): { r: number; g: number; b: number } {
-  const clean = hex.replace("#", "");
-  return {
-    r: parseInt(clean.slice(0, 2), 16) / 255,
-    g: parseInt(clean.slice(2, 4), 16) / 255,
-    b: parseInt(clean.slice(4, 6), 16) / 255,
-  };
-}
 
 // Путь к public/meals-pdf относительно корня проекта
-const MEALS_DIR = path.join(process.cwd(), "public", "meals-pdf");
+const MEALS_DIR  = path.join(process.cwd(), "public", "meals-pdf");
+const FONT_PATH  = path.join(process.cwd(), "public", "fonts", "RobotoSlab-VariableFont_wght.ttf");
 
 type OffsetEntry = {
   isReserve: boolean;
@@ -118,18 +118,64 @@ async function appendFromDisk(
   }
 }
 
-/** Добавляет одну страницу-обложку заданного цвета */
-function addCoverPage(merged: PDFDocument, hexColor: string) {
-  const { r, g, b } = hexToRgbFraction(hexColor);
-  const page = merged.addPage([595, 842]); // A4
-  page.drawRectangle({ x: 0, y: 0, width: 595, height: 842, color: rgb(r, g, b) });
+/** Добавляет пустую белую страницу A4 */
+function addBlankPage(merged: PDFDocument, cursor: { value: number }) {
+  merged.addPage([595, 842]);
+  cursor.value += 1;
+}
+
+/** Добавляет цветную страницу раздела с названием по центру */
+async function addSectionPage(
+  merged: PDFDocument,
+  cursor: { value: number },
+  coverName: string,
+  label: string,
+) {
+  const [r, g, b] = COVER_COLORS[coverName] ?? [1, 1, 1];
+  const W = 595, H = 842;
+  const page = merged.addPage([W, H]);
+
+  // Заливка
+  page.drawRectangle({ x: 0, y: 0, width: W, height: H, color: rgb(r, g, b) });
+
+  // Текст по центру белым (TTF с поддержкой кириллицы, шрифт кэшируется)
+  if (!cachedFontBytes) cachedFontBytes = await fs.readFile(FONT_PATH);
+  const font = await merged.embedFont(cachedFontBytes);
+  const fontSize = 36;
+  const textWidth = font.widthOfTextAtSize(label, fontSize);
+  page.drawText(label, {
+    x: (W - textWidth) / 2,
+    y: H / 2 - fontSize / 3,
+    size: fontSize,
+    font,
+    color: rgb(1, 1, 1),
+    opacity: 0.90,
+  });
+
+  cursor.value += 1;
 }
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const v = req.nextUrl.searchParams.get("v") ?? "0";
+  const cacheKey = `${id}:${v}`;
+
+  // Отдаём из кэша если есть
+  const cached = pdfCache.get(cacheKey);
+  if (cached) {
+    return new NextResponse(cached.bytes, {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(cached.name + ".pdf")}`,
+        "Cache-Control": "no-store",
+        "X-Song-Pages": cached.songPages,
+        "Access-Control-Expose-Headers": "X-Song-Pages",
+      },
+    });
+  }
 
   try {
     // 1. Fetch stack metadata
@@ -151,52 +197,79 @@ export async function GET(
     const hasTrapeza = (stack.programSelected || []).includes("Трапеза");
     const mealEntry  = hasTrapeza && stack.mealType ? MEAL_FILES_MAP[stack.mealType] : null;
 
-    // 4. Определяем цвет обложки
-    const coverHex = COVER_COLORS[stack.cover || ""] || DEFAULT_COVER_COLOR;
-
-    // 5. Merge
+    // 4. Merge
     const merged  = await PDFDocument.create();
+    merged.registerFontkit(fontkit);
     const offsets: OffsetEntry[] = [];
-    // cursor начинается с 2 — страница 1 занята передней обложкой
-    const cursor  = { value: 2 };
+    // cursor начинается с 1 — обложек нет
+    const cursor  = { value: 1 };
 
-    // 5a. Передняя обложка (страница 1, "hard cover")
-    addCoverPage(merged, coverHex);
+    const coverName = stack.cover && COVER_COLORS[stack.cover] ? stack.cover : null;
 
-    // 5b. Тропарь (начало трапезы)
+    // Выровнять на нечётную (левую) страницу белой заглушкой
+    const alignToLeftPage = () => {
+      if (cursor.value % 2 === 0) addBlankPage(merged, cursor);
+    };
+
+    // Выровнять на чётную (правую) страницу — слева добавляет страницу-разделитель
+    const alignToRightPageWithSection = async (label: string) => {
+      if (cursor.value % 2 !== 0) {
+        if (coverName) await addSectionPage(merged, cursor, coverName, label);
+        else addBlankPage(merged, cursor);
+      }
+    };
+
+    // 4a. Тропарь — всегда на правой странице, слева страница с названием раздела
     if (mealEntry) {
+      await alignToRightPageWithSection("Тропарь");
       await appendFromDisk(merged, path.join(MEALS_DIR, mealEntry.start), offsets, false, "trapeza-start", cursor);
     }
 
-    // 5c. Основные песни
+    // 4b. Основные песни — каждая начинается с левой страницы
     for (const song of mainSongs) {
       const filename = song?.file?.filename;
       if (!filename) continue;
+      alignToLeftPage();
       await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, false, cursor);
     }
 
-    // 5d. Резерв
-    for (const song of reserveSongs) {
-      const filename = song?.file?.filename;
-      if (!filename) continue;
-      await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, true, cursor);
-    }
-
-    // 5e. Кондак (конец трапезы)
+    // 4c. Кондак — всегда на левой странице
     if (mealEntry) {
+      alignToLeftPage();
       await appendFromDisk(merged, path.join(MEALS_DIR, mealEntry.end), offsets, false, "trapeza-end", cursor);
     }
 
-    // 5f. Задняя обложка (последняя страница)
-    addCoverPage(merged, coverHex);
+    // 4d. Резерв — разделитель + каждая песня с левой страницы
+    if (reserveSongs.length > 0) {
+      // Страница-разделитель "Резерв" на левой, следующая страница — первая нота резерва
+      alignToLeftPage();
+      if (coverName) await addSectionPage(merged, cursor, coverName, "Резерв");
+      else addBlankPage(merged, cursor);
 
-    if (merged.getPageCount() <= 2) {
-      // Только обложки — нечего показывать
+      for (const song of reserveSongs) {
+        const filename = song?.file?.filename;
+        if (!filename) continue;
+        alignToLeftPage();
+        await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, true, cursor);
+      }
+    }
+
+    if (merged.getPageCount() === 0) {
       return NextResponse.json({ error: "No pages could be merged" }, { status: 422 });
     }
 
-    // 6. Serialize and return
+    // 6. Serialize, кэшируем и возвращаем
     const pdfBytes = await merged.save();
+
+    // Сохраняем в кэш, вытесняем старые записи если кэш переполнен
+    if (pdfCache.size >= PDF_CACHE_MAX) {
+      pdfCache.delete(pdfCache.keys().next().value!);
+    }
+    pdfCache.set(cacheKey, {
+      bytes: pdfBytes,
+      songPages: JSON.stringify(offsets),
+      name: stack.name || "stack",
+    });
 
     return new NextResponse(pdfBytes, {
       headers: {

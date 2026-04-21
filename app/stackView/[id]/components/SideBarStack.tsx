@@ -133,6 +133,7 @@ export const SideBarStack = ({
   reserveSongPages,
   trapezaStartPage,
   trapezaEndPage,
+  forceVisible,
 }: {
   onPreview: (song: any) => void;
   viewMode: "scroll" | "book";
@@ -142,6 +143,8 @@ export const SideBarStack = ({
   reserveSongPages?: number[];
   trapezaStartPage?: number;
   trapezaEndPage?: number;
+  /** В режиме книги видимость управляется снаружи (тап по экрану) */
+  forceVisible?: boolean;
 }) => {
   const router = useRouter();
   const { data: session } = useSession();
@@ -526,7 +529,7 @@ useEffect(() => {
       <div className="flex flex-wrap gap-3">
         <div
           className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-200
-          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+          ${(forceVisible !== undefined ? forceVisible : showButton) ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
         >
           <SidebarButton onPress={() => handleOpen()} />
