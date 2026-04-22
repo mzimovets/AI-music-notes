@@ -379,36 +379,13 @@ export const Sidebar2 = ({ onPreview }) => {
     return text || "Песен нет";
   };
 
-  const [showButton, setShowButton] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const currentY = window.scrollY;
-
-      if (currentY < lastScrollY) {
-        // прокрутка вверх
-        setShowButton(true);
-      } else if (currentY > lastScrollY) {
-        // прокрутка вниз
-        setShowButton(false);
-      }
-
-      setLastScrollY(currentY);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [lastScrollY]);
-
   return (
     <>
-      <div className="flex flex-wrap gap-3">
-        <div
-          className={`fixed left-3 z-20 transform-gpu transition-all duration-200
-          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
-        `}
-        >
+      <div
+        className="sticky top-2 z-20 h-0 overflow-visible pointer-events-none"
+        style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
+      >
+        <div className="absolute left-3 top-0 pointer-events-auto">
           <SidebarButton onPress={() => handleOpen()} />
         </div>
       </div>

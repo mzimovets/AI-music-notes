@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { PdfTitlePage } from "./components/PdfTitlePage";
 import { useStackContext } from "./components/StackContextProvider";
@@ -49,7 +49,7 @@ export default function StackPage() {
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [showButton, setShowButton] = useState(true);
+  const [showButton] = useState(true);
 
   // Автопрокрутка к песне по ее instanceId с учетом фиксированного header
   const scrollToSong = (songId: string) => {
@@ -171,11 +171,12 @@ export default function StackPage() {
       <ScrollToTop />
       <Sidebar2 onPreview={handlePreview} />
       <div
-        className={`fixed right-3 z-20 transform-gpu transition-all duration-200
-          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
-        `}
+        className="sticky top-2 z-20 h-0 overflow-visible pointer-events-none"
+        style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
       >
-        <CloseButton />
+        <div className="absolute right-3 top-0 pointer-events-auto">
+          <CloseButton />
+        </div>
       </div>
       {stackSongs && stackSongs.length > 0 && (
         <>
