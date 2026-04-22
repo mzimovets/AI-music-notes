@@ -35,12 +35,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     const loadPdf = async () => {
       try {
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
-        await import("pdfjs-dist/build/pdf.worker.mjs");
-
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = new URL(
-          "pdfjs-dist/build/pdf.worker.min.mjs",
-          import.meta.url,
-        ).toString();
+        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
         let loadingTask;
         if (typeof fileUrl === "string") {
@@ -111,7 +106,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         // Combine fitScale and userScale for zooming
         const baseScale = fitScale * userScale;
 
-        const outputScale = window.devicePixelRatio || 1;
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
 
         const canvas = canvasRef.current;
         const context = canvas.getContext("2d");

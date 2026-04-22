@@ -8,6 +8,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+import { Skeleton } from "@heroui/react";
 
 // ─── Public handle (same interface as DearFlipViewerHandle) ──────────────────
 export interface SwipeBookViewerHandle {
@@ -17,6 +18,8 @@ export interface SwipeBookViewerHandle {
 
 export interface SwipeBookViewerProps {
   pdfUrl: string;
+  /** Готовые байты PDF — если переданы, не скачиваем повторно */
+  pdfData?: ArrayBuffer;
   height: number;
   /** Диапазоны страниц с реальным контентом (из X-Song-Pages). На мобайле пропускаем остальные. */
   contentRanges?: { offset: number; count: number }[];
@@ -61,7 +64,7 @@ function PdfPage({
 
       const canvas = canvasRef.current!;
       const ctx = canvas.getContext("2d")!;
-      const dpr = window.devicePixelRatio || 1;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
       canvas.width = Math.floor(scaledViewport.width * dpr);
       canvas.height = Math.floor(scaledViewport.height * dpr);
@@ -100,7 +103,7 @@ function PdfPage({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewerProps>(
-  ({ pdfUrl, height, contentRanges = [], onTap }, ref) => {
+  ({ pdfUrl, pdfData, height, contentRanges = [], onTap }, ref) => {
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
@@ -139,13 +142,15 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       (async () => {
         try {
           const pdfjsLib = await import("pdfjs-dist/build/pdf");
-          await import("pdfjs-dist/build/pdf.worker.mjs");
-          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = new URL(
-            "pdfjs-dist/build/pdf.worker.min.mjs",
-            import.meta.url,
-          ).toString();
+          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-          const pdf = await (pdfjsLib as any).getDocument(pdfUrl).promise;
+          // Если байты уже есть — не скачиваем повторно.
+          // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,
+          // после чего оригинал становится detached и непригоден для повторного использования.
+          const source = pdfData
+            ? { data: pdfData.slice(0) }
+            : { url: pdfUrl, isEvalSupported: false };
+          const pdf = await (pdfjsLib as any).getDocument(source).promise;
           if (!cancelled) {
             setPdfDoc(pdf);
             setNumPages(pdf.numPages);
@@ -182,7 +187,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     useImperativeHandle(ref, () => ({
       goToPage: (page: number) => {
         const clamped = Math.max(1, Math.min(numPagesRef.current || 999, page));
-        if (isMobileRef.current && mobilePagesRef.current.length > 0) {
+        if (mobilePagesRef.current.length > 0) {
           // Найти ближайшую реальную страницу
           const pages = mobilePagesRef.current;
           const idx = pages.findIndex((p) => p >= clamped);
@@ -191,9 +196,8 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           mobileIndexRef.current = newIdx;
           currentPageRef.current = pages[newIdx];
         } else {
-          const spread = clamped % 2 !== 0 ? clamped : clamped - 1;
-          setCurrentPage(spread);
-          currentPageRef.current = spread;
+          setCurrentPage(clamped);
+          currentPageRef.current = clamped;
         }
       },
       getActivePage: () => currentPageRef.current,
@@ -224,9 +228,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     };
 
-    const onPointerMove = (_e: React.PointerEvent) => {
-      // intentionally no visual follow — pages stay in place while swiping
-    };
+    const onPointerMove = (_e: React.PointerEvent) => {};
 
     const onPointerUp = (e: React.PointerEvent) => {
       if (!dragging.current || dragStartX.current === null) return;
@@ -236,7 +238,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       if (Math.abs(delta) > 40) {
         navigate(delta < 0 ? 1 : -1);
       } else {
-        // Короткий тап — показать/скрыть кнопки
         onTap?.();
       }
     };
@@ -319,27 +320,14 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                 );
               })
             : // Loading placeholder
-              (isMobile ? [0] : [0, 1]).map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    width: Math.floor(pageHeight * 0.707),
-                    height: pageHeight,
-                    borderRadius: i === 0 ? "6px 0 0 6px" : isMobile ? "6px" : "0 6px 6px 0",
-                    background: "linear-gradient(90deg, #e8e0d8 25%, #f0ebe4 50%, #e8e0d8 75%)",
-                    backgroundSize: "200% 100%",
-                    animation: "shimmer 1.4s infinite",
-                  }}
-                />
-              ))}
+              <Skeleton
+                style={{
+                  width: Math.floor(pageHeight * 0.707),
+                  height: pageHeight,
+                  borderRadius: "6px",
+                }}
+              />}
         </div>
-
-<style>{`
-          @keyframes shimmer {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-          }
-        `}</style>
       </div>
     );
   }

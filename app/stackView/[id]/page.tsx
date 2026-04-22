@@ -56,6 +56,7 @@ export default function Page() {
   const [trapezaStartPage, setTrapezaStartPage] = useState<number | undefined>();
   const [trapezaEndPage, setTrapezaEndPage] = useState<number | undefined>();
   const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
+  const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -193,23 +194,26 @@ export default function Page() {
         justSavedRef.current = false;
         console.error("[book] auto-save failed:", e);
       }
-      // Обновляем PDF только если не в режиме книги —
-      // иначе книга исчезает при каждом изменении состава.
-      // При переключении в режим книги PDF обновляется в handleViewModeChange.
-      if (viewModeRef.current !== "book") {
-        setPdfVersion((v) => v + 1);
-      }
+      setPdfVersion((v) => v + 1);
     }, 800);
 
     return () => clearTimeout(autoSaveTimer.current);
   }, [stackSongs, mealType, programSelected, stackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Fetch song page offsets from the response headers of the merge endpoint
+  // Fetch song page offsets + кешируем байты PDF чтобы не скачивать дважды
   useEffect(() => {
     if (!mergedPdfUrl) return;
-    fetch(mergedPdfUrl)
-      .then((res) => {
+    setPdfData(undefined);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(mergedPdfUrl);
+        if (!res.ok || cancelled) return;
         const header = res.headers.get("x-song-pages");
+        const bytes = await res.arrayBuffer();
+        if (cancelled) return;
+        // Сохраняем байты — SwipeBookViewer не будет скачивать повторно
+        setPdfData(bytes);
         if (!header) return;
         const entries: SongPageEntry[] = JSON.parse(header);
         setMainSongPages(
@@ -223,8 +227,9 @@ export default function Page() {
         setTrapezaStartPage(ts?.pageOffset);
         setTrapezaEndPage(te?.pageOffset);
         setContentRanges(entries.map((e) => ({ offset: e.pageOffset, count: e.pageCount })));
-      })
-      .catch(() => {});
+      } catch {}
+    })();
+    return () => { cancelled = true; };
   }, [mergedPdfUrl]);
 
   // Navigate flipbook one page at a time (even in double-page spread mode)
@@ -303,7 +308,6 @@ export default function Page() {
 
   const handleViewModeChange = useCallback((mode: "scroll" | "book") => {
     if (mode === "book") {
-      setPdfVersion((v) => v + 1);
       // Показать кнопки при входе и запустить автоскрытие
       setShowButton(true);
       startHideTimer();
@@ -326,8 +330,8 @@ export default function Page() {
           <div className="flex-1 overflow-hidden">
             <SwipeBookViewer
               ref={flipViewerRef}
-              key={mergedPdfUrl}
               pdfUrl={mergedPdfUrl}
+              pdfData={pdfData}
               height={viewerHeight}
               contentRanges={contentRanges}
               onTap={handleBookTap}
@@ -375,13 +379,6 @@ export default function Page() {
 
       <div ref={viewerContainerRef} data-viewer-container>
       {/* Тропарь */}
-      {stackResponse.doc?.programSelected.includes("Трапеза") &&
-        mealFilesMap[stackResponse.doc?.mealType] && (
-        <StackViewer
-          fileUrl={`/meals-pdf/${mealFilesMap[stackResponse.doc.mealType].start.replace("meals-pdf/", "")}`}
-        />
-      )}
-
       <SongsList songs={mainSongs} isReserved={false} />
 
       {reserveSongs.length > 0 && (
@@ -407,13 +404,6 @@ export default function Page() {
             />
           </div>
         </>
-      )}
-      {/* Кондак */}
-      {stackResponse.doc?.programSelected.includes("Трапеза") &&
-        mealFilesMap[stackResponse.doc?.mealType] && (
-        <StackViewer
-          fileUrl={`/meals-pdf/${mealFilesMap[stackResponse.doc.mealType].end.replace("meals-pdf/", "")}`}
-        />
       )}
       </div>
 
