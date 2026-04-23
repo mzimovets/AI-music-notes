@@ -21,6 +21,20 @@
       "purpose": "any"
     }
   ],
+  "screenshots": [
+  {
+    "src": "/mobile.png",
+    "sizes": "982x1414",
+    "type": "image/png",
+    "form_factor": "narrow"
+  },
+  {
+    "src": "/desktop.png",
+    "sizes": "2880x1624",
+    "type": "image/png",
+    "form_factor": "wide"
+  }
+],
   "start_url": "/",
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",

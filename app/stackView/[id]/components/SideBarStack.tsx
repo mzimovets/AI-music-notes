@@ -124,7 +124,28 @@ import { useRouter } from "next/navigation";
 import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
-export const SideBarStack = ({ onPreview }) => {
+export const SideBarStack = ({
+  onPreview,
+  viewMode,
+  onViewModeChange,
+  goToPage,
+  mainSongPages,
+  reserveSongPages,
+  trapezaStartPage,
+  trapezaEndPage,
+  forceVisible,
+}: {
+  onPreview: (song: any) => void;
+  viewMode: "scroll" | "book";
+  onViewModeChange: (mode: "scroll" | "book") => void;
+  goToPage?: (page: number) => void;
+  mainSongPages?: number[];
+  reserveSongPages?: number[];
+  trapezaStartPage?: number;
+  trapezaEndPage?: number;
+  /** В режиме книги видимость управляется снаружи (тап по экрану) */
+  forceVisible?: boolean;
+}) => {
   const router = useRouter();
   const { data: session } = useSession();
   const isRegent = session?.user?.role === "регент";
@@ -137,21 +158,24 @@ useEffect(() => {
   return () => window.removeEventListener('clicker:middle', handleMiddle);
 }, []);
 
-  const handleSongClick = (songId: string) => {
+  const handleSongClick = (songId: string, bookPage?: number) => {
     setIsDrawerOpen(false);
+
+    if (viewMode === "book") {
+      if (bookPage !== undefined && goToPage) {
+        setTimeout(() => goToPage(bookPage), 450);
+      }
+      return;
+    }
 
     // небольшая задержка, чтобы drawer успел закрыться
     setTimeout(() => {
       const el = document.getElementById(songId);
       if (el) {
         const y = el.getBoundingClientRect().top + window.pageYOffset;
-
-        window.scrollTo({
-          top: y,
-          behavior: "smooth",
-        });
+        window.scrollTo({ top: y, behavior: "smooth" });
       }
-    }, 250); // время должно совпадать с анимацией закрытия Drawer
+    }, 250);
   };
   const handleOpen = () => {
     setIsDrawerOpen(true);
@@ -505,7 +529,7 @@ useEffect(() => {
       <div className="flex flex-wrap gap-3">
         <div
           className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-200
-          ${showButton ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+          ${(forceVisible !== undefined ? forceVisible : showButton) ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
         >
           <SidebarButton onPress={() => handleOpen()} />
@@ -563,6 +587,39 @@ useEffect(() => {
                     </Button>
                   )}
                 </div>
+                {/* View mode toggle */}
+                <div className="flex gap-0.5 items-center p-0.5 bg-default-100 rounded-lg mx-2">
+                  <button
+                    title="Листание"
+                    onClick={() => onViewModeChange("scroll")}
+                    className={`p-1.5 rounded-md transition-colors ${
+                      viewMode === "scroll"
+                        ? "bg-white text-[#7D5E42] shadow-sm"
+                        : "text-default-400 hover:text-default-600"
+                    }`}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="3" y1="6" x2="21" y2="6"/>
+                      <line x1="3" y1="12" x2="21" y2="12"/>
+                      <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                  </button>
+                  <button
+                    title="Книга"
+                    onClick={() => onViewModeChange("book")}
+                    className={`p-1.5 rounded-md transition-colors ${
+                      viewMode === "book"
+                        ? "bg-white text-[#7D5E42] shadow-sm"
+                        : "text-default-400 hover:text-default-600"
+                    }`}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    </svg>
+                  </button>
+                </div>
+
                 <div className="flex gap-2 items-center">
                   {session?.user?.role === "регент" && (
                     <Popover
@@ -873,7 +930,7 @@ useEffect(() => {
                                     <div
                                       className={`touch-none select-none w-[85%] ml-auto p-3 shadow-sm bg-white border border-default-200 rounded-xl mt-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${session?.user?.role === "регент" ? "flex flex-col gap-2 mb-3 min-h-[100px] items-start" : "mb-2"}`}
                                       onClick={() =>
-                                        handleSongClick(`meal_start`)
+                                        handleSongClick(`meal_start`, trapezaStartPage)
                                       }
                                     >
                                       <p className="text-sm input-header m-0 text-left">
@@ -910,9 +967,9 @@ useEffect(() => {
                                         song={song}
                                         index={index}
                                         onClick={() => {
-                                          console.log("song", song);
                                           handleSongClick(
                                             `${song._id}_${index}`,
+                                            mainSongPages?.[index],
                                           );
                                         }}
                                         onPreview={onPreview}
@@ -929,7 +986,7 @@ useEffect(() => {
                                     <div
                                       className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                                       onClick={() =>
-                                        handleSongClick(`meal_end`)
+                                        handleSongClick(`meal_end`, trapezaEndPage)
                                       }
                                     >
                                       <p className="text-sm input-header m-0">
@@ -971,6 +1028,7 @@ useEffect(() => {
                                           onClick={() =>
                                             handleSongClick(
                                               `${song._id}_${index}_reserved`,
+                                              reserveSongPages?.[index],
                                             )
                                           }
                                           onRemove={(id) =>

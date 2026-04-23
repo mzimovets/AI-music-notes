@@ -3,9 +3,9 @@
 import { Chip } from "@heroui/react";
 import { ClickerIcon } from "./ClickerIcon";
 
-export function ClickerIndicator({ isConnected }: { isConnected: boolean }) {
+export function ClickerIndicator({ isConnected, hidden }: { isConnected: boolean; hidden?: boolean }) {
   return (
-    <div className="fixed bottom-3 left-3 z-50">
+    <div className={`fixed bottom-3 left-3 z-50 transition-all duration-200 ${hidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
       <Chip
         size="lg"
         variant="flat"
