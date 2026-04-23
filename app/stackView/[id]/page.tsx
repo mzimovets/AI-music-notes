@@ -16,6 +16,7 @@ import { CloseReadButton } from "@/app/songRead/[id]/components/CloseReadButton"
 import ModalFilePreviewer from "@/app/home/modalFilePreviewer";
 import { SwipeBookViewer, SwipeBookViewerHandle } from "./components/SwipeBookViewer";
 import { updateStack } from "@/actions/actions";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
@@ -235,8 +236,7 @@ export default function Page() {
   // Navigate flipbook one page at a time (even in double-page spread mode)
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
     if (viewModeRef.current === "book") {
-      const current = flipViewerRef.current?.getActivePage() ?? 1;
-      flipViewerRef.current?.goToPage(current + step);
+      flipViewerRef.current?.navigateStep(step);
       return;
     }
 
@@ -253,7 +253,11 @@ export default function Page() {
     });
 
     const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
-    pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const targetEl = pages[targetIndex];
+    if (targetEl) {
+      const y = targetEl.getBoundingClientRect().top + window.scrollY;
+      smoothScrollTo(y);
+    }
   }, []);
 
   const { isConnected: clickerConnected } = useClicker(useCallback((direction) => {

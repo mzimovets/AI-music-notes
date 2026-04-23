@@ -14,6 +14,7 @@ import { Skeleton } from "@heroui/react";
 export interface SwipeBookViewerHandle {
   goToPage: (page: number) => void;
   getActivePage: () => number;
+  navigateStep: (step: -1 | 1) => void;
 }
 
 export interface SwipeBookViewerProps {
@@ -61,16 +62,13 @@ function PdfPage({
       const viewport = page.getViewport({ scale: 1 });
       const scale = targetHeight / viewport.height;
       const scaledViewport = page.getViewport({ scale });
-
-      const canvas = canvasRef.current!;
-      const ctx = canvas.getContext("2d")!;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      canvas.width = Math.floor(scaledViewport.width * dpr);
-      canvas.height = Math.floor(scaledViewport.height * dpr);
-      canvas.style.width = `${scaledViewport.width}px`;
-      canvas.style.height = `${scaledViewport.height}px`;
-
+      // Рендерим в offscreen canvas — видимый не трогаем пока не готово
+      const offscreen = document.createElement("canvas");
+      offscreen.width = Math.floor(scaledViewport.width * dpr);
+      offscreen.height = Math.floor(scaledViewport.height * dpr);
+      const ctx = offscreen.getContext("2d")!;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       renderTaskRef.current = page.render({ canvasContext: ctx, viewport: scaledViewport });
@@ -78,7 +76,18 @@ function PdfPage({
         await renderTaskRef.current.promise;
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);
+        return;
       }
+
+      if (cancelled) return;
+
+      // Всё готово — копируем в видимый canvas одним синхронным drawImage (без мигания)
+      const canvas = canvasRef.current!;
+      canvas.width = offscreen.width;
+      canvas.height = offscreen.height;
+      canvas.style.width = `${scaledViewport.width}px`;
+      canvas.style.height = `${scaledViewport.height}px`;
+      canvas.getContext("2d")!.drawImage(offscreen, 0, 0);
     })();
 
     return () => {
@@ -183,6 +192,20 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
+    // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
+    const navigate = useCallback((dir: -1 | 1) => {
+      if (mobilePagesRef.current.length > 0) {
+        setMobileIndex((i) => {
+          const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, i + dir));
+          mobileIndexRef.current = next;
+          currentPageRef.current = mobilePagesRef.current[next];
+          return next;
+        });
+      } else {
+        setCurrentPage((p) => Math.max(1, Math.min(numPagesRef.current, p + dir)));
+      }
+    }, []);
+
     // Expose handle
     useImperativeHandle(ref, () => ({
       goToPage: (page: number) => {
@@ -201,21 +224,8 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         }
       },
       getActivePage: () => currentPageRef.current,
-    }), []);
-
-    // Navigation — всегда ±1 страница
-    const navigate = useCallback((dir: -1 | 1) => {
-      if (mobilePagesRef.current.length > 0) {
-        setMobileIndex((i) => {
-          const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, i + dir));
-          mobileIndexRef.current = next;
-          currentPageRef.current = mobilePagesRef.current[next];
-          return next;
-        });
-      } else {
-        setCurrentPage((p) => Math.max(1, Math.min(numPagesRef.current, p + dir)));
-      }
-    }, []);
+      navigateStep: (step: -1 | 1) => navigate(step),
+    }), [navigate]);
 
     // ── Swipe / drag ────────────────────────────────────────────────────────
     const dragStartX = useRef<number | null>(null);
@@ -275,14 +285,12 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         onPointerLeave={onPointerCancel}
         onPointerCancel={onPointerCancel}
       >
-        {/* Spread wrapper — animates as one block */}
+        {/* Spread wrapper */}
         <div
           style={{
             transform: `translateX(${dragOffset}px)`,
-            transition: dragging.current ? "none" : "transform 0.25s ease",
             display: "flex",
             alignItems: "center",
-            // Book shadow: left/right outer + center spine
             filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.28))",
           }}
         >
@@ -292,7 +300,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                 const isLeft = !isOnly && idx === 0;
                 const isRight = !isOnly && idx === pagesToShow.length - 1;
                 return (
-                  <div key={pageNum} style={{ position: "relative", display: "flex" }}>
+                  <div key={idx} style={{ position: "relative", display: "flex" }}>
                     <PdfPage
                       pdfDoc={pdfDoc}
                       pageNum={pageNum}

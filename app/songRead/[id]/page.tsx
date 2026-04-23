@@ -8,6 +8,7 @@ import { useClicker } from "@/components/useClicker";
 import { ClickerIndicator } from "@/components/ClickerIndicator";
 import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 import { getUploadPath } from "@/lib/client-url";
+import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useSession } from "next-auth/react";
 import { SwipeBookViewer, SwipeBookViewerHandle } from "@/app/stackView/[id]/components/SwipeBookViewer";
 
@@ -123,8 +124,7 @@ export default function SongReadPage() {
 
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
     if (viewModeRef.current === "book") {
-      const current = flipViewerRef.current?.getActivePage() ?? 1;
-      flipViewerRef.current?.goToPage(current + step);
+      flipViewerRef.current?.navigateStep(step);
       return;
     }
     const scope = viewerContainerRef.current;
@@ -138,7 +138,11 @@ export default function SongReadPage() {
       if (distance < minDistance) { minDistance = distance; activeIndex = index; }
     });
     const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
-    pages[targetIndex]?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const targetEl = pages[targetIndex];
+    if (targetEl) {
+      const y = targetEl.getBoundingClientRect().top + window.scrollY;
+      smoothScrollTo(y);
+    }
   }, []);
 
   // Клавиатура
