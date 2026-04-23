@@ -342,7 +342,7 @@ export default function Page() {
 
       {viewMode === "scroll" && <ScrollToTop />}
       {!isSinger && (
-        <ClickerIndicator isConnected={clickerConnected} hidden={viewMode === "book" && !showButton} />
+        <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
       <SideBarStack
         onPreview={handlePreview}

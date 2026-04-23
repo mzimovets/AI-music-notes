@@ -4,8 +4,10 @@
       "name": "Default",
       "files": [
         "public/sw.js",
-        "components/CacheStats.tsx",
-        ".vscode/changelists.json"
+        "public/desktop.png",
+        "public/mobile.png",
+        ".vscode/changelists.json",
+        "public/manifest.json"
       ]
     }
   ],
