@@ -21,7 +21,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
       <Card
         onPress={onStackClick(stack)}
         isPressable
-        className="w-50 h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
+        className="w-40 h-40 md:w-50 md:h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
       >
         {!stack.isPublished ? (
           <div className="z-45 absolute top-12 -right-5 w-[120%] h-6 bg-gradient-to-r from-[#7DE392] to-[#2E7D32] origin-top-right rotate-45 transform overflow-hidden">
@@ -34,8 +34,8 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
         )}
         {/* Контент карточки */}
         <Image
+          className="object-cover w-full h-full"
           alt="Album cover"
-          height={200}
           shadow="md"
           src={`/stacks/cover/${stack.cover || "white"}.png`}
           width="100%"

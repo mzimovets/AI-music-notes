@@ -471,6 +471,11 @@ useEffect(() => {
     router.push("/");
   };
 
+  // TODO: в мобильном виде уменьшить карточки с песнями dnd, чтобы была область для скролла
+  // В Sidebar2 тоже
+
+  // TODO: в Поиске на главном экране убрать зум в мобильном виде
+  // TODO: Добавить скролл в мобильном виде в модальное окно Добавить стопку
   return (
     <>
       <DeleteModal
@@ -822,6 +827,7 @@ useEffect(() => {
 
                     {stackSongs && stackSongs.length > 0 && (
                       <Card
+                      // в мобильной версии надо сузить
                         className="mt-8 p-2 pt-4 flex-1 min-h-0 flex flex-col mb-4
       bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl"
                       >

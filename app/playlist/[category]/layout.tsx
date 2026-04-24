@@ -10,7 +10,7 @@ export default function PlaylistLayout({
     <>
       <NavBackButton />
       <SongContextProvider>
-        <section className="flex flex-col justify-center gap-4  container">
+        <section className="flex flex-col justify-center gap-4">
           {children}
         </section>
       </SongContextProvider>

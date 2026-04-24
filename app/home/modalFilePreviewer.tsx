@@ -28,6 +28,7 @@ export default function ModalFilePreviewer({
       isOpen={isOpen}
       onOpenChange={onClose}
       placement="center"
+      className="mt-20"
       size="xl"
       classNames={{
         wrapper: "!items-start",

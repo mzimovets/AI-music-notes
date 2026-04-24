@@ -37,8 +37,7 @@ export const songs = [
   { label: "Другое", key: "other" },
 ];
 
-export default function ModalAddScore() {
-  const { isOpen, onOpen, onOpenChange } = useDisclosure();
+export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: boolean, onOpen: () => void, onOpenChange: (open: boolean) => void}) {
   const {
     isOpen: isPreviewOpen,
     onOpen: onOpenPreview,
@@ -213,16 +212,7 @@ export default function ModalAddScore() {
 
   return (
     <>
-      <Button
-        className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full  text-2xl font-normal shadow-md relative overflow-hidden group"
-        onPress={onOpen}
-        radius="full"
-        isIconOnly
-      >
-        <AddSongIcon />
-      </Button>
-
-      <Modal
+       <Modal
         isDismissable={false}
         isOpen={isOpen}
         onOpenChange={onOpenChange}
@@ -230,10 +220,10 @@ export default function ModalAddScore() {
         size="3xl"
         backdrop="blur"
         classNames={{
-          base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
+          base: "mt-100 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
         }}
       >
-        <ModalContent className="p-10 bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
+        <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
           {(onClose) => (
             <>
               <div className="absolute top-3 left-2 z-50">
@@ -241,7 +231,8 @@ export default function ModalAddScore() {
               </div>
 
               {/* Заголовок */}
-              <ModalHeader className="p-0 flex flex-col text-center justify-center font-header gap-4">
+              {/* className="p-0 flex flex-col text-center justify-center font-header gap-4" */}
+              <ModalHeader className="mx-auto text-center font-header">
                 Добавить новую партитуру
               </ModalHeader>
 

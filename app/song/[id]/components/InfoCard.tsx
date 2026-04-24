@@ -153,7 +153,7 @@ export const InfoCard = () => {
   return (
     <SongContextProvider songResponse={song}>
       <Card className="mt-8 border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-        <CardHeader className="flex justify-between items-center px-8 py-6 bg-white border-b">
+        <CardHeader className="flex flex-col md:flex-row justify-between items-center px-8 py-6 bg-white border-b">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 card-header">
               Детали партитуры

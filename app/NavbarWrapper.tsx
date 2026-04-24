@@ -1,7 +1,7 @@
 // app/components/NavbarWrapper.tsx
 "use client";
 
-import { Navbar } from "@/components/navbar"; // твой существующий Navbar
+import { NavbarNoteLib } from "@/components/navbar"; // твой существующий Navbar
 import { usePathname } from "next/navigation";
 
 export function NavbarWrapper() {
@@ -12,5 +12,5 @@ export function NavbarWrapper() {
     pathname.startsWith("/songRead")
   )
     return null; // скрываем на /stackView
-  return <Navbar />;
+  return <NavbarNoteLib />;
 }

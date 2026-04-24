@@ -288,14 +288,14 @@ export default function Albums() {
 
   return (
     <div className="w-auto bg-[#F7F4F1]">
-      <div className="px-4 m-0">
+      <div className="m-0">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
           {categorySongs.map((post) => (
             <div key={post.key} className="flex flex-col items-center w-full">
               <Card
                 onPress={() => router.push(`/playlist/${post.key}`)}
                 isPressable
-                className="w-50 h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                className="w-40 h-40 md:w-50 md:h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
               >
                 {" "}
                 <Image

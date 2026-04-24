@@ -35,7 +35,7 @@ export const SearchTable = ({ filteredSongs }) => {
     <Table
       isStriped
       aria-label="Example table with custom cells"
-      className="mt-4 w-150 m-3 bg-white rounded-lg shadow-xl p-1"
+      className="mt-4 md:w-150 w-full m-3 bg-white rounded-lg shadow-xl p-1"
       bottomContent={
         pages > 1 ? (
           <Pagination

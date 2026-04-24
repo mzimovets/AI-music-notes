@@ -16,7 +16,7 @@
   <component name="Git.Settings">
     <option name="RECENT_BRANCH_BY_REPOSITORY">
       <map>
-        <entry key="$PROJECT_DIR$" value="main" />
+        <entry key="$PROJECT_DIR$" value="feature/cors-ai-max-with-main" />
       </map>
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -36,7 +36,7 @@
   &quot;keyToString&quot;: {
     &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;pre-dev&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/adaptive&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/viktorpopov/Documents/work/Hobby/MaxZ/AI-music-notes&quot;
   }
@@ -78,7 +78,7 @@
                   <entry key="branch">
                     <value>
                       <list>
-                        <option value="pre-dev" />
+                        <option value="feature/playlist-and-stack-click-on-name" />
                       </list>
                     </value>
                   </entry>

@@ -5,18 +5,22 @@ import {
   NavbarContent,
   NavbarItem,
 } from "@heroui/navbar";
-import { Button } from "@heroui/button";
 import {
   Modal,
   ModalContent,
   ModalHeader,
-  ModalBody,
   ModalFooter,
 } from "@heroui/modal";
+import {
+  Popover, 
+  PopoverContent,
+  Button,
+  PopoverTrigger,
+  useDisclosure
+} from "@heroui/react";
+
 import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
-
-import { Link } from "@heroui/link";
 
 import ModalAddScore from "@/app/home/modalAddScore";
 import StackNameModal from "@/components/modalAddStack";
@@ -27,18 +31,23 @@ import { useState } from "react";
 import React from "react";
 import { StackIcon } from "./icons/StackIcon";
 import ExitIcon from "./icons/ExitIcon";
+import { AddSongIcon } from "./icons/AddSongIcon";
 
-export const Navbar = () => {
+export const NavbarNoteLib = () => {
   const { data: session, status } = useSession();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
   const [isExitStackModalOpen, setIsExitStackModalOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const { isOpen: isModalAddScoreOpen, onOpen: onOpenModalAddScore, onOpenChange: onOpenChangeModalAddScore } = useDisclosure();
 
   const router = useRouter();
   const pathname = usePathname();
 
-  const handleOpenStack = () => setIsModalOpen(true);
+  const handleOpenStack = () => {
+    setIsModalOpen(true);
+  };
 
   const handleConfirmStack = () => {
     if (stackName.trim() === "") return;
@@ -69,7 +78,7 @@ export const Navbar = () => {
     router.push("/");
   };
 
-  return (
+return (
     <>
       <HeroUINavbar
         maxWidth="xl"
@@ -87,19 +96,29 @@ export const Navbar = () => {
           >
             <div className="flex items-center">
               <CamertonLogo className="h-10 w-10 sm:h-12 sm:w-12 -translate-y-1" />
-              <p className="font-navbarBrand text-inherit text-sm sm:text-base">
+              <p className="hidden sm:flex font-navbarBrand text-inherit text-sm sm:text-base">
                 Нотная библиотека
               </p>
             </div>
           </div>
         </NavbarContent>
 
+        {/* Десктопная версия кнопок */}
         <NavbarContent
           className="hidden sm:flex basis-1/5 sm:basis-full"
           justify="end"
         >
           <NavbarItem className="hidden md:flex gap-4">
-            {showStackButtons && <ModalAddScore />}
+            {showStackButtons && (
+              <Button
+              className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
+              onPress={onOpenModalAddScore}
+              radius="full"
+              isIconOnly
+            >
+              <AddSongIcon />
+            </Button>
+            )}
             {showStackButtons &&
               !pathname.startsWith("/stack") &&
               !pathname.startsWith("/stackView") && (
@@ -122,7 +141,74 @@ export const Navbar = () => {
             </Button>
           </NavbarItem>
         </NavbarContent>
+
+        {/* Мобильная версия - бургер-меню */}
+        <NavbarContent className="flex sm:hidden" justify="end">
+          <Popover placement="bottom-end" isOpen={isOpen} onOpenChange={setIsOpen}>
+             <PopoverTrigger>
+              <Button
+              onPress={()=>{
+                setIsOpen((prev)=>!prev)
+              }}
+                isIconOnly
+                radius="full"
+                variant="light"
+                className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+              >
+                =
+              </Button>
+              </PopoverTrigger>
+            <PopoverContent className="flex flex-col gap-2 p-3 min-w-[200px] absolute right-0">
+              {/* Кнопка Add Score (если нужна) */}
+              {showStackButtons && (
+                <div className="w-full">
+                  <Button
+                    className="sm:hidden w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+                    onPress={()=>{
+                      onOpenModalAddScore();
+                      setIsOpen(false);
+                    }}
+                    radius="full"
+                    isIconOnly
+                    startContent={<AddSongIcon />}
+                  >
+                    Новая партитура
+                  </Button>
+                </div>
+              )}
+              
+              {/* Кнопка Stack */}
+              {showStackButtons &&
+                !pathname.startsWith("/stack") &&
+                !pathname.startsWith("/stackView") && (
+                  <Button
+                    onPress={() => {
+                      handleOpenStack();
+                      setIsOpen(false)
+                    }}
+                    radius="full"
+                    className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+                    startContent={<StackIcon color="white" />}
+                  >
+                    Новая стопка
+                  </Button>
+                )}
+              
+              {/* Кнопка Exit */}
+              <Button
+                onPress={handleExit}
+                radius="full"
+                className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
+                startContent={<ExitIcon color="white" />}
+              >
+                Выход
+              </Button>
+            </PopoverContent>
+          </Popover>
+        </NavbarContent>
       </HeroUINavbar>
+      
+      <ModalAddScore isOpen={isModalAddScoreOpen} onOpen={onOpenModalAddScore} onOpenChange={onOpenChangeModalAddScore} />
       <StackNameModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

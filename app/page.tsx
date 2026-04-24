@@ -135,7 +135,7 @@ export default function Home() {
 
       {/* Stacks.tsx */}
       {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
-        <div className="pl-32 px-4 pb-0 flex items-center font-header gap-4 mt-8">
+        <div className="pb-0 flex items-center font-header gap-4 mt-8">
           {/* Оборачиваем текст в span с курсором */}
           <div
             onClick={() => setShowStacks((prev) => !prev)}
@@ -191,7 +191,7 @@ export default function Home() {
       </section>
       {/*End Stacks.tsx */}
 
-      <div className="pl-32 pb-0 flex flex-col font-header gap-4 mt-8">
+      <div className="pb-0 flex flex-col font-header gap-4 mt-8">
         Песни
       </div>
       {/* <LoadingCamerton /> */}
