@@ -3,6 +3,7 @@ import { EventEmitter } from "events";
 
 export interface DeviceEntry {
   battery: number;
+  charging: boolean;
   updatedAt: string;
 }
 
@@ -41,13 +42,14 @@ export async function OPTIONS() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { deviceName, battery } = JSON.parse(await req.text());
+    const { deviceName, battery, isCharging } = JSON.parse(await req.text());
     if (!deviceName) {
       return NextResponse.json({ ok: false, error: "deviceName required" }, { status: 400, headers: corsHeaders });
     }
     const level = Math.round(Number(battery));
     globalThis.deviceBattery!.set(String(deviceName), {
       battery: isNaN(level) ? 0 : Math.max(0, Math.min(100, level)),
+      charging: isCharging === true || isCharging === 1 || (typeof isCharging === "string" && ["true", "yes", "да", "1"].includes(isCharging.toLowerCase())),
       updatedAt: new Date().toISOString(),
     });
     broadcast();

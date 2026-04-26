@@ -18,22 +18,36 @@ type DeviceMap = Record<string, DeviceEntry>;
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+
+  const p = (n: number, one: string, few: string, many: string) => {
+    const m10 = n % 10, m100 = n % 100;
+    if (m100 >= 11 && m100 <= 14) return `${n} ${many}`;
+    if (m10 === 1) return `${n} ${one}`;
+    if (m10 >= 2 && m10 <= 4) return `${n} ${few}`;
+    return `${n} ${many}`;
+  };
+
   if (diff < 60) return "только что";
-  if (diff < 3600) {
-    const m = Math.floor(diff / 60);
-    return `${m} ${m === 1 ? "минуту" : m < 5 ? "минуты" : "минут"} назад`;
-  }
-  const h = Math.floor(diff / 3600);
-  return `${h} ${h === 1 ? "час" : h < 5 ? "часа" : "часов"} назад`;
+  if (diff < 3600)        return p(Math.floor(diff / 60),           "минуту",  "минуты",  "минут")   + " назад";
+  if (diff < 86400)       return p(Math.floor(diff / 3600),         "час",     "часа",    "часов")   + " назад";
+  if (diff < 7 * 86400)   return p(Math.floor(diff / 86400),        "день",    "дня",     "дней")    + " назад";
+  if (diff < 21 * 86400)  return p(Math.floor(diff / (7 * 86400)),  "неделю",  "недели",  "недель")  + " назад";
+  if (diff < 365 * 86400) return p(Math.round(diff / (30 * 86400)), "месяц",   "месяца",  "месяцев") + " назад";
+  return p(Math.floor(diff / (365 * 86400)), "год", "года", "лет") + " назад";
 }
 
-function BatteryBar({ level }: { level: number }) {
-  const color = level > 50 ? "#22c55e" : level > 30 ? "#f59e0b" : "#ef4444";
+function BatteryBar({ level, charging }: { level: number; charging: boolean }) {
+  const color = charging ? "#22c55e" : level > 50 ? "#22c55e" : level > 30 ? "#f59e0b" : "#ef4444";
   const segments = 10;
   const filled = Math.round((level / 100) * segments);
 
   return (
     <div className="flex items-center gap-2">
+      {charging && (
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+      )}
       <div className="flex items-center gap-[2px]">
         <div
           className="flex items-center gap-[2px] rounded-md border-2 p-[3px]"
@@ -171,7 +185,7 @@ export function DeviceBatteryModal({ isOpen, onClose }: Props) {
                           {name}
                         </span>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <BatteryBar level={data.battery} />
+                          <BatteryBar level={data.battery} charging={data.charging} />
                           {/* Delete button */}
                           <button
                             onClick={() => handleDelete(name)}

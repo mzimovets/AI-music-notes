@@ -20,9 +20,22 @@ function buildWifiString(creds: WifiCredentials) {
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+
+  const p = (n: number, one: string, few: string, many: string) => {
+    const m10 = n % 10, m100 = n % 100;
+    if (m100 >= 11 && m100 <= 14) return `${n} ${many}`;
+    if (m10 === 1) return `${n} ${one}`;
+    if (m10 >= 2 && m10 <= 4) return `${n} ${few}`;
+    return `${n} ${many}`;
+  };
+
   if (diff < 60) return "только что";
-  const m = Math.floor(diff / 60);
-  return `${m} ${m < 5 ? "минуты" : "минут"} назад`;
+  if (diff < 3600)        return p(Math.floor(diff / 60),           "минуту",  "минуты",  "минут")   + " назад";
+  if (diff < 86400)       return p(Math.floor(diff / 3600),         "час",     "часа",    "часов")   + " назад";
+  if (diff < 7 * 86400)   return p(Math.floor(diff / 86400),        "день",    "дня",     "дней")    + " назад";
+  if (diff < 21 * 86400)  return p(Math.floor(diff / (7 * 86400)),  "неделю",  "недели",  "недель")  + " назад";
+  if (diff < 365 * 86400) return p(Math.round(diff / (30 * 86400)), "месяц",   "месяца",  "месяцев") + " назад";
+  return p(Math.floor(diff / (365 * 86400)), "год", "года", "лет") + " назад";
 }
 
 export function WiFiQRModal({ isOpen, onClose }: Props) {
