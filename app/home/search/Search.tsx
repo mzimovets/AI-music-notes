@@ -101,47 +101,48 @@ export const Search = ({ allSongs }: { allSongs: ServerSong[] }) => {
   return (
     <>
       <div className="flex flex-col w-full text-center justify-center font-header gap-4 mt-4">
-        <Input
-          ref={inputRef}
-          type="search"
-          placeholder="Поиск"
-          value={searchValue}
-          onChange={handleSearchChange}
-          onClick={handleInputClick}
-          isClearable
-          onClear={() => {
-            setSearchValue("");
-            setFilteredSongs(allSongs);
-            setShowTable(false);
-          }}
-          startContent={
-            <div className="mr-2">
-              {" "}
-              <SearchIcon className="text-default-400" />
-            </div>
-          }
-          className="md:w-100 mx-auto"
-          classNames={{
-            inputWrapper: "bg-[#FFFAF5] rounded-md w-full",
-            input: "text-sm",
-            clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
-          }}
-        />
+        <div className="relative w-full md:w-100 mx-auto">
+          <Input
+            ref={inputRef}
+            type="search"
+            placeholder="Поиск"
+            value={searchValue}
+            onChange={handleSearchChange}
+            onClick={handleInputClick}
+            isClearable
+            onClear={() => {
+              setSearchValue("");
+              setFilteredSongs(allSongs);
+              setShowTable(false);
+            }}
+            startContent={
+              <div className="mr-2">
+                <SearchIcon className="text-default-400" />
+              </div>
+            }
+            className="w-full"
+            classNames={{
+              inputWrapper: "bg-[#FFFAF5] rounded-md w-full",
+              input: "text-sm",
+              clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
+            }}
+          />
+          <AnimatePresence>
+            {showTable && (
+              <motion.div
+                ref={tableRef}
+                initial={{ opacity: 0, scale: 0.95, y: -8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
+                className="absolute top-full left-0 right-0 z-50 rounded-xl"
+              >
+                <SearchTable filteredSongs={filteredSongs} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
         <Monogram className="h-6 w-auto" />
-        <AnimatePresence>
-          {showTable && (
-            <motion.div
-              ref={tableRef}
-              initial={{ opacity: 0, scale: 0.95, y: -20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: -20 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="rounded-xl absolute top-1/7 left-1/2 transform -translate-x-1/2 -translate-y-1/2 translate-y-8 z-50"
-            >
-              <SearchTable filteredSongs={filteredSongs} />
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </>
   );

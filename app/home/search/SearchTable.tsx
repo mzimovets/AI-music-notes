@@ -17,7 +17,9 @@ import { useSession } from "next-auth/react";
 export const SearchTable = ({ filteredSongs }) => {
   const { data: session } = useSession();
   const isRegent = session?.user?.role === "регент";
-  const visibleColumns = isRegent ? columns : columns.filter((c) => c.uid !== "actions");
+  const visibleColumns = isRegent
+    ? columns
+    : columns.filter((c) => c.uid !== "actions");
 
   const [page, setPage] = useState(1);
   const rowsPerPage = 4;
