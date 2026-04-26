@@ -21,6 +21,8 @@ import { getBackendBaseUrl } from "@/lib/client-url";
 import { socket } from "@/lib/socket";
 import { QRModal } from "./home/QRModal";
 import { CacheStats } from "@/components/CacheStats";
+import { DeviceBatteryModal } from "@/components/DeviceBatteryModal";
+import { WiFiQRModal } from "@/components/WiFiQRModal";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -32,6 +34,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [showStacks, setShowStacks] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
+  const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
 
   useEffect(() => {
     const backUrl = getBackendBaseUrl();
@@ -114,6 +118,8 @@ export default function Home() {
 
       <>
         <QRModal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} />
+        <DeviceBatteryModal isOpen={isBatteryModalOpen} onClose={() => setIsBatteryModalOpen(false)} />
+        <WiFiQRModal isOpen={isWifiModalOpen} onClose={() => setIsWifiModalOpen(false)} />
         <button
             onClick={() => setIsQRModalOpen(true)}
             className="fixed bottom-6 left-6 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
@@ -131,6 +137,34 @@ export default function Home() {
               <path d="M16 17.75C16 17.0478 16 16.6967 16.1685 16.4444C16.2415 16.3352 16.3352 16.2415 16.4444 16.1685C16.6967 16 17.0478 16 17.75 16C18.4522 16 18.8033 16 19.0556 16.1685C19.1648 16.2415 19.2585 16.3352 19.3315 16.4444C19.5 16.6967 19.5 17.0478 19.5 17.75C19.5 18.4522 19.5 18.8033 19.3315 19.0556C19.2585 19.1648 19.1648 19.2585 19.0556 19.3315C18.8033 19.5 18.4522 19.5 17.75 19.5C17.0478 19.5 16.6967 19.5 16.4444 19.3315C16.3352 19.2585 16.2415 19.1648 16.1685 19.0556C16 18.8033 16 18.4522 16 17.75Z" fill="white"/>
             </svg>
           </button>
+        {isRegent && (
+          <button
+            onClick={() => setIsBatteryModalOpen(true)}
+            className="fixed bottom-6 left-20 z-50 w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            aria-label="Заряд устройств"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="1" y="6" width="18" height="12" rx="2" ry="2"/>
+              <line x1="23" y1="13" x2="23" y2="11"/>
+              <line x1="7" y1="10" x2="7" y2="14"/>
+              <line x1="11" y1="10" x2="11" y2="14"/>
+            </svg>
+          </button>
+        )}
+        {isRegent && (
+          <button
+            onClick={() => setIsWifiModalOpen(true)}
+            className="fixed bottom-6 left-[136px] z-50 w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+            aria-label="Wi-Fi QR код"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+              <circle cx="12" cy="20" r="1" fill="white" stroke="none"/>
+            </svg>
+          </button>
+        )}
       </>
 
       {/* Stacks.tsx */}
