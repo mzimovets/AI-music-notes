@@ -214,9 +214,9 @@ export default function Home() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden"
+              className="overflow-hidden w-full"
             >
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center">
                 <StackCard stacks={stacks} />
               </div>
             </motion.div>

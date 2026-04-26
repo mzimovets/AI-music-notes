@@ -3,11 +3,10 @@
     {
       "name": "Default",
       "files": [
-        "public/sw.js",
-        "public/desktop.png",
-        "public/mobile.png",
         ".vscode/changelists.json",
-        "public/manifest.json"
+        "app/home/StackCard.tsx",
+        "app/home/albums.tsx",
+        "app/page.tsx"
       ]
     }
   ],

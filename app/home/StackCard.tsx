@@ -17,11 +17,14 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
   };
 
   const fillCard = (stack: Stack) => (
-    <div key={stack._id} className="flex flex-col gap-4 items-center w-full">
+    <div
+      key={stack._id}
+      className="flex flex-col gap-4 items-center w-full max-w-[200px] mx-auto"
+    >
       <Card
         onPress={onStackClick(stack)}
         isPressable
-        className="w-40 h-40 md:w-50 md:h-50 rounded-xl shadow-md hover:shadow-lg transition-shadow relative"
+        className="w-full aspect-square rounded-xl shadow-md hover:shadow-lg transition-shadow relative overflow-hidden"
       >
         {!stack.isPublished ? (
           <div className="z-45 absolute top-12 -right-5 w-[120%] h-6 bg-gradient-to-r from-[#7DE392] to-[#2E7D32] origin-top-right rotate-45 transform overflow-hidden">
@@ -44,7 +47,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
 
       <p
         onClick={onStackClick(stack)}
-        className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px] cursor-pointer"
+        className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
       >
         {stack.name || "Сохраненная"}
       </p>

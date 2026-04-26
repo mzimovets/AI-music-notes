@@ -287,21 +287,19 @@ export default function Albums() {
   const router = useRouter();
 
   return (
-    <div className="w-auto bg-[#F7F4F1]">
+    <div className="w-full bg-[#F7F4F1]">
       <div className="m-0">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 justify-items-center">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center">
           {categorySongs.map((post) => (
-            <div key={post.key} className="flex flex-col items-center w-full">
+            <div key={post.key} className="flex flex-col items-center w-full max-w-[200px] mx-auto">
               <Card
                 onPress={() => router.push(`/playlist/${post.key}`)}
                 isPressable
-                className="w-40 h-40 md:w-50 md:h-50  rounded-xl shadow-md hover:shadow-lg transition-shadow"
+                className="w-full aspect-square rounded-xl shadow-md hover:shadow-lg transition-shadow"
               >
-                {" "}
                 <Image
                   alt="Album cover"
-                  className="object-cover"
-                  height={200}
+                  className="object-cover w-full h-full"
                   shadow="md"
                   src={post.image}
                   width="100%"
@@ -310,7 +308,7 @@ export default function Albums() {
 
               <p
                 onClick={() => router.push(`/playlist/${post.key}`)}
-                className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 max-w-[140px] cursor-pointer"
+                className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
               >
                 {post.name}
               </p>
