@@ -101,3 +101,10 @@
 
 
 /* !!! */
+
+/* Предотвращаем авто-зум на iOS при фокусе на инпуте (срабатывает при font-size < 16px) */
+input,
+textarea,
+select {
+  font-size: 16px !important;
+}

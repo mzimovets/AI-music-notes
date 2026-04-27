@@ -201,6 +201,8 @@ export default function Page() {
             name="username"
             placeholder="Введите логин"
             type="text"
+            autoCapitalize="none"
+            autoCorrect="off"
             errorMessage="Пожалуйста, введите логин"
             className="input-header w-full max-w-sm"
             onKeyDown={(e) => {
@@ -218,6 +220,8 @@ export default function Page() {
             label="Пароль"
             placeholder="Введите пароль"
             type={showPassword ? "text" : "password"}
+            autoCapitalize="none"
+            autoCorrect="off"
             errorMessage="Пожалуйста, введите пароль"
             className="input-header w-full max-w-sm"
             labelPlacement="outside"
