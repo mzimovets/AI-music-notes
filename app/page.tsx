@@ -285,7 +285,7 @@ export default function Home() {
           )}
         </div>
       )}
-      <section className="gap-4 py-8 md:py-2">
+      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
         <AnimatePresence initial={false}>
           {(showStacks || stacks.length <= 4) && (
             <motion.div
@@ -295,7 +295,7 @@ export default function Home() {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden w-full"
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 justify-items-center">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 <StackCard stacks={stacks} />
               </div>
             </motion.div>
