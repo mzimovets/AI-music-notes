@@ -108,3 +108,9 @@ textarea,
 select {
   font-size: 16px !important;
 }
+
+/* Отключаем контекстное меню при долгом нажатии на картинку (скачать/поделиться) */
+img {
+  -webkit-touch-callout: none;
+  pointer-events: none;
+}
