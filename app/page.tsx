@@ -154,15 +154,16 @@ export default function Home() {
                 className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
                 aria-label="Меню"
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
-                  <line x1="5" y1="7" x2="19" y2="7" />
-                  <line x1="5" y1="12" x2="19" y2="12" />
-                  <line x1="5" y1="17" x2="19" y2="17" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="3" y="3" width="8" height="8" rx="1.5" />
+                  <rect x="13" y="3" width="8" height="8" rx="1.5" />
+                  <rect x="3" y="13" width="8" height="8" rx="1.5" />
+                  <rect x="13" y="13" width="8" height="8" rx="1.5" />
                 </svg>
               </button>
             </PopoverTrigger>
-            <PopoverContent classNames={{ base: "p-2 bg-white/40 backdrop-blur-2xl border border-white/50 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)]" }}>
-              <div className="flex flex-col gap-2">
+            <PopoverContent classNames={{ base: "p-0 bg-white/40 backdrop-blur-2xl border border-white/50 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)]" }}>
+              <div className="flex flex-col gap-2 py-2 px-1">
                 <button
                   onClick={() => { setIsMenuOpen(false); setIsQRModalOpen(true); }}
                   className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
