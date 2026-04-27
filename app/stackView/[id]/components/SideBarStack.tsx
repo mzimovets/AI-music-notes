@@ -152,11 +152,11 @@ export const SideBarStack = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // После useState для isDrawerOpen
-useEffect(() => {
-  const handleMiddle = () => setIsDrawerOpen(prev => !prev);
-  window.addEventListener('clicker:middle', handleMiddle);
-  return () => window.removeEventListener('clicker:middle', handleMiddle);
-}, []);
+  useEffect(() => {
+    const handleMiddle = () => setIsDrawerOpen((prev) => !prev);
+    window.addEventListener("clicker:middle", handleMiddle);
+    return () => window.removeEventListener("clicker:middle", handleMiddle);
+  }, []);
 
   const handleSongClick = (songId: string, bookPage?: number) => {
     setIsDrawerOpen(false);
@@ -401,7 +401,6 @@ useEffect(() => {
     return text || "Песен нет";
   };
 
-
   const params = useParams<{ id: string }>();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isUnpublishModalOpen, setIsUnpublishModalOpen] = useState(false);
@@ -445,7 +444,10 @@ useEffect(() => {
       name: stackResponse.doc?.name,
     });
     await recacheStack(params.id);
-    socket.emit("stack-visibility-changed", { stackId: params.id, isPublished: false });
+    socket.emit("stack-visibility-changed", {
+      stackId: params.id,
+      isPublished: false,
+    });
     setIsUnpublishModalOpen(false);
     router.push("/");
   };
@@ -537,11 +539,11 @@ useEffect(() => {
                 className="absolute top-0 inset-x-0 z-50
     flex items-center justify-between
     h-12
-    px-4
+    px-2
     border-b border-default-200/50
     bg-content1/50 backdrop-blur-lg"
               >
-                <div className="flex w-full px-2 gap-2 input-header">
+                <div className="flex flex-1 min-w-0 gap-1 input-header pl-4">
                   <Button
                     className={` font-medium text-small ${
                       activeTab === "stack"
@@ -572,7 +574,7 @@ useEffect(() => {
                   )}
                 </div>
                 {/* View mode toggle */}
-                <div className="flex gap-0.5 items-center p-0.5 bg-default-100 rounded-lg mx-2">
+                <div className="flex shrink-0 gap-0.5 items-center p-0.5 bg-default-100 rounded-lg mx-1">
                   <button
                     title="Листание"
                     onClick={() => onViewModeChange("scroll")}
@@ -582,10 +584,19 @@ useEffect(() => {
                         : "text-default-400 hover:text-default-600"
                     }`}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="3" y1="6" x2="21" y2="6"/>
-                      <line x1="3" y1="12" x2="21" y2="12"/>
-                      <line x1="3" y1="18" x2="21" y2="18"/>
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="3" y1="6" x2="21" y2="6" />
+                      <line x1="3" y1="12" x2="21" y2="12" />
+                      <line x1="3" y1="18" x2="21" y2="18" />
                     </svg>
                   </button>
                   <button
@@ -597,14 +608,23 @@ useEffect(() => {
                         : "text-default-400 hover:text-default-600"
                     }`}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
                     </svg>
                   </button>
                 </div>
 
-                <div className="flex gap-2 items-center">
+                <div className="flex shrink-0 gap-1 items-center">
                   {session?.user?.role === "регент" && (
                     <Popover
                       isOpen={isActionsOpen}
@@ -619,10 +639,16 @@ useEffect(() => {
                           isIconOnly
                           className="min-w-0 px-2 bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-none"
                         >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="5" cy="12" r="2"/>
-                            <circle cx="12" cy="12" r="2"/>
-                            <circle cx="19" cy="12" r="2"/>
+                          <svg
+                            width="16"
+                            height="16"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            <circle cx="5" cy="12" r="2" />
+                            <circle cx="12" cy="12" r="2" />
+                            <circle cx="19" cy="12" r="2" />
                           </svg>
                         </Button>
                       </PopoverTrigger>
@@ -632,7 +658,9 @@ useEffect(() => {
                             size="sm"
                             variant="flat"
                             className="justify-start h-9 px-3 gap-2.5 input-header text-sm text-[#7D5E42] bg-transparent hover:bg-[#F7F0EA]"
-                            startContent={<UnpublishIcon size={18} color="#7D5E42" />}
+                            startContent={
+                              <UnpublishIcon size={18} color="#7D5E42" />
+                            }
                             onPress={() => {
                               setIsActionsOpen(false);
                               setIsUnpublishModalOpen(true);
@@ -806,7 +834,7 @@ useEffect(() => {
 
                     {stackSongs && stackSongs.length > 0 && (
                       <Card
-                      // в мобильной версии надо сузить
+                        // в мобильной версии надо сузить
                         className="mt-8 p-2 pt-4 flex-1 min-h-0 flex flex-col mb-4
       bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl"
                       >
@@ -915,7 +943,10 @@ useEffect(() => {
                                     <div
                                       className={`touch-none select-none w-[85%] ml-auto p-3 shadow-sm bg-white border border-default-200 rounded-xl mt-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${session?.user?.role === "регент" ? "flex flex-col gap-2 mb-3 min-h-[100px] items-start" : "mb-2"}`}
                                       onClick={() =>
-                                        handleSongClick(`meal_start`, trapezaStartPage)
+                                        handleSongClick(
+                                          `meal_start`,
+                                          trapezaStartPage,
+                                        )
                                       }
                                     >
                                       <p className="text-sm input-header m-0 text-left">
@@ -971,7 +1002,10 @@ useEffect(() => {
                                     <div
                                       className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
                                       onClick={() =>
-                                        handleSongClick(`meal_end`, trapezaEndPage)
+                                        handleSongClick(
+                                          `meal_end`,
+                                          trapezaEndPage,
+                                        )
                                       }
                                     >
                                       <p className="text-sm input-header m-0">

@@ -3,10 +3,8 @@
     {
       "name": "Default",
       "files": [
-        "app/home/search/Search.tsx",
-        ".vscode/changelists.json",
-        "app/page.tsx",
-        "app/home/search/SearchTable.tsx"
+        "app/stackView/[id]/components/SideBarStack.tsx",
+        ".vscode/changelists.json"
       ]
     }
   ],
