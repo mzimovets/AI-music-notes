@@ -401,27 +401,6 @@ useEffect(() => {
     return text || "Песен нет";
   };
 
-  const [showButton, setShowButton] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const currentY = window.scrollY;
-
-      if (currentY < lastScrollY) {
-        // прокрутка вверх
-        setShowButton(true);
-      } else if (currentY > lastScrollY) {
-        // прокрутка вниз
-        setShowButton(false);
-      }
-
-      setLastScrollY(currentY);
-    };
-
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [lastScrollY]);
 
   const params = useParams<{ id: string }>();
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -534,7 +513,7 @@ useEffect(() => {
       <div className="flex flex-wrap gap-3">
         <div
           className={`fixed left-3 top-2 z-50 transform-gpu transition-all duration-200
-          ${(forceVisible !== undefined ? forceVisible : showButton) ? "scale-100 opacity-100" : "scale-0 opacity-0"}
+          ${forceVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"}
         `}
         >
           <SidebarButton onPress={() => handleOpen()} />

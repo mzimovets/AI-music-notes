@@ -3,29 +3,17 @@ import { Button } from "@heroui/button";
 import { Modal, ModalContent, ModalHeader, ModalFooter } from "@heroui/modal";
 import { CloseIcon } from "./icon/CloseIcon";
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useStackContext } from "@/app/stack/[id]/components/StackContextProvider";
-import { removeStack, updateStack } from "@/actions/actions";
+import { removeStack } from "@/actions/actions";
 import { enqueue } from "@/lib/offline-queue";
 
-export const CloseButton = () => {
+export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean }) => {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { stackResponse } = useStackContext();
 
   const [isOpen, setIsOpen] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentY = window.scrollY;
-      setIsVisible(currentY < lastScrollY || currentY === 0);
-      setLastScrollY(currentY);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
 
   const handleCloseStack = async () => {
     if (!stackResponse?.doc?.songs?.length) {
@@ -44,8 +32,8 @@ export const CloseButton = () => {
   return (
     <>
       <div
-        className={`transition-all duration-200 ${
-          isVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"
+        className={`transform-gpu transition-all duration-200 ${
+          forceVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"
         }`}
       >
         <Button

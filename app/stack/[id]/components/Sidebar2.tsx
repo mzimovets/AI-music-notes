@@ -105,7 +105,7 @@ import { socket } from "@/lib/socket";
 import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
 
-export const Sidebar2 = ({ onPreview }) => {
+export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song: any) => void; forceVisible?: boolean }) => {
   const params = useParams<{ id: string }>();
   const {
     isOpen: isDrawerOpen,
@@ -385,7 +385,7 @@ export const Sidebar2 = ({ onPreview }) => {
         className="sticky top-2 z-20 h-0 overflow-visible pointer-events-none"
         style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
       >
-        <div className="absolute left-3 top-0 pointer-events-auto">
+        <div className={`absolute left-3 top-0 pointer-events-auto transform-gpu transition-all duration-200 ${forceVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"}`}>
           <SidebarButton onPress={() => handleOpen()} />
         </div>
       </div>

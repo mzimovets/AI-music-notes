@@ -11,6 +11,7 @@ export default withSerwistConfig({
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+  allowedDevOrigins: ["192.168.1.123"],
 
   async rewrites() {
     return [
