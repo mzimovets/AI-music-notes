@@ -58,18 +58,64 @@ export const syncRoutes = (app, upload) => {
 
   // GET /api/sync/ids
   // Возвращает только ID всех живых songs и stacks.
-  // Используется локальным сервером для fullReconciliation:
-  // находит записи, которых нет на мастере, и пушит их сюда.
+  // Дополнительно возвращает songsWithMissingFiles — песни, у которых в БД
+  // есть filename, но файл физически отсутствует на диске мастера.
+  // Используется локальным сервером для fullReconciliation.
   app.get("/api/sync/ids", verifyApiKey, (req, res) => {
     database.find(
       { docType: { $in: ["song", "stack"] }, deletedAt: { $exists: false } },
       (err, docs) => {
         if (err) return res.status(500).json({ error: err.message });
-        const songIds  = docs.filter((d) => d.docType === "song").map((d) => d._id);
-        const stackIds = docs.filter((d) => d.docType === "stack").map((d) => d._id);
-        res.json({ songIds, stackIds });
+
+        const songDocs  = docs.filter((d) => d.docType === "song");
+        const stackDocs = docs.filter((d) => d.docType === "stack");
+
+        const songIds  = songDocs.map((d) => d._id);
+        const stackIds = stackDocs.map((d) => d._id);
+
+        // Песни, у которых есть filename в БД, но файл не лежит на диске
+        const songsWithMissingFiles = songDocs
+          .filter((d) => {
+            const filename = d.file?.filename;
+            if (!filename) return false;
+            return !fs.existsSync(path.join(UPLOADS_DIR, filename));
+          })
+          .map((d) => ({ _id: d._id, filename: d.file.filename, mimetype: d.file?.mimetype }));
+
+        res.json({ songIds, stackIds, songsWithMissingFiles });
       },
     );
+  });
+
+  // POST /api/sync/push-file
+  // Принимает файл с локального сервера и сохраняет его на диск мастера.
+  // БД не трогает — только восстанавливает файл на диске.
+  // Тело: multipart/form-data, поле "file" + query-param или поле "filename"
+  app.post("/api/sync/push-file", verifyApiKey, upload.single("file"), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: "Файл не получен" });
+
+    const targetFilename = req.body.filename || req.file.originalname;
+    if (!targetFilename) {
+      fs.unlinkSync(req.file.path);
+      return res.status(400).json({ error: "Не указано имя файла" });
+    }
+
+    const targetPath = path.join(UPLOADS_DIR, targetFilename);
+
+    if (fs.existsSync(targetPath)) {
+      // Файл уже появился (параллельный запрос?), удаляем временный
+      fs.unlinkSync(req.file.path);
+      return res.json({ status: "ok", note: "already exists" });
+    }
+
+    try {
+      fs.renameSync(req.file.path, targetPath);
+      console.log(`[sync/push-file] Файл восстановлен: ${targetFilename}`);
+      res.json({ status: "ok", filename: targetFilename });
+    } catch (e) {
+      console.error(`[sync/push-file] Ошибка при сохранении ${targetFilename}:`, e.message);
+      res.status(500).json({ error: e.message });
+    }
   });
 
   // POST /api/sync/push-song
