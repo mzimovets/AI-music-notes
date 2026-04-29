@@ -6,6 +6,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { database } from "./index.js";
+import dotenv from "dotenv";
+dotenv.config({ path: ".env.local" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -56,8 +58,15 @@ function dbRemove(query) {
 }
 
 export async function syncFromInternet() {
+  console.log(
+    "[sync] Проверяю обновления на интернет-сервере...",
+    INTERNET_URL,
+    SYNC_API_KEY,
+  );
   if (!INTERNET_URL || !SYNC_API_KEY) {
-    console.warn("[sync] SYNC_MASTER_URL или SYNC_API_KEY не заданы, пропускаю");
+    console.warn(
+      "[sync] SYNC_MASTER_URL или SYNC_API_KEY не заданы, пропускаю",
+    );
     return;
   }
 
@@ -79,7 +88,13 @@ export async function syncFromInternet() {
     return;
   }
 
-  const { timestamp, songs = [], stacks = [], deletedSongIds = [], deletedStackIds = [] } = data;
+  const {
+    timestamp,
+    songs = [],
+    stacks = [],
+    deletedSongIds = [],
+    deletedStackIds = [],
+  } = data;
 
   // Upsert songs
   for (const song of songs) {
