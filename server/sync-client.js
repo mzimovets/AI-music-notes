@@ -118,7 +118,9 @@ async function pushSongToRemote(doc) {
 async function pushFileToRemote(filename, mimetype) {
   const filePath = path.join(__dirname, "uploads", filename);
   if (!fs.existsSync(filePath)) {
-    console.warn(`[sync/reconcile] Файл не найден локально, пропускаю: ${filename}`);
+    console.warn(
+      `[sync/reconcile] Файл не найден локально, пропускаю: ${filename}`,
+    );
     return;
   }
 
@@ -135,6 +137,14 @@ async function pushFileToRemote(filename, mimetype) {
     body: form,
     signal: AbortSignal.timeout(60_000),
   });
+
+  try {
+    console.log(
+      `[sync/reconcile] Восстанавливаю файл на мастере form: ${JSON.stringify(form)}`,
+    );
+  } catch (error) {
+    console.log("cannot stringify form data");
+  }
 
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   console.log(`[sync/reconcile] Файл восстановлен на мастере: ${filename}`);
@@ -172,16 +182,22 @@ export async function fullReconciliation() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     remoteIds = await res.json();
   } catch (e) {
-    console.error("[sync/reconcile] Не удалось получить ID с мастера:", e.message);
+    console.error(
+      "[sync/reconcile] Не удалось получить ID с мастера:",
+      e.message,
+    );
     return;
   }
 
-  const remoteSongSet  = new Set(remoteIds.songIds);
+  const remoteSongSet = new Set(remoteIds.songIds);
   const remoteStackSet = new Set(remoteIds.stackIds);
   const songsWithMissingFiles = remoteIds.songsWithMissingFiles || [];
 
   // --- Songs: push missing records ---
-  const localSongs = await dbFind({ docType: "song", deletedAt: { $exists: false } });
+  const localSongs = await dbFind({
+    docType: "song",
+    deletedAt: { $exists: false },
+  });
   let pushedSongs = 0;
   for (const doc of localSongs) {
     if (!remoteSongSet.has(doc._id)) {
@@ -189,7 +205,10 @@ export async function fullReconciliation() {
         await pushSongToRemote(doc);
         pushedSongs++;
       } catch (e) {
-        console.warn(`[sync/reconcile] Не удалось запушить песню ${doc._id}:`, e.message);
+        console.warn(
+          `[sync/reconcile] Не удалось запушить песню ${doc._id}:`,
+          e.message,
+        );
       }
     }
   }
@@ -214,7 +233,10 @@ export async function fullReconciliation() {
   }
 
   // --- Stacks: push missing records ---
-  const localStacks = await dbFind({ docType: "stack", deletedAt: { $exists: false } });
+  const localStacks = await dbFind({
+    docType: "stack",
+    deletedAt: { $exists: false },
+  });
   let pushedStacks = 0;
   for (const doc of localStacks) {
     if (!remoteStackSet.has(doc._id)) {
@@ -222,7 +244,10 @@ export async function fullReconciliation() {
         await pushStackToRemote(doc);
         pushedStacks++;
       } catch (e) {
-        console.warn(`[sync/reconcile] Не удалось запушить стопку ${doc._id}:`, e.message);
+        console.warn(
+          `[sync/reconcile] Не удалось запушить стопку ${doc._id}:`,
+          e.message,
+        );
       }
     }
   }
