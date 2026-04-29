@@ -63,6 +63,12 @@ function dbRemove(query) {
   );
 }
 
+function dbFindOne(query) {
+  return new Promise((resolve) =>
+    database.findOne(query, (err, doc) => resolve(err ? null : doc)),
+  );
+}
+
 function deleteLocalFile(filename) {
   if (!filename) return;
   const filePath = path.join(__dirname, "uploads", filename);
@@ -75,6 +81,113 @@ function deleteLocalFile(filename) {
     console.warn(`[sync] Не удалось удалить файл ${filename}:`, e.message);
   }
 }
+
+// ---------------------------------------------------------------------
+// Сценарий A: Local wins — запись есть на локальном, нет на мастере
+// Пушим её на мастер вместе с файлом (если есть).
+// ---------------------------------------------------------------------
+
+async function pushSongToRemote(doc) {
+  const form = new FormData();
+  // Передаём полный документ как JSON-строку
+  form.append("doc", JSON.stringify(doc));
+
+  // Прикладываем PDF, если файл существует локально
+  const filename = doc.file?.filename;
+  if (filename) {
+    const filePath = path.join(__dirname, "uploads", filename);
+    if (fs.existsSync(filePath)) {
+      const blob = new Blob([fs.readFileSync(filePath)], {
+        type: doc.file.mimetype || "application/pdf",
+      });
+      form.append("file", blob, filename);
+    }
+  }
+
+  const res = await fetch(`${INTERNET_URL}/api/sync/push-song`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
+    body: form,
+    signal: AbortSignal.timeout(60_000), // увеличенный timeout для загрузки файла
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  console.log(`[sync/reconcile] Песня запушена на мастер: ${doc._id}`);
+}
+
+async function pushStackToRemote(doc) {
+  const res = await fetch(`${INTERNET_URL}/api/sync/push-stack`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${SYNC_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(doc),
+    signal: AbortSignal.timeout(10_000),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  console.log(`[sync/reconcile] Стопка запушена на мастер: ${doc._id}`);
+}
+
+// Полная сверка: находит локальные записи, которых нет на мастере, и пушит их.
+// Запускается раз в сутки — закрывает случаи hard-delete на мастере
+// и записей, созданных напрямую на локальном сервере.
+export async function fullReconciliation() {
+  if (!INTERNET_URL || !SYNC_API_KEY) return;
+
+  console.log("[sync/reconcile] Запуск полной сверки с мастером...");
+
+  let remoteIds;
+  try {
+    const res = await fetch(`${INTERNET_URL}/api/sync/ids`, {
+      headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    remoteIds = await res.json();
+  } catch (e) {
+    console.error("[sync/reconcile] Не удалось получить ID с мастера:", e.message);
+    return;
+  }
+
+  const remoteSongSet  = new Set(remoteIds.songIds);
+  const remoteStackSet = new Set(remoteIds.stackIds);
+
+  // --- Songs ---
+  const localSongs = await dbFind({ docType: "song", deletedAt: { $exists: false } });
+  let pushedSongs = 0;
+  for (const doc of localSongs) {
+    if (!remoteSongSet.has(doc._id)) {
+      try {
+        await pushSongToRemote(doc);
+        pushedSongs++;
+      } catch (e) {
+        console.warn(`[sync/reconcile] Не удалось запушить песню ${doc._id}:`, e.message);
+      }
+    }
+  }
+
+  // --- Stacks ---
+  const localStacks = await dbFind({ docType: "stack", deletedAt: { $exists: false } });
+  let pushedStacks = 0;
+  for (const doc of localStacks) {
+    if (!remoteStackSet.has(doc._id)) {
+      try {
+        await pushStackToRemote(doc);
+        pushedStacks++;
+      } catch (e) {
+        console.warn(`[sync/reconcile] Не удалось запушить стопку ${doc._id}:`, e.message);
+      }
+    }
+  }
+
+  console.log(
+    `[sync/reconcile] Готово: запушено ${pushedSongs} песен, ${pushedStacks} стопок`,
+  );
+}
+
+// ---------------------------------------------------------------------
 
 export async function syncFromInternet() {
   console.log(
@@ -154,5 +267,12 @@ export function startSyncScheduler() {
   setTimeout(() => {
     syncFromInternet();
     setInterval(syncFromInternet, SYNC_INTERVAL_MS);
+
+    // Полная сверка (Local wins) — раз в сутки
+    // Первый прогон через 1 мин после старта, далее каждые 24 часа
+    setTimeout(() => {
+      fullReconciliation();
+      setInterval(fullReconciliation, 24 * 60 * 60 * 1000);
+    }, 60_000);
   }, 3000);
 }
