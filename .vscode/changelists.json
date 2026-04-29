@@ -3,10 +3,13 @@
     {
       "name": "Default",
       "files": [
-        "app/home/search/Search.tsx",
+        "server/index.js",
+        "server/routes/songs.js",
+        "server/routes/stacks.js",
+        "server/routes/sync.js",
+        "server/sync-client.js",
         ".vscode/changelists.json",
-        "app/page.tsx",
-        "app/home/search/SearchTable.tsx"
+        "APPLICATION_INFO.md"
       ]
     }
   ],
