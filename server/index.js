@@ -331,7 +331,7 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 songsRoutes(app, urlencodedParser, upload);
 usersRoutes(app, urlencodedParser);
 stacksRoutes(app, urlencodedParser);
-syncRoutes(app);
+syncRoutes(app, upload);
 
 // Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
 startSyncScheduler();
