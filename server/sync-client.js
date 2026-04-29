@@ -115,6 +115,31 @@ async function pushSongToRemote(doc) {
   console.log(`[sync/reconcile] Песня запушена на мастер: ${doc._id}`);
 }
 
+async function pushFileToRemote(filename, mimetype) {
+  const filePath = path.join(__dirname, "uploads", filename);
+  if (!fs.existsSync(filePath)) {
+    console.warn(`[sync/reconcile] Файл не найден локально, пропускаю: ${filename}`);
+    return;
+  }
+
+  const form = new FormData();
+  const blob = new Blob([fs.readFileSync(filePath)], {
+    type: mimetype || "application/pdf",
+  });
+  form.append("file", blob, filename);
+  form.append("filename", filename);
+
+  const res = await fetch(`${INTERNET_URL}/api/sync/push-file`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
+    body: form,
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  console.log(`[sync/reconcile] Файл восстановлен на мастере: ${filename}`);
+}
+
 async function pushStackToRemote(doc) {
   const res = await fetch(`${INTERNET_URL}/api/sync/push-stack`, {
     method: "POST",
@@ -153,8 +178,9 @@ export async function fullReconciliation() {
 
   const remoteSongSet  = new Set(remoteIds.songIds);
   const remoteStackSet = new Set(remoteIds.stackIds);
+  const songsWithMissingFiles = remoteIds.songsWithMissingFiles || [];
 
-  // --- Songs ---
+  // --- Songs: push missing records ---
   const localSongs = await dbFind({ docType: "song", deletedAt: { $exists: false } });
   let pushedSongs = 0;
   for (const doc of localSongs) {
@@ -168,7 +194,26 @@ export async function fullReconciliation() {
     }
   }
 
-  // --- Stacks ---
+  // --- Songs: restore files missing on remote disk ---
+  let restoredFiles = 0;
+  if (songsWithMissingFiles.length) {
+    console.log(
+      `[sync/reconcile] На мастере отсутствует ${songsWithMissingFiles.length} файл(ов), восстанавливаю...`,
+    );
+    for (const { _id, filename, mimetype } of songsWithMissingFiles) {
+      try {
+        await pushFileToRemote(filename, mimetype);
+        restoredFiles++;
+      } catch (e) {
+        console.warn(
+          `[sync/reconcile] Не удалось восстановить файл ${filename} (${_id}):`,
+          e.message,
+        );
+      }
+    }
+  }
+
+  // --- Stacks: push missing records ---
   const localStacks = await dbFind({ docType: "stack", deletedAt: { $exists: false } });
   let pushedStacks = 0;
   for (const doc of localStacks) {
@@ -183,7 +228,8 @@ export async function fullReconciliation() {
   }
 
   console.log(
-    `[sync/reconcile] Готово: запушено ${pushedSongs} песен, ${pushedStacks} стопок`,
+    `[sync/reconcile] Готово: запушено ${pushedSongs} песен, ${pushedStacks} стопок,` +
+      ` восстановлено файлов: ${restoredFiles}`,
   );
 }
 
