@@ -19,6 +19,8 @@ function getLocalIP() {
 import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
+import { syncRoutes } from "./routes/sync.js";
+import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
 dotenv.config({ path: ".env.local" });
@@ -329,6 +331,10 @@ app.post("/api/upload", upload.single("file"), (req, res) => {
 songsRoutes(app, urlencodedParser, upload);
 usersRoutes(app, urlencodedParser);
 stacksRoutes(app, urlencodedParser);
+syncRoutes(app);
+
+// Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
+startSyncScheduler();
 
 const deleteOldFiles = (fileName) => {
   fs.readdirSync(__dirname + "/uploads").forEach((file) => {
