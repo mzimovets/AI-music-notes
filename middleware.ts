@@ -7,8 +7,8 @@ export default withAuth({
 });
 
 export const config = {
-  // Исключаем: api, _next/*, статические файлы, SW, оффлайн-ресурсы
+  // Исключаем: api, _next/*, статические файлы, SW, оффлайн-ресурсы, загруженные PDF
   matcher: [
-    "/((?!api|_next|favicon\\.ico|authPage|manifest\\.json|sw\\.js|workbox-.*\\.js|logo.*\\.png|apple-touch-icon.*\\.png|icons/.*|songs/.*|stacks/.*|meals-pdf/.*|fonts/.*).*)",
+    "/((?!api|_next|favicon\\.ico|authPage|manifest\\.json|sw\\.js|workbox-.*\\.js|logo.*\\.png|apple-touch-icon.*\\.png|icons/.*|songs/.*|stacks/.*|meals-pdf/.*|fonts/.*|uploads/.*).*)",
   ],
 };
