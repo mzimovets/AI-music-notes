@@ -51,10 +51,29 @@ function dbUpdate(query, update) {
   );
 }
 
+function dbFind(query) {
+  return new Promise((resolve) =>
+    database.find(query, (err, docs) => resolve(err ? [] : docs)),
+  );
+}
+
 function dbRemove(query) {
   return new Promise((resolve) =>
     database.remove(query, { multi: true }, resolve),
   );
+}
+
+function deleteLocalFile(filename) {
+  if (!filename) return;
+  const filePath = path.join(__dirname, "uploads", filename);
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`[sync] Удалён файл: ${filename}`);
+    }
+  } catch (e) {
+    console.warn(`[sync] Не удалось удалить файл ${filename}:`, e.message);
+  }
 }
 
 export async function syncFromInternet() {
@@ -107,8 +126,13 @@ export async function syncFromInternet() {
     await dbUpdate({ _id: stack._id }, stack);
   }
 
-  // Физически удаляем soft-deleted записи у реплики
+  // Физически удаляем soft-deleted записи у реплики вместе с файлами
   if (deletedSongIds.length) {
+    // Сначала достаём записи из локальной БД, чтобы знать имена файлов
+    const docsToDelete = await dbFind({ _id: { $in: deletedSongIds } });
+    for (const doc of docsToDelete) {
+      deleteLocalFile(doc.file?.filename);
+    }
     await dbRemove({ _id: { $in: deletedSongIds } });
   }
   if (deletedStackIds.length) {
