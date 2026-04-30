@@ -5,7 +5,12 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "backup": "bash scripts/backup.sh",
+    "restore": "bash scripts/restore.sh",
+    "cleanup": "node scripts/cleanup.js",
+    "cleanup:dry": "node scripts/cleanup.js --dry-run",
+    "db:reset": "node scripts/reset-dev.js"
   },
   "keywords": [],
   "author": "",
