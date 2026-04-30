@@ -16,6 +16,7 @@
 #db
 /server/database.db
 /server/uploads/*
+/server/backups/
 
 # production
 /build
