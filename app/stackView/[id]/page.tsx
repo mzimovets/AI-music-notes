@@ -136,8 +136,14 @@ export default function Page() {
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
-      if (currentY < lastScrollY) setShowButton(true);
-      else if (currentY > lastScrollY) setShowButton(false);
+      if (currentY <= 60) {
+        // У самого верха — кнопки всегда видны
+        setShowButton(true);
+      } else if (currentY < lastScrollY) {
+        setShowButton(true);
+      } else if (currentY > lastScrollY) {
+        setShowButton(false);
+      }
       setLastScrollY(currentY);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -357,7 +363,7 @@ export default function Page() {
         reserveSongPages={reserveSongPages}
         trapezaStartPage={trapezaStartPage}
         trapezaEndPage={trapezaEndPage}
-        forceVisible={viewMode === "book" ? showButton : undefined}
+        forceVisible={showButton}
       />
       <div
         className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200

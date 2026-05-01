@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Pdfjs from "@/app/home/pdfjs";
 import { PdfPageCard } from "@/components/PdfPageCard";
 
-export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
+export const StackViewer = ({ fileUrl, noPaddingTopMobile, noLastMargin }: { fileUrl: string | File; noPaddingTopMobile?: boolean; noLastMargin?: boolean }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
 
   useEffect(() => {
@@ -17,7 +17,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
 
   return (
     <div>
-      <div className="pt-3 flex flex-col items-center">
+      <div className={`${noPaddingTopMobile ? "md:pt-3" : "pt-3"} flex flex-col items-center`}>
         {/* Загружаем PDF и сохраняем pdfDoc */}
         <div style={{ display: "none" }}>
           {fileUrl && (
@@ -33,7 +33,7 @@ export const StackViewer = ({ fileUrl }: { fileUrl: string | File }) => {
             return (
               <div
                 key={i}
-                className="w-full flex justify-center mb-4"
+                className={`w-full flex justify-center mb-4 ${noLastMargin ? "last:mb-0" : ""}`}
                 data-page-number={pageNum}
                 data-file-url={String(fileUrl)}
                 data-page-num={String(pageNum)}

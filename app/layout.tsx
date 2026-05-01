@@ -62,7 +62,6 @@ export default function RootLayout({
                 <NavbarWrapper />
                 <MainWrapper>{children}</MainWrapper>
               </AllSongsLibraryContextProvider>
-              <footer className="w-full flex items-center justify-center py-3"></footer>
             </div>
           </Providers>
         </SessionProvider>

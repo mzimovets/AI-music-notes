@@ -135,7 +135,7 @@ export const Search = ({ allSongs }: { allSongs: ServerSong[] }) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -8 }}
                 transition={{ duration: 0.2, ease: "easeInOut" }}
-                className="absolute top-full left-0 right-0 z-50 rounded-xl"
+                className="absolute top-full left-1/2 -translate-x-1/2 z-50 rounded-xl"
               >
                 <SearchTable filteredSongs={filteredSongs} />
               </motion.div>

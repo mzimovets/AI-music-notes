@@ -49,7 +49,24 @@ export default function StackPage() {
   } = useStackContext();
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [showButton] = useState(true);
+  const [showButton, setShowButton] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      if (currentY <= 60) {
+        setShowButton(true);
+      } else if (currentY < lastScrollY) {
+        setShowButton(true);
+      } else if (currentY > lastScrollY) {
+        setShowButton(false);
+      }
+      setLastScrollY(currentY);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastScrollY]);
 
   // Автопрокрутка к песне по ее instanceId с учетом фиксированного header
   const scrollToSong = (songId: string) => {
@@ -169,13 +186,13 @@ export default function StackPage() {
   return (
     <>
       <ScrollToTop />
-      <Sidebar2 onPreview={handlePreview} />
+      <Sidebar2 onPreview={handlePreview} forceVisible={showButton} />
       <div
         className="sticky top-2 z-20 h-0 overflow-visible pointer-events-none"
         style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
       >
         <div className="absolute right-3 top-0 pointer-events-auto">
-          <CloseButton />
+          <CloseButton forceVisible={showButton} />
         </div>
       </div>
       {stackSongs && stackSongs.length > 0 && (

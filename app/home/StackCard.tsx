@@ -19,7 +19,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
   const fillCard = (stack: Stack) => (
     <div
       key={stack._id}
-      className="flex flex-col gap-4 items-center w-full max-w-[200px] mx-auto"
+      className="flex flex-col items-center w-full"
     >
       <Card
         onPress={onStackClick(stack)}
@@ -47,7 +47,7 @@ export const StackCard = ({ stacks }: { stacks: Stack[] }) => {
 
       <p
         onClick={onStackClick(stack)}
-        className="text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
+        className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
       >
         {stack.name || "Сохраненная"}
       </p>

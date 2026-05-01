@@ -104,8 +104,13 @@ export default function SongReadPage() {
     const onScroll = () => {
       if (viewModeRef.current === "book") return;
       const currentY = window.scrollY;
-      if (currentY < lastScrollY) setShowButton(true);
-      else if (currentY > lastScrollY) setShowButton(false);
+      if (currentY <= 60) {
+        setShowButton(true);
+      } else if (currentY < lastScrollY) {
+        setShowButton(true);
+      } else if (currentY > lastScrollY) {
+        setShowButton(false);
+      }
       setLastScrollY(currentY);
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -264,7 +269,7 @@ export default function SongReadPage() {
       {/* Режим пролистывания */}
       {viewMode === "scroll" && (
         <div ref={viewerContainerRef} className="flex justify-center mb-2">
-          <StackViewer fileUrl={getUploadPath(songResponse.doc.file.filename)} />
+          <StackViewer fileUrl={getUploadPath(songResponse.doc.file.filename)} noPaddingTopMobile noLastMargin />
         </div>
       )}
     </div>

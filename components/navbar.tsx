@@ -155,54 +155,57 @@ return (
                 variant="light"
                 className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
               >
-                =
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="4" y1="7" x2="20" y2="7" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="17" x2="20" y2="17" />
+                </svg>
               </Button>
               </PopoverTrigger>
-            <PopoverContent className="flex flex-col gap-2 p-3 min-w-[200px] absolute right-0">
-              {/* Кнопка Add Score (если нужна) */}
-              {showStackButtons && (
-                <div className="w-full">
+            <PopoverContent classNames={{ base: "bg-white/40 backdrop-blur-2xl border border-white/50 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] p-0" }}>
+              <div className="flex flex-col gap-3 pt-2 pb-2 min-w-[180px]">
+                {/* Кнопка Add Score */}
+                {showStackButtons && (
                   <Button
-                    className="sm:hidden w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
-                    onPress={()=>{
+                    className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-start gap-1.5 input-header px-4"
+                    onPress={() => {
                       onOpenModalAddScore();
                       setIsOpen(false);
                     }}
                     radius="full"
-                    isIconOnly
                     startContent={<AddSongIcon />}
                   >
                     Новая партитура
                   </Button>
-                </div>
-              )}
-              
-              {/* Кнопка Stack */}
-              {showStackButtons &&
-                !pathname.startsWith("/stack") &&
-                !pathname.startsWith("/stackView") && (
-                  <Button
-                    onPress={() => {
-                      handleOpenStack();
-                      setIsOpen(false)
-                    }}
-                    radius="full"
-                    className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
-                    startContent={<StackIcon color="white" />}
-                  >
-                    Новая стопка
-                  </Button>
                 )}
-              
-              {/* Кнопка Exit */}
-              <Button
-                onPress={handleExit}
-                radius="full"
-                className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-center"
-                startContent={<ExitIcon color="white" />}
-              >
-                Выход
-              </Button>
+
+                {/* Кнопка Stack */}
+                {showStackButtons &&
+                  !pathname.startsWith("/stack") &&
+                  !pathname.startsWith("/stackView") && (
+                    <Button
+                      onPress={() => {
+                        handleOpenStack();
+                        setIsOpen(false);
+                      }}
+                      radius="full"
+                      className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-start gap-1.5 input-header px-4"
+                      startContent={<StackIcon color="white" />}
+                    >
+                      Новая стопка
+                    </Button>
+                  )}
+
+                {/* Кнопка Exit */}
+                <Button
+                  onPress={handleExit}
+                  radius="full"
+                  className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-start gap-1.5 input-header px-4"
+                  startContent={<ExitIcon color="white" />}
+                >
+                  Выход
+                </Button>
+              </div>
             </PopoverContent>
           </Popover>
         </NavbarContent>

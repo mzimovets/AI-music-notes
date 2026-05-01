@@ -9,7 +9,9 @@
         "server/routes/sync.js",
         "server/sync-client.js",
         ".vscode/changelists.json",
-        "APPLICATION_INFO.md"
+        "APPLICATION_INFO.md",
+        "app/stackView/[id]/components/SideBarStack.tsx",
+        ".vscode/changelists.json"
       ]
     }
   ],
