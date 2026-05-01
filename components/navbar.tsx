@@ -105,10 +105,10 @@ return (
 
         {/* Десктопная версия кнопок */}
         <NavbarContent
-          className="hidden sm:flex basis-1/5 sm:basis-full"
+          className="hidden md:flex basis-1/5 md:basis-full"
           justify="end"
         >
-          <NavbarItem className="hidden md:flex gap-4">
+          <NavbarItem className="flex gap-4">
             {showStackButtons && (
               <Button
               className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full shadow-md"
@@ -143,7 +143,7 @@ return (
         </NavbarContent>
 
         {/* Мобильная версия - бургер-меню */}
-        <NavbarContent className="flex sm:hidden" justify="end">
+        <NavbarContent className="flex md:hidden" justify="end">
           <Popover placement="bottom-end" isOpen={isOpen} onOpenChange={setIsOpen}>
              <PopoverTrigger>
               <Button
