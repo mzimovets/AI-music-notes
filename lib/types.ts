@@ -1,3 +1,10 @@
+export type Reprise = {
+  /** Страница (1-based внутри PDF песни), на которой показывается кнопка перехода */
+  fromPage: number;
+  /** Страница (1-based внутри PDF песни), на которую нужно перейти */
+  toPage: number;
+};
+
 export type Song = {
   name: string;
   author?: string;
@@ -6,6 +13,7 @@ export type Song = {
   docType: "song";
   authorArrange?: string;
   authorLyrics?: string;
+  reprises?: Reprise[];
   // _id: string;
 };
 
@@ -27,6 +35,7 @@ export type ServerSong = {
   _id: string;
   authorArrange?: string;
   authorLyrics?: string;
+  reprises?: Reprise[];
 };
 
 export interface StackSong extends Song {

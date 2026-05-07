@@ -17,7 +17,7 @@ import { addToast } from "@heroui/toast";
 import MyDropzone from "./dropzone";
 import ModalFilePreviewer from "./modalFilePreviewer";
 import { addSong } from "@/actions/actions";
-import { Song } from "@/lib/types";
+import { Reprise, Song } from "@/lib/types";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
@@ -52,6 +52,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   const [authorLyrics, setAuthorLyrics] = useState("");
   const [authorArrange, setAuthorArrange] = useState("");
   const [category, setCategory] = useState("");
+  const [reprises, setReprises] = useState<Reprise[]>([]);
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
 
   const [validationErrors, setValidationErrors] = useState({
@@ -63,6 +64,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   useEffect(() => {
     if (!isOpen && !isSaved) {
       setSelectedFile(null);
+      setReprises([]);
       setValidationErrors({ name: false, category: false, file: false });
     }
     if (!isOpen) setIsSaved(false);
@@ -120,6 +122,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         authorLyrics: authorLyrics || "",
         authorArrange: authorArrange || "",
         category,
+        reprises: reprises.length > 0 ? reprises : undefined,
         fileDbKey,
         filename: (selectedFile as File).name,
       });
@@ -146,6 +149,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
       category,
       authorArrange,
       authorLyrics,
+      reprises: reprises.length > 0 ? reprises : undefined,
     };
 
     try {
@@ -193,6 +197,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         authorLyrics: authorLyrics || "",
         authorArrange: authorArrange || "",
         category,
+        reprises: reprises.length > 0 ? reprises : undefined,
         fileDbKey,
         filename: (selectedFile as File).name,
       });
@@ -332,6 +337,85 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       onChange={(e) => setAuthorArrange(e.target.value)}
                       className="input-header mb-0"
                     />
+                  </div>
+
+                  {/* Репризы */}
+                  <div className="rounded-xl bg-white/10 p-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold input-header text-default-700">
+                        Репризы
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        className="input-header text-[#7D5E42]"
+                        onPress={() =>
+                          setReprises((r) => [...r, { fromPage: 1, toPage: 1 }])
+                        }
+                      >
+                        + Добавить
+                      </Button>
+                    </div>
+                    {reprises.length === 0 ? (
+                      <p className="text-xs text-default-400 input-header">
+                        Нет репризов. Нажмите «+ Добавить», чтобы указать переход
+                        между страницами (напр., со стр. 5 → на стр. 1).
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {reprises.map((r, i) => (
+                          <div key={i} className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-default-500 input-header whitespace-nowrap">
+                              На стр.
+                            </span>
+                            <Input
+                              type="number"
+                              size="sm"
+                              min={1}
+                              value={String(r.fromPage)}
+                              onChange={(e) => {
+                                const v = Math.max(1, parseInt(e.target.value) || 1);
+                                setReprises((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i ? { ...x, fromPage: v } : x,
+                                  ),
+                                );
+                              }}
+                              className="input-header w-20"
+                            />
+                            <span className="text-xs text-default-500 input-header whitespace-nowrap">
+                              → перейти на стр.
+                            </span>
+                            <Input
+                              type="number"
+                              size="sm"
+                              min={1}
+                              value={String(r.toPage)}
+                              onChange={(e) => {
+                                const v = Math.max(1, parseInt(e.target.value) || 1);
+                                setReprises((prev) =>
+                                  prev.map((x, j) =>
+                                    j === i ? { ...x, toPage: v } : x,
+                                  ),
+                                );
+                              }}
+                              className="input-header w-20"
+                            />
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              variant="light"
+                              className="text-danger min-w-unit-8 w-8 h-8"
+                              onPress={() =>
+                                setReprises((prev) => prev.filter((_, j) => j !== i))
+                              }
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="mt-4">

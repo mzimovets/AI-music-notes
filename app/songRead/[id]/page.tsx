@@ -19,6 +19,7 @@ export default function SongReadPage() {
 
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const flipViewerRef = useRef<SwipeBookViewerHandle>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -99,19 +100,6 @@ export default function SongReadPage() {
     return () => { cancelled = true; };
   }, [fileUrl]);
 
-  // Скролл — показываем кнопки только в режиме пролистывания
-  useEffect(() => {
-    const onScroll = () => {
-      if (viewModeRef.current === "book") return;
-      const currentY = window.scrollY;
-      if (currentY < lastScrollY) setShowButton(true);
-      else if (currentY > lastScrollY) setShowButton(false);
-      setLastScrollY(currentY);
-    };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [lastScrollY]);
-
   // Тап в режиме книги — показать/скрыть с таймером
   const handleBookTap = useCallback(() => {
     setShowButton((v) => {
@@ -121,6 +109,52 @@ export default function SongReadPage() {
       return next;
     });
   }, [startHideTimer]);
+
+  // Обновляем currentPage по скроллу (только в режиме scroll)
+  const updateCurrentPageFromScroll = useCallback(() => {
+    if (viewModeRef.current === "book") return;
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+    const pages = Array.from(scope.querySelectorAll<HTMLElement>("[data-page-number]"));
+    if (pages.length === 0) return;
+    let activeIndex = 0;
+    let minDistance = Number.POSITIVE_INFINITY;
+    pages.forEach((page, index) => {
+      const distance = Math.abs(page.getBoundingClientRect().top);
+      if (distance < minDistance) { minDistance = distance; activeIndex = index; }
+    });
+    const el = pages[activeIndex];
+    if (el) setCurrentPage(parseInt(el.dataset.pageNumber || "1", 10));
+  }, []);
+
+  // Прыжок на страницу репризы (работает в обоих режимах)
+  const goToReprisePage = useCallback((toPage: number) => {
+    if (viewModeRef.current === "book") {
+      flipViewerRef.current?.goToPage(toPage);
+      return;
+    }
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+    const target = scope.querySelector<HTMLElement>(`[data-page-number="${toPage}"]`);
+    if (target) {
+      const y = target.getBoundingClientRect().top + window.scrollY;
+      smoothScrollTo(y);
+    }
+  }, []);
+
+  // Скролл — показываем кнопки только в режиме пролистывания
+  useEffect(() => {
+    const onScroll = () => {
+      if (viewModeRef.current === "book") return;
+      const currentY = window.scrollY;
+      if (currentY < lastScrollY) setShowButton(true);
+      else if (currentY > lastScrollY) setShowButton(false);
+      setLastScrollY(currentY);
+      updateCurrentPageFromScroll();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [lastScrollY, updateCurrentPageFromScroll]);
 
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
     if (viewModeRef.current === "book") {
@@ -181,6 +215,9 @@ export default function SongReadPage() {
 
   if (!songResponse?.doc?.file?.filename) return null;
 
+  const reprises = (songResponse.doc as any).reprises as Array<{ fromPage: number; toPage: number }> | undefined;
+  const activeReprise = reprises?.find((r) => r.fromPage === currentPage);
+
   const visible = showButton ? "scale-100 opacity-100" : "scale-0 opacity-0";
 
   return (
@@ -195,6 +232,7 @@ export default function SongReadPage() {
               pdfData={pdfData}
               height={viewerHeight}
               onTap={handleBookTap}
+              onPageChange={setCurrentPage}
             />
           </div>
         </div>
@@ -207,6 +245,23 @@ export default function SongReadPage() {
           isConnected={clickerConnected}
           hidden={!showButton}
         />
+      )}
+
+      {/* Кнопка репризы — слева по центру */}
+      {activeReprise && (
+        <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50">
+          <button
+            onClick={() => goToReprisePage(activeReprise.toPage)}
+            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
+            title={`Реприза: перейти на стр. ${activeReprise.toPage}`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="1 4 1 10 7 10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+            </svg>
+            стр. {activeReprise.toPage}
+          </button>
+        </div>
       )}
 
       {/* Кнопка закрытия — справа сверху */}

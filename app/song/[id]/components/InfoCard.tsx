@@ -17,7 +17,8 @@ import {
 } from "@heroui/modal";
 import { editSong, removeSong } from "@/actions/actions";
 import { enqueue, storeFile } from "@/lib/offline-queue";
-import { Song } from "@/lib/types";
+import { Reprise, Song } from "@/lib/types";
+import { Input } from "@heroui/input";
 import { useSession } from "next-auth/react";
 import { recacheSong } from "@/lib/recache-song";
 import { useParams } from "next/navigation";
@@ -40,11 +41,25 @@ export const InfoCard = () => {
   const [authorLyrics, setAuthorLyrics] = useState(song.doc.authorLyrics);
   const [authorArrange, setAuthorArrange] = useState(song.doc.authorArrange);
   const [category, setCategory] = useState(song.doc.category);
+  const [reprises, setReprises] = useState<Reprise[]>(
+    (song.doc as any).reprises || [],
+  );
+  const [numPages, setNumPages] = useState<number>(0);
+  // Сырые строки инпутов — чтобы пользователь мог свободно стирать и вводить цифры
+  const [repriseRaw, setRepriseRaw] = useState<{ from: string; to: string }[]>(
+    () => ((song.doc as any).reprises || []).map((r: Reprise) => ({ from: String(r.fromPage), to: String(r.toPage) }))
+  );
+  const [saveAttempted, setSaveAttempted] = useState(false);
 
   const onLoad = async () => {
-    setSelectedFile(
-      `/uploads/${song.doc.file.filename}`,
-    ); //song.doc.file
+    const url = `/uploads/${song.doc.file.filename}`;
+    setSelectedFile(url);
+    try {
+      const pdfjsLib = await import("pdfjs-dist/build/pdf");
+      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      const pdf = await (pdfjsLib as any).getDocument(url).promise;
+      setNumPages(pdf.numPages);
+    } catch {}
   };
 
   useEffect(() => {
@@ -56,7 +71,15 @@ export const InfoCard = () => {
     setIsPreviewModalOpen(true);
   };
 
+  const hasRepriseErrors =
+    repriseRaw.some((r) => r.from === "" || r.to === "") ||
+    reprises.some((r) => r.fromPage === r.toPage);
+
   const handleSave = async () => {
+    if (hasRepriseErrors) {
+      setSaveAttempted(true);
+      return;
+    }
     if (!navigator.onLine) {
       let fileDbKey: string | undefined;
       let filename: string | undefined;
@@ -72,6 +95,7 @@ export const InfoCard = () => {
         authorLyrics: authorLyrics || "",
         authorArrange: authorArrange || "",
         category,
+        reprises: reprises.length > 0 ? reprises : undefined,
         docType: "song",
         fileDbKey,
         filename,
@@ -87,6 +111,7 @@ export const InfoCard = () => {
       authorLyrics,
       authorArrange,
       category,
+      reprises: reprises.length > 0 ? reprises : undefined,
     };
     if (selectedFile && typeof selectedFile !== "string") {
       data.file = selectedFile;
@@ -113,9 +138,11 @@ export const InfoCard = () => {
       // Здесь добавьте запрос на удаление песни
       if (!navigator.onLine) {
         enqueue({ type: "song.delete", id: song.doc._id });
-        window.dispatchEvent(new CustomEvent("sw-delete-song", {
-          detail: { id: song.doc._id, filename: song.doc.file?.filename },
-        }));
+        window.dispatchEvent(
+          new CustomEvent("sw-delete-song", {
+            detail: { id: song.doc._id, filename: song.doc.file?.filename },
+          }),
+        );
         router.push(`/playlist/${song.doc.category}`);
         return;
       }
@@ -123,9 +150,11 @@ export const InfoCard = () => {
       const response = await removeSong(song.doc._id);
 
       if (response) {
-        window.dispatchEvent(new CustomEvent("sw-delete-song", {
-          detail: { id: song.doc._id, filename: song.doc.file?.filename },
-        }));
+        window.dispatchEvent(
+          new CustomEvent("sw-delete-song", {
+            detail: { id: song.doc._id, filename: song.doc.file?.filename },
+          }),
+        );
         router.push(`/playlist/${song.doc.category}`);
         router.refresh();
       } else {
@@ -305,10 +334,146 @@ export const InfoCard = () => {
                 </div>
               </div>
 
+              {/* Репризы */}
+              <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30">
+                <div className="max-w-2xl mx-auto">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold text-gray-800 card-header">
+                      Репризы
+                    </h3>
+                    <Button
+                      size="sm"
+                      variant="flat"
+                      className="input-header text-[#7D5E42]"
+                      onPress={() => {
+                        setReprises((r) => [...r, { fromPage: 0, toPage: 0 }]);
+                        setRepriseRaw((r) => [...r, { from: "", to: "" }]);
+                      }}
+                    >
+                      + Добавить
+                    </Button>
+                  </div>
+                  {numPages > 0 && (
+                    <p className="text-xs text-gray-400 input-header mb-2">
+                      Страниц в файле: {numPages}
+                    </p>
+                  )}
+                  {reprises.length === 0 ? (
+                    <p className="text-sm text-gray-400 input-header">
+                      Нет реприз. Нажмите «+ Добавить» чтобы указать переход
+                      между страницами
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {reprises.map((r, i) => {
+                        const rawFrom = parseInt(repriseRaw[i]?.from || "0") || 0;
+                        const rawTo = parseInt(repriseRaw[i]?.to || "0") || 0;
+                        const isEmpty = repriseRaw[i]?.from === "" || repriseRaw[i]?.to === "";
+                        const isSamePage = !isEmpty && rawFrom > 0 && rawTo > 0 && rawFrom === rawTo;
+                        return (
+                        <div key={i} className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs text-gray-500 input-header whitespace-nowrap">
+                              На стр.
+                            </span>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              size="sm"
+                              value={repriseRaw[i]?.from ?? String(r.fromPage)}
+                              isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.from === "")}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, "");
+                                setRepriseRaw((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, from: raw } : x)
+                                );
+                              }}
+                              onBlur={() => {
+                                const raw = repriseRaw[i]?.from;
+                                if (!raw) return;
+                                const clamped = numPages > 0
+                                  ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
+                                  : Math.max(1, parseInt(raw) || 1);
+                                setRepriseRaw((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, from: String(clamped) } : x)
+                                );
+                                setReprises((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, fromPage: clamped } : x)
+                                );
+                              }}
+                              classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                              className="input-header w-20"
+                            />
+                            <span className="text-xs text-gray-500 input-header whitespace-nowrap">
+                              → перейти на стр.
+                            </span>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              size="sm"
+                              value={repriseRaw[i]?.to ?? String(r.toPage)}
+                              isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.to === "")}
+                              onChange={(e) => {
+                                const raw = e.target.value.replace(/\D/g, "");
+                                setRepriseRaw((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, to: raw } : x)
+                                );
+                              }}
+                              onBlur={() => {
+                                const raw = repriseRaw[i]?.to;
+                                if (!raw) return;
+                                const clamped = numPages > 0
+                                  ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
+                                  : Math.max(1, parseInt(raw) || 1);
+                                setRepriseRaw((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, to: String(clamped) } : x)
+                                );
+                                setReprises((prev) =>
+                                  prev.map((x, j) => j === i ? { ...x, toPage: clamped } : x)
+                                );
+                              }}
+                              classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                              className="input-header w-20"
+                            />
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              variant="light"
+                              className="text-danger min-w-unit-8 w-8 h-8"
+                              onPress={() => {
+                                setReprises((prev) => prev.filter((_, j) => j !== i));
+                                setRepriseRaw((prev) => prev.filter((_, j) => j !== i));
+                              }}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                          {saveAttempted && isEmpty && (
+                            <p className="text-xs text-danger input-header">
+                              Заполните оба поля
+                            </p>
+                          )}
+                          {isSamePage && (
+                            <p className="text-xs text-danger input-header">
+                              Страницы не могут совпадать
+                            </p>
+                          )}
+                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="px-8 py-6 bg-gray-50 border-t">
                 <div className="flex items-center justify-center gap-3">
                   <Button
                     onPress={handleSave}
+                    isDisabled={
+                      repriseRaw.some((r) => r.from === "" || r.to === "") ||
+                      reprises.some((r) => r.fromPage === r.toPage)
+                    }
                     className="px-5 py-2.5 rounded-lg border button-safe-font bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white-400  hover:opacity-90 transition-all"
                   >
                     Сохранить

@@ -26,6 +26,8 @@ export interface SwipeBookViewerProps {
   contentRanges?: { offset: number; count: number }[];
   /** Вызывается при коротком тапе/клике (не свайпе) */
   onTap?: () => void;
+  /** Вызывается при смене текущей страницы */
+  onPageChange?: (page: number) => void;
 }
 
 // ─── Single page canvas renderer ─────────────────────────────────────────────
@@ -112,7 +114,9 @@ function PdfPage({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewerProps>(
-  ({ pdfUrl, pdfData, height, contentRanges = [], onTap }, ref) => {
+  ({ pdfUrl, pdfData, height, contentRanges = [], onTap, onPageChange }, ref) => {
+    const onPageChangeRef = useRef(onPageChange);
+    useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
@@ -146,6 +150,8 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       setPdfDoc(null);
       setNumPages(0);
       setCurrentPage(1);
+      setMobileIndex(0);
+      mobileIndexRef.current = 0;
       let cancelled = false;
 
       (async () => {
@@ -171,7 +177,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       })();
 
       return () => { cancelled = true; };
-    }, [pdfUrl]);
+    }, [pdfUrl, pdfData]);
 
     // Список реальных страниц для мобайла (без пустых/разделительных)
     // Строим из contentRanges: каждый диапазон [offset, offset+count)
@@ -194,15 +200,19 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
     // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
+      // onPageChangeRef вызывается СНАРУЖИ setState — нельзя обновлять родительский
+      // компонент (Page) изнутри функции-апдейтера дочернего компонента
       if (mobilePagesRef.current.length > 0) {
-        setMobileIndex((i) => {
-          const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, i + dir));
-          mobileIndexRef.current = next;
-          currentPageRef.current = mobilePagesRef.current[next];
-          return next;
-        });
+        const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, mobileIndexRef.current + dir));
+        mobileIndexRef.current = next;
+        currentPageRef.current = mobilePagesRef.current[next];
+        setMobileIndex(next);
+        onPageChangeRef.current?.(mobilePagesRef.current[next]);
       } else {
-        setCurrentPage((p) => Math.max(1, Math.min(numPagesRef.current, p + dir)));
+        const next = Math.max(1, Math.min(numPagesRef.current, currentPageRef.current + dir));
+        currentPageRef.current = next;
+        setCurrentPage(next);
+        onPageChangeRef.current?.(next);
       }
     }, []);
 
@@ -211,16 +221,17 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       goToPage: (page: number) => {
         const clamped = Math.max(1, Math.min(numPagesRef.current || 999, page));
         if (mobilePagesRef.current.length > 0) {
-          // Найти ближайшую реальную страницу
           const pages = mobilePagesRef.current;
           const idx = pages.findIndex((p) => p >= clamped);
           const newIdx = idx === -1 ? pages.length - 1 : idx;
           setMobileIndex(newIdx);
           mobileIndexRef.current = newIdx;
           currentPageRef.current = pages[newIdx];
+          onPageChangeRef.current?.(pages[newIdx]);
         } else {
           setCurrentPage(clamped);
           currentPageRef.current = clamped;
+          onPageChangeRef.current?.(clamped);
         }
       },
       getActivePage: () => currentPageRef.current,

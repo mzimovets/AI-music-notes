@@ -7,7 +7,9 @@ import fs from "fs/promises";
 export const runtime = "nodejs";
 
 // ─── Серверный кэш ────────────────────────────────────────────────────────────
-type CacheEntry = { bytes: Uint8Array; songPages: string; name: string };
+// Репризы НЕ кэшируются — они запрашиваются свежими при каждом ответе,
+// чтобы изменения в карточке песни сразу отражались в стопке.
+type CacheEntry = { bytes: Uint8Array; baseOffsets: OffsetEntry[]; name: string };
 const pdfCache = new Map<string, CacheEntry>();
 const PDF_CACHE_MAX = 20;
 
@@ -60,7 +62,38 @@ type OffsetEntry = {
   pageOffset: number;
   pageCount: number;
   kind: "song" | "trapeza-start" | "trapeza-end";
+  reprises?: { fromPage: number; toPage: number }[];
+  /** Используется только на сервере для обновления репризов из кэша */
+  songId?: string;
 };
+
+/** Забирает актуальные репризы из БД */
+async function fetchFreshReprisesMap(backendUrl: string): Promise<Map<string, { fromPage: number; toPage: number }[]>> {
+  const map = new Map<string, { fromPage: number; toPage: number }[]>();
+  try {
+    const res = await fetch(`${backendUrl}/songs`, { cache: "no-store" });
+    if (res.ok) {
+      const { docs } = await res.json();
+      for (const doc of (docs || [])) {
+        if (doc._id && doc.reprises?.length) {
+          map.set(doc._id, doc.reprises);
+        }
+      }
+    }
+  } catch { /* некритично */ }
+  return map;
+}
+
+/** Обогащает офсеты свежими репризами */
+function enrichWithReprises(
+  baseOffsets: OffsetEntry[],
+  freshReprisesMap: Map<string, { fromPage: number; toPage: number }[]>,
+): OffsetEntry[] {
+  return baseOffsets.map((e) => {
+    if (e.kind !== "song" || !e.songId) return e;
+    return { ...e, reprises: freshReprisesMap.get(e.songId) ?? [] };
+  });
+}
 
 async function appendPdfBytes(
   merged: PDFDocument,
@@ -163,15 +196,17 @@ export async function GET(
   const v = req.nextUrl.searchParams.get("v") ?? "0";
   const cacheKey = `${id}:${v}`;
 
-  // Отдаём из кэша если есть
+  // Отдаём из кэша если есть, но репризы всегда запрашиваем свежими
   const cached = pdfCache.get(cacheKey);
   if (cached) {
+    const freshReprisesMap = await fetchFreshReprisesMap(BACKEND_URL);
+    const enrichedOffsets = enrichWithReprises(cached.baseOffsets, freshReprisesMap);
     return new NextResponse(cached.bytes, {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(cached.name + ".pdf")}`,
         "Cache-Control": "no-store",
-        "X-Song-Pages": cached.songPages,
+        "X-Song-Pages": JSON.stringify(enrichedOffsets),
         "Access-Control-Expose-Headers": "X-Song-Pages",
       },
     });
@@ -192,6 +227,9 @@ export async function GET(
     const songs: any[]  = stack.songs || [];
     const mainSongs     = songs.filter((s: any) => !s.isReserve);
     const reserveSongs  = songs.filter((s: any) =>  s.isReserve);
+
+    // Подгружаем актуальные репризы из БД (стак хранит старый снимок)
+    const freshReprisesMap = await fetchFreshReprisesMap(BACKEND_URL);
 
     // 3. Determine meal files (хранятся в public/meals-pdf на Next.js сервере)
     const hasTrapeza = (stack.programSelected || []).includes("Трапеза");
@@ -231,6 +269,11 @@ export async function GET(
       if (!filename) continue;
       alignToLeftPage();
       await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, false, cursor);
+      const lastEntry = offsets[offsets.length - 1];
+      if (lastEntry) {
+        lastEntry.songId = song._id;
+        lastEntry.reprises = freshReprisesMap.get(song._id) ?? song.reprises ?? [];
+      }
     }
 
     // 4c. Кондак — всегда на левой странице
@@ -251,6 +294,11 @@ export async function GET(
         if (!filename) continue;
         alignToLeftPage();
         await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, true, cursor);
+        const lastEntry = offsets[offsets.length - 1];
+        if (lastEntry) {
+          lastEntry.songId = song._id;
+          lastEntry.reprises = freshReprisesMap.get(song._id) ?? song.reprises ?? [];
+        }
       }
     }
 
@@ -261,13 +309,14 @@ export async function GET(
     // 6. Serialize, кэшируем и возвращаем
     const pdfBytes = await merged.save();
 
-    // Сохраняем в кэш, вытесняем старые записи если кэш переполнен
+    // Кэшируем байты PDF и базовые офсеты (БЕЗ репризов — они всегда запрашиваются свежими)
+    const baseOffsets = offsets.map(({ reprises: _r, ...rest }) => rest);
     if (pdfCache.size >= PDF_CACHE_MAX) {
       pdfCache.delete(pdfCache.keys().next().value!);
     }
     pdfCache.set(cacheKey, {
       bytes: pdfBytes,
-      songPages: JSON.stringify(offsets),
+      baseOffsets,
       name: stack.name || "stack",
     });
 
