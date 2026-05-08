@@ -5,6 +5,7 @@ import { Button } from "@heroui/button";
 import { Card, CardHeader, CardBody } from "@heroui/card";
 import { useEffect, useState } from "react";
 import { SongContextProvider, useSongContext } from "../SongContextProvider";
+import { SongActions } from "./SongActions";
 import { getCategoryDisplay } from "@/lib/utils";
 import { InfoCardInput } from "./InfoCardInput";
 import { useRouter } from "next/navigation";
@@ -213,6 +214,9 @@ export const InfoCard = () => {
               Удалить
             </Button>
           )}
+          <div className="flex items-center gap-6">
+            <SongActions />
+          </div>
           {session?.user?.role === "регент" && (
             <Button
               onPress={handleEdit}
