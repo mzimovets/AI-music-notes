@@ -20,9 +20,9 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
           setPdfDoc={setPdfDoc}
         />
       </div>
-      <div
-        className="sticky bottom-4 z-50 flex items-center justify-center gap-4 p-4 
-                rounded-[2rem] border border-white/80 bg-white/5 backdrop-blur-xl 
+      {pdfDoc?.numPages > 1 && <div
+        className="sticky bottom-4 z-50 flex items-center justify-center gap-4 p-4
+                rounded-[2rem] border border-white/80 bg-white/5 backdrop-blur-xl
                 shadow-2xl shadow-black/5 ring-1 ring-black/5
                 mx-auto w-max m-10"
       >
@@ -84,7 +84,7 @@ export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
             className="rotate-180"
           />
         </div>
-      </div>
+      </div>}
     </>
   );
 };

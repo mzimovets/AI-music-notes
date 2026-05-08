@@ -297,6 +297,26 @@ export const InfoCard = () => {
                 </div>
               );
             })}
+
+            {/* Репризы в режиме просмотра */}
+            {!isEdit && reprises.length > 0 && numPages !== 1 && (
+              <div className="px-8 py-6 hover:bg-gray-50/50 transition-colors border-t border-gray-100">
+                <div className="flex flex-col md:flex-row md:items-start gap-4">
+                  <div className="w-full md:w-1/3">
+                    <span className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                      Репризы
+                    </span>
+                  </div>
+                  <div className="w-full md:w-2/3 flex flex-col gap-1">
+                    {reprises.map((r, i) => (
+                      <p key={i} className="text-gray-800 text-lg font-medium card-header">
+                        стр. {r.fromPage} → стр. {r.toPage}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {isEdit && (
@@ -334,8 +354,8 @@ export const InfoCard = () => {
                 </div>
               </div>
 
-              {/* Репризы */}
-              <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30">
+              {/* Репризы — только если файл содержит 2+ страниц */}
+              {numPages !== 1 && <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30">
                 <div className="max-w-2xl mx-auto">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-lg font-semibold text-gray-800 card-header">
@@ -464,7 +484,7 @@ export const InfoCard = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              </div>}
 
               <div className="px-8 py-6 bg-gray-50 border-t">
                 <div className="flex items-center justify-center gap-3">

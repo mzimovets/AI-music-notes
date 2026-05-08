@@ -20,36 +20,40 @@ export const Viewer = ({ fileUrl }: { fileUrl: string | File }) => {
           setPdfDoc={setPdfDoc}
         />
 
-        <div
-          onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
-          className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 cursor-pointer p-4 rounded-full 
+        {pdfDoc?.numPages > 1 && (
+          <div
+            onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
+            className={`fixed left-4 top-1/2 -translate-y-1/2 z-50 cursor-pointer p-4 rounded-full
       bg-white/10 backdrop-blur-xl border border-white/80 shadow-2xl ring-1 ring-black/5
       ${pageNum > 1 ? "hover:opacity-80 hover:scale-105" : "opacity-30 cursor-not-allowed"}
       transition-all duration-200`}
-          title="Предыдущая страница"
-        >
-          <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
-        </div>
+            title="Предыдущая страница"
+          >
+            <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
+          </div>
+        )}
 
-        <div
-          onClick={() =>
-            pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)
-          }
-          className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 cursor-pointer p-4 rounded-full 
+        {pdfDoc?.numPages > 1 && (
+          <div
+            onClick={() =>
+              pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)
+            }
+            className={`fixed right-4 top-1/2 -translate-y-1/2 z-50 cursor-pointer p-4 rounded-full
       bg-white/10 backdrop-blur-xl border border-white/80 shadow-2xl ring-1 ring-black/5
       ${pdfDoc && pageNum < pdfDoc.numPages ? "hover:opacity-80 hover:scale-105" : "opacity-30 cursor-not-allowed"}
       transition-all duration-200`}
-          title="Следующая страница"
-        >
-          <SwarrowIconWithCircle
-            width={50}
-            height={13}
-            circleSize={20}
-            className="rotate-180"
-          />
-        </div>
+            title="Следующая страница"
+          >
+            <SwarrowIconWithCircle
+              width={50}
+              height={13}
+              circleSize={20}
+              className="rotate-180"
+            />
+          </div>
+        )}
 
-        {pdfDoc?.numPages > 0 && (
+        {pdfDoc?.numPages > 1 && (
           <div
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-40
   bg-white/10 backdrop-blur-xl border border-white/80 shadow-2xl ring-1 ring-black/5

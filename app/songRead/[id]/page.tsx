@@ -247,17 +247,19 @@ export default function SongReadPage() {
         />
       )}
 
-      {/* Кнопка репризы — слева по центру */}
+      {/* Кнопка репризы — снизу по центру экрана */}
       {activeReprise && (
-        <div className="fixed left-4 top-1/2 -translate-y-1/2 z-50">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <button
             onClick={() => goToReprisePage(activeReprise.toPage)}
             className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
             title={`Реприза: перейти на стр. ${activeReprise.toPage}`}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="1 4 1 10 7 10"/>
-              <path d="M3.51 15a9 9 0 1 0 .49-3.51"/>
+            <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
+              <rect x="0" y="0" width="4" height="18" rx="0.5" />
+              <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
+              <circle cx="10.5" cy="6" r="2" />
+              <circle cx="10.5" cy="12" r="2" />
             </svg>
             стр. {activeReprise.toPage}
           </button>
