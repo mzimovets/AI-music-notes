@@ -238,35 +238,43 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       navigateStep: (step: -1 | 1) => navigate(step),
     }), [navigate]);
 
-    // ── Swipe / drag ────────────────────────────────────────────────────────
-    const dragStartX = useRef<number | null>(null);
-    const [dragOffset] = useState(0);
-    const dragging = useRef(false);
+    // ── Swipe via native touch events (надёжнее pointer events на iOS Safari) ─
+    const containerRef = useRef<HTMLDivElement>(null);
+    const touchStartX = useRef<number | null>(null);
+    const touchStartY = useRef<number | null>(null);
+    const onTapRef = useRef(onTap);
+    useEffect(() => { onTapRef.current = onTap; }, [onTap]);
 
-    const onPointerDown = (e: React.PointerEvent) => {
-      dragging.current = true;
-      dragStartX.current = e.clientX;
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    };
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
 
-    const onPointerMove = (_e: React.PointerEvent) => {};
+      const onTouchStart = (e: TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+      };
 
-    const onPointerUp = (e: React.PointerEvent) => {
-      if (!dragging.current || dragStartX.current === null) return;
-      dragging.current = false;
-      const delta = e.clientX - dragStartX.current;
-      dragStartX.current = null;
-      if (Math.abs(delta) > 40) {
-        navigate(delta < 0 ? 1 : -1);
-      } else {
-        onTap?.();
-      }
-    };
+      const onTouchEnd = (e: TouchEvent) => {
+        if (touchStartX.current === null || touchStartY.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        const dy = e.changedTouches[0].clientY - touchStartY.current;
+        touchStartX.current = null;
+        touchStartY.current = null;
 
-    const onPointerCancel = () => {
-      dragging.current = false;
-      dragStartX.current = null;
-    };
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          navigate(dx < 0 ? 1 : -1);
+        } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+          onTapRef.current?.();
+        }
+      };
+
+      el.addEventListener("touchstart", onTouchStart, { passive: true });
+      el.addEventListener("touchend", onTouchEnd, { passive: true });
+      return () => {
+        el.removeEventListener("touchstart", onTouchStart);
+        el.removeEventListener("touchend", onTouchEnd);
+      };
+    }, [navigate]);
 
     // Всегда одна страница
     const pagesToShow = mobilePages.length > 0
@@ -278,6 +286,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
     return (
       <div
+        ref={containerRef}
         style={{
           height,
           width: "100%",
@@ -286,24 +295,19 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           position: "relative",
           userSelect: "none",
           touchAction: "none",
-          cursor: dragging.current ? "grabbing" : "grab",
+          cursor: "grab",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerCancel}
-        onPointerCancel={onPointerCancel}
       >
-        {/* Spread wrapper */}
+        {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{
-            transform: `translateX(${dragOffset}px)`,
             display: "flex",
             alignItems: "center",
             filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.28))",
+            pointerEvents: "none",
           }}
         >
           {pdfDoc && pagesToShow.length > 0
