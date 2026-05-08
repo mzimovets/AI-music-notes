@@ -280,11 +280,12 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       <div
         style={{
           height,
+          width: "100%",
           background: "#F7F4F1",
           overflow: "hidden",
           position: "relative",
           userSelect: "none",
-          touchAction: "pan-y",
+          touchAction: "none",
           cursor: dragging.current ? "grabbing" : "grab",
           display: "flex",
           alignItems: "center",

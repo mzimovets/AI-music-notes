@@ -393,10 +393,15 @@ export default function Page() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Prevent window scroll in book mode
+  // Prevent window scroll in book mode; also block iOS Safari edge-swipe navigation
   useEffect(() => {
-    document.body.style.overflow = viewMode === "book" ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    const inBook = viewMode === "book";
+    document.body.style.overflow = inBook ? "hidden" : "";
+    document.documentElement.style.overscrollBehavior = inBook ? "none" : "";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overscrollBehavior = "";
+    };
   }, [viewMode]);
 
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();

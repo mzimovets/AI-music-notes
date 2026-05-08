@@ -71,12 +71,16 @@ export default function SongReadPage() {
   // Блокируем скролл страницы в режиме книги.
   // scrollbarGutter: stable — резервируем место под скроллбар всегда,
   // чтобы переключатель внизу не сдвигался при его появлении/скрытии.
+  // overscrollBehavior: none — блокирует навигацию по краю экрана на iOS Safari.
   useEffect(() => {
-    document.body.style.overflow = viewMode === "book" ? "hidden" : "";
+    const inBook = viewMode === "book";
+    document.body.style.overflow = inBook ? "hidden" : "";
     document.documentElement.style.scrollbarGutter = "stable";
+    document.documentElement.style.overscrollBehavior = inBook ? "none" : "";
     return () => {
       document.body.style.overflow = "";
       document.documentElement.style.scrollbarGutter = "";
+      document.documentElement.style.overscrollBehavior = "";
     };
   }, [viewMode]);
 
