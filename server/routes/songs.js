@@ -34,6 +34,9 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
     (req, res) => {
       const now = Date.now();
       const serverSong = { ...req.body, file: req.file, updatedAt: now };
+      if (serverSong.reprises) {
+        try { serverSong.reprises = JSON.parse(serverSong.reprises); } catch { delete serverSong.reprises; }
+      }
       database.insert({ _id: req.params.songId, ...serverSong }, (err, doc) => {
         console.log("adding song: ", req.params.songId, serverSong);
         if (err) console.log("err", err);
@@ -50,6 +53,11 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
       const serverSong = { ...req.body, updatedAt: Date.now() };
       if (req.file && typeof req.file !== "string") {
         serverSong.file = req.file;
+      }
+      if (serverSong.reprises) {
+        try { serverSong.reprises = JSON.parse(serverSong.reprises); } catch { serverSong.reprises = []; }
+      } else {
+        serverSong.reprises = [];
       }
       database.update(
         { _id: req.params.songId },
