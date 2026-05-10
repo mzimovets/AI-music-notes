@@ -95,6 +95,10 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
       try {
         onLoadStartRef.current?.();
+        if (num < 1 || num > pdfDoc.numPages) {
+          console.warn(`[Pdfjs] pageNum ${num} out of range [1, ${pdfDoc.numPages}] — skipping render`);
+          return;
+        }
         const page = await pdfDoc.getPage(num);
 
         const rotation = page.rotate || 0;
@@ -109,6 +113,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         const outputScale = Math.min(window.devicePixelRatio || 1, 2);
 
         const canvas = canvasRef.current;
+        if (!canvas) return;
         const context = canvas.getContext("2d");
         if (!context) return;
 

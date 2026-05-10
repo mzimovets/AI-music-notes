@@ -31,7 +31,11 @@ type SongPageEntry = {
   pageOffset: number;
   pageCount: number;
   kind: "song" | "trapeza-start" | "trapeza-end";
+  reprises?: { fromPage: number; toPage: number }[];
+  songId?: string;
 };
+
+type SongPageData = { pageOffset: number; pageCount: number };
 
 export default function Page() {
   const [showButton, setShowButton] = useState(true);
@@ -51,13 +55,17 @@ export default function Page() {
   // SwipeBook viewer ref — lets us call goToPage / getActivePage
   const flipViewerRef = useRef<SwipeBookViewerHandle>(null);
 
-  // Page offsets per song/prayer (fetched once the mergedPdfUrl is known)
-  const [mainSongPages, setMainSongPages] = useState<number[]>([]);
-  const [reserveSongPages, setReserveSongPages] = useState<number[]>([]);
+  // Данные страниц по songId — не зависят от порядка в массиве, поэтому перестановка не ломает pageCount
+  const [songPageDataById, setSongPageDataById] = useState<Map<string, SongPageData>>(new Map());
   const [trapezaStartPage, setTrapezaStartPage] = useState<number | undefined>();
   const [trapezaEndPage, setTrapezaEndPage] = useState<number | undefined>();
+  const [trapezaStartPageCount, setTrapezaStartPageCount] = useState<number | undefined>();
+  const [trapezaEndPageCount, setTrapezaEndPageCount] = useState<number | undefined>();
   const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
   const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
+  const [currentPage, setCurrentPage] = useState(1);
+  // absoluteFromPage → { absoluteTo (для прыжка), relativeTo (для отображения внутри файла) }
+  const [repriseMap, setRepriseMap] = useState<Map<number, { absoluteTo: number; relativeTo: number }>>(new Map());
 
   const scrollToReserveSong = (songId: string) => {
     const el = document.getElementById(songId);
@@ -133,22 +141,81 @@ export default function Page() {
     setMealType(stackResponse.doc?.mealType || null);
   }, [stackResponse, setMealType, setProgramSelected, setStackSongs]);
 
+  // Определяем текущую абсолютную страницу в режиме скролла
+  const updateCurrentPageFromScroll = useCallback(() => {
+    if (viewModeRef.current === "book") return;
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+    const pages = Array.from(scope.querySelectorAll<HTMLElement>("[data-page-number]"));
+    if (pages.length === 0) return;
+    let activeIndex = 0;
+    let minDistance = Number.POSITIVE_INFINITY;
+    pages.forEach((page, index) => {
+      const distance = Math.abs(page.getBoundingClientRect().top);
+      if (distance < minDistance) { minDistance = distance; activeIndex = index; }
+    });
+    const el = pages[activeIndex];
+    if (el) setCurrentPage(parseInt(el.dataset.pageNumber || "1", 10));
+  }, []);
+
+  // Прыжок на абсолютную страницу (репризы)
+  const goToReprisePage = useCallback((toPage: number) => {
+    if (viewModeRef.current === "book") {
+      flipViewerRef.current?.goToPage(toPage);
+      return;
+    }
+    const scope = viewerContainerRef.current;
+    if (!scope) return;
+    const target = scope.querySelector<HTMLElement>(`[data-page-number="${toPage}"]`);
+    if (target) {
+      const y = target.getBoundingClientRect().top + window.scrollY;
+      smoothScrollTo(y);
+    }
+  }, []);
+
   useEffect(() => {
     const onScroll = () => {
       const currentY = window.scrollY;
       if (currentY < lastScrollY) setShowButton(true);
       else if (currentY > lastScrollY) setShowButton(false);
       setLastScrollY(currentY);
+      updateCurrentPageFromScroll();
     };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [lastScrollY]);
+  }, [lastScrollY, updateCurrentPageFromScroll]);
 
   const mainSongs = stackSongs.filter((s) => !s.isReserve);
   const reserveSongs = stackSongs.filter((s) => s.isReserve);
 
-  // Версия PDF — увеличивается при изменении состава книги, DearFlip перезагружает PDF
-  const [pdfVersion, setPdfVersion] = useState(0);
+  // Индексные массивы для SideBarStack — вычисляются из Map по текущему порядку
+  const mainSongPages    = mainSongs.map((s) => songPageDataById.get(s._id)?.pageOffset);
+  const reserveSongPages = reserveSongs.map((s) => songPageDataById.get(s._id)?.pageOffset);
+
+  // Строим карту репризов из данных X-Song-Pages (содержат свежие репризы из БД)
+  const [songPageEntries, setSongPageEntries] = useState<SongPageEntry[]>([]);
+
+  useEffect(() => {
+    if (songPageEntries.length === 0) return;
+    const entries: [number, { absoluteTo: number; relativeTo: number }][] = [];
+    for (const e of songPageEntries) {
+      if (e.kind !== "song") continue;
+      for (const r of ((e as any).reprises ?? [])) {
+        entries.push([
+          e.pageOffset + r.fromPage - 1,
+          { absoluteTo: e.pageOffset + r.toPage - 1, relativeTo: r.toPage },
+        ]);
+      }
+    }
+    setRepriseMap(new Map(entries));
+  }, [songPageEntries]);
+
+  // Версия PDF — инициализируется из updatedAt стека, чтобы при открытии страницы
+  // не использовался устаревший серверный кэш со старым порядком песен.
+  // Для старых стеков без updatedAt используем Date.now() как гарантированно уникальное значение.
+  const [pdfVersion, setPdfVersion] = useState<number>(
+    () => (stackResponse.doc as any)?.updatedAt || Date.now()
+  );
   const mergedPdfUrl = stackId ? `/api/merge-stack/${stackId}?v=${pdfVersion}` : null;
 
   // Следим за изменениями состава книги, автосохраняем и обновляем PDF
@@ -176,6 +243,16 @@ export default function Page() {
     if (key === pdfUpdateKeyRef.current) return;
     pdfUpdateKeyRef.current = key;
 
+    // Сбрасываем устаревшие данные страниц немедленно — новые придут после перестройки PDF.
+    // Это предотвращает переход на неправильные страницы при изменении порядка песен.
+    setSongPageDataById(new Map());
+    setSongPageEntries([]);
+    setContentRanges([]);
+    setTrapezaStartPage(undefined);
+    setTrapezaEndPage(undefined);
+    setTrapezaStartPageCount(undefined);
+    setTrapezaEndPageCount(undefined);
+
     // Дебаунс 800ms — ждём пока пользователь закончит вносить изменения
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
@@ -195,15 +272,37 @@ export default function Page() {
         justSavedRef.current = false;
         console.error("[book] auto-save failed:", e);
       }
-      setPdfVersion((v) => v + 1);
+      setPdfVersion(Date.now());
     }, 800);
 
     return () => clearTimeout(autoSaveTimer.current);
   }, [stackSongs, mealType, programSelected, stackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** Применяет SongPageEntry[] к стейту (без скачивания тела PDF) */
+  const applySongPageEntries = useCallback((entries: SongPageEntry[]) => {
+    setSongPageEntries(entries);
+    // Строим Map<songId, {pageOffset, pageCount}> — не зависит от позиции в массиве
+    const dataMap = new Map<string, SongPageData>();
+    for (const e of entries) {
+      if (e.kind === "song" && e.songId) {
+        dataMap.set(e.songId, { pageOffset: e.pageOffset, pageCount: e.pageCount });
+      }
+    }
+    setSongPageDataById(dataMap);
+    const ts = entries.find((e) => e.kind === "trapeza-start");
+    const te = entries.find((e) => e.kind === "trapeza-end");
+    setTrapezaStartPage(ts?.pageOffset);
+    setTrapezaEndPage(te?.pageOffset);
+    setTrapezaStartPageCount(ts?.pageCount);
+    setTrapezaEndPageCount(te?.pageCount);
+    setContentRanges(entries.map((e) => ({ offset: e.pageOffset, count: e.pageCount })));
+  }, []);
+
   // Fetch song page offsets + кешируем байты PDF чтобы не скачивать дважды
   useEffect(() => {
     if (!mergedPdfUrl) return;
+    // При смене URL сбрасываем только байты; Map по songId остаётся —
+    // pageCount привязан к файлу и не зависит от позиции → пустых прямоугольников нет.
     setPdfData(undefined);
     let cancelled = false;
     (async () => {
@@ -213,25 +312,31 @@ export default function Page() {
         const header = res.headers.get("x-song-pages");
         const bytes = await res.arrayBuffer();
         if (cancelled) return;
-        // Сохраняем байты — SwipeBookViewer не будет скачивать повторно
         setPdfData(bytes);
         if (!header) return;
-        const entries: SongPageEntry[] = JSON.parse(header);
-        setMainSongPages(
-          entries.filter((e) => e.kind === "song" && !e.isReserve).map((e) => e.pageOffset)
-        );
-        setReserveSongPages(
-          entries.filter((e) => e.kind === "song" && e.isReserve).map((e) => e.pageOffset)
-        );
-        const ts = entries.find((e) => e.kind === "trapeza-start");
-        const te = entries.find((e) => e.kind === "trapeza-end");
-        setTrapezaStartPage(ts?.pageOffset);
-        setTrapezaEndPage(te?.pageOffset);
-        setContentRanges(entries.map((e) => ({ offset: e.pageOffset, count: e.pageCount })));
+        applySongPageEntries(JSON.parse(header));
       } catch {}
     })();
     return () => { cancelled = true; };
-  }, [mergedPdfUrl]);
+  }, [mergedPdfUrl, applySongPageEntries]);
+
+  // Обновляем репризы когда пользователь возвращается на вкладку
+  // (репризы могли измениться в карточке песни без изменения состава стопки)
+  useEffect(() => {
+    if (!mergedPdfUrl) return;
+    const refresh = async () => {
+      try {
+        const res = await fetch(mergedPdfUrl, { cache: "no-store" });
+        const header = res.headers.get("x-song-pages");
+        // Отменяем тело — нам нужны только заголовки
+        res.body?.cancel().catch(() => {});
+        if (header) applySongPageEntries(JSON.parse(header));
+      } catch {}
+    };
+    const handleVisibility = () => { if (!document.hidden) refresh(); };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [mergedPdfUrl, applySongPageEntries]);
 
   // Navigate flipbook one page at a time (even in double-page spread mode)
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
@@ -288,10 +393,15 @@ export default function Page() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // Prevent window scroll in book mode
+  // Prevent window scroll in book mode; also block iOS Safari edge-swipe navigation
   useEffect(() => {
-    document.body.style.overflow = viewMode === "book" ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    const inBook = viewMode === "book";
+    document.body.style.overflow = inBook ? "hidden" : "";
+    document.documentElement.style.overscrollBehavior = inBook ? "none" : "";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overscrollBehavior = "";
+    };
   }, [viewMode]);
 
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -339,6 +449,7 @@ export default function Page() {
               height={viewerHeight}
               contentRanges={contentRanges}
               onTap={handleBookTap}
+              onPageChange={setCurrentPage}
             />
           </div>
         </div>
@@ -348,6 +459,27 @@ export default function Page() {
       {!isSinger && (
         <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
+
+      {/* Кнопка репризы — снизу по центру экрана */}
+      {repriseMap.has(currentPage) && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <button
+            onClick={() => goToReprisePage(repriseMap.get(currentPage)!.absoluteTo)}
+            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
+            title={`Реприза: перейти на стр. ${repriseMap.get(currentPage)?.relativeTo}`}
+          >
+            {/* Знак репризы: две вертикальные черты + две точки */}
+            <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
+              <rect x="0" y="0" width="4" height="18" rx="0.5" />
+              <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
+              <circle cx="10.5" cy="6" r="2" />
+              <circle cx="10.5" cy="12" r="2" />
+            </svg>
+            стр. {repriseMap.get(currentPage)?.relativeTo}
+          </button>
+        </div>
+      )}
+
       <SideBarStack
         onPreview={handlePreview}
         viewMode={viewMode}
@@ -383,7 +515,15 @@ export default function Page() {
 
       <div ref={viewerContainerRef} data-viewer-container>
       {/* Тропарь */}
-      <SongsList songs={mainSongs} isReserved={false} />
+      <SongsList
+        songs={mainSongs}
+        isReserved={false}
+        songPageDataById={songPageDataById}
+        trapezaStartOffset={trapezaStartPage}
+        trapezaEndOffset={trapezaEndPage}
+        trapezaStartPageCount={trapezaStartPageCount}
+        trapezaEndPageCount={trapezaEndPageCount}
+      />
 
       {reserveSongs.length > 0 && (
         <>
@@ -404,7 +544,7 @@ export default function Page() {
             <SongsList
               songs={reserveSongs}
               isReserved={true}
-              onSongClick={scrollToReserveSong}
+              songPageDataById={songPageDataById}
             />
           </div>
         </>

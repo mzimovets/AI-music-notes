@@ -4,7 +4,7 @@
  * Файлы (PDF): IndexedDB
  */
 
-import type { StackSong } from "./types";
+import type { Reprise, StackSong } from "./types";
 
 const QUEUE_KEY = "offline-op-queue-v1";
 const IDB_NAME = "offline-files-db";
@@ -23,6 +23,7 @@ export type OfflineOp =
       authorLyrics: string;
       authorArrange: string;
       category: string;
+      reprises?: Reprise[];
       fileDbKey: string;
       filename: string;
     }
@@ -34,6 +35,7 @@ export type OfflineOp =
       authorLyrics: string;
       authorArrange: string;
       category: string;
+      reprises?: Reprise[];
       docType: string;
       fileDbKey?: string;
       filename?: string;

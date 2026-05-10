@@ -67,6 +67,9 @@ export const postSong = async (data: Song, id?: string) => {
   formData.append("category", data.category || "");
   formData.append("authorArrange", data.authorArrange || "");
   formData.append("authorLyrics", data.authorLyrics || "");
+  if (data.reprises && data.reprises.length > 0) {
+    formData.append("reprises", JSON.stringify(data.reprises));
+  }
   const resp = await fetch(
     `${getBackendBaseUrl()}/song/${id}`,
     {
@@ -90,6 +93,9 @@ export const putSong = async (data: Partial<Song>, id?: string) => {
   formData.append("category", data.category || "");
   formData.append("authorArrange", data.authorArrange || "");
   formData.append("authorLyrics", data.authorLyrics || "");
+  if (data.reprises && data.reprises.length > 0) {
+    formData.append("reprises", JSON.stringify(data.reprises));
+  }
   const resp = await fetch(
     `${getBackendBaseUrl()}/song/${id}/true`,
     {

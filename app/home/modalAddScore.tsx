@@ -17,7 +17,7 @@ import { addToast } from "@heroui/toast";
 import MyDropzone from "./dropzone";
 import ModalFilePreviewer from "./modalFilePreviewer";
 import { addSong } from "@/actions/actions";
-import { Song } from "@/lib/types";
+import { Reprise, Song } from "@/lib/types";
 import { Pattern } from "@/components/pattern";
 import { useRouter } from "next/navigation";
 import { getCategoryDisplay } from "@/lib/utils";
@@ -52,6 +52,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   const [authorLyrics, setAuthorLyrics] = useState("");
   const [authorArrange, setAuthorArrange] = useState("");
   const [category, setCategory] = useState("");
+  const [reprises, setReprises] = useState<Reprise[]>([]);
+  const [repriseRaw, setRepriseRaw] = useState<{ from: string; to: string }[]>([]);
+  const [saveAttempted, setSaveAttempted] = useState(false);
+  const [numPages, setNumPages] = useState(0);
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
 
   const [validationErrors, setValidationErrors] = useState({
@@ -63,6 +67,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   useEffect(() => {
     if (!isOpen && !isSaved) {
       setSelectedFile(null);
+      setReprises([]);
+      setRepriseRaw([]);
+      setSaveAttempted(false);
+      setNumPages(0);
       setValidationErrors({ name: false, category: false, file: false });
     }
     if (!isOpen) setIsSaved(false);
@@ -105,6 +113,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   };
 
   const handleSave = async (onClose: () => void) => {
+    const hasRepriseErrors =
+      repriseRaw.some((r) => r.from === "" || r.to === "") ||
+      reprises.some((r) => r.fromPage === r.toPage && r.fromPage !== 0);
+    if (hasRepriseErrors) { setSaveAttempted(true); return; }
     if (!validateForm()) return;
     setIsSaved(true);
 
@@ -120,6 +132,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         authorLyrics: authorLyrics || "",
         authorArrange: authorArrange || "",
         category,
+        reprises: reprises.length > 0 ? reprises : undefined,
         fileDbKey,
         filename: (selectedFile as File).name,
       });
@@ -146,6 +159,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
       category,
       authorArrange,
       authorLyrics,
+      reprises: reprises.length > 0 ? reprises : undefined,
     };
 
     try {
@@ -193,6 +207,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         authorLyrics: authorLyrics || "",
         authorArrange: authorArrange || "",
         category,
+        reprises: reprises.length > 0 ? reprises : undefined,
         fileDbKey,
         filename: (selectedFile as File).name,
       });
@@ -334,12 +349,153 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                     />
                   </div>
 
+                  {/* Репризы — только после прикрепления файла с 2+ страницами */}
+                  {selectedFile && numPages !== 1 && <div className="rounded-xl bg-white/10 p-4 shadow-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold input-header text-default-700">
+                        Репризы
+                      </span>
+                      <Button
+                        size="sm"
+                        className="input-header bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
+                        onPress={() => {
+                          setReprises((r) => [...r, { fromPage: 0, toPage: 0 }]);
+                          setRepriseRaw((r) => [...r, { from: "", to: "" }]);
+                        }}
+                      >
+                        + Добавить
+                      </Button>
+                    </div>
+                    {numPages > 0 && (
+                      <p className="text-xs text-default-400 input-header mb-2">
+                        Страниц в файле: {numPages}
+                      </p>
+                    )}
+                    {reprises.length === 0 ? (
+                      <p className="text-xs text-default-400 input-header">
+                        Нет реприз. Нажмите «+ Добавить», чтобы указать переход между страницами
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {reprises.map((r, i) => {
+                          const rawFrom = parseInt(repriseRaw[i]?.from || "0") || 0;
+                          const rawTo = parseInt(repriseRaw[i]?.to || "0") || 0;
+                          const isEmpty = repriseRaw[i]?.from === "" || repriseRaw[i]?.to === "";
+                          const isSamePage = !isEmpty && rawFrom > 0 && rawTo > 0 && rawFrom === rawTo;
+                          return (
+                            <div key={i} className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-default-500 input-header whitespace-nowrap">
+                                  На стр.
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  size="sm"
+                                  value={repriseRaw[i]?.from ?? String(r.fromPage)}
+                                  isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.from === "")}
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(/\D/g, "");
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, from: raw } : x)
+                                    );
+                                  }}
+                                  onBlur={() => {
+                                    const raw = repriseRaw[i]?.from;
+                                    if (!raw) return;
+                                    const clamped = numPages > 0
+                                      ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
+                                      : Math.max(1, parseInt(raw) || 1);
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, from: String(clamped) } : x)
+                                    );
+                                    setReprises((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, fromPage: clamped } : x)
+                                    );
+                                  }}
+                                  classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                                  className="input-header w-20"
+                                />
+                                <span className="text-xs text-default-500 input-header whitespace-nowrap">
+                                  → перейти на стр.
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  size="sm"
+                                  value={repriseRaw[i]?.to ?? String(r.toPage)}
+                                  isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.to === "")}
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(/\D/g, "");
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, to: raw } : x)
+                                    );
+                                  }}
+                                  onBlur={() => {
+                                    const raw = repriseRaw[i]?.to;
+                                    if (!raw) return;
+                                    const clamped = numPages > 0
+                                      ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
+                                      : Math.max(1, parseInt(raw) || 1);
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, to: String(clamped) } : x)
+                                    );
+                                    setReprises((prev) =>
+                                      prev.map((x, j) => j === i ? { ...x, toPage: clamped } : x)
+                                    );
+                                  }}
+                                  classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
+                                  className="input-header w-20"
+                                />
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  className="text-danger min-w-unit-8 w-8 h-8"
+                                  onPress={() => {
+                                    setReprises((prev) => prev.filter((_, j) => j !== i));
+                                    setRepriseRaw((prev) => prev.filter((_, j) => j !== i));
+                                  }}
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                              {saveAttempted && isEmpty && (
+                                <p className="text-xs text-danger input-header">
+                                  Заполните оба поля
+                                </p>
+                              )}
+                              {isSamePage && (
+                                <p className="text-xs text-danger input-header">
+                                  Страницы не могут совпадать
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>}
+
                   <div className="mt-4">
                     <MyDropzone
                       className="mt-4  rounded-xl bg-white/10 p-4 shadow-lg "
                       cardClassName="bg-transparent shadow-none border-none !important"
-                      onFileSelect={(file) => {
+                      onFileSelect={async (file) => {
                         setSelectedFile(file);
+                        if (!file) {
+                          setReprises([]);
+                          setRepriseRaw([]);
+                          setNumPages(0);
+                        } else {
+                          try {
+                            const pdfjsLib = await import("pdfjs-dist/build/pdf");
+                            (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+                            const buf = await file.arrayBuffer();
+                            const pdf = await (pdfjsLib as any).getDocument({ data: buf }).promise;
+                            setNumPages(pdf.numPages);
+                          } catch {}
+                        }
                         if (validationErrors.file)
                           setValidationErrors((prev) => ({
                             ...prev,
@@ -362,6 +518,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                 <Button
                   type="submit"
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42]  text-white shadow-lg input-header"
+                  isDisabled={
+                    repriseRaw.some((r) => r.from === "" || r.to === "") ||
+                    reprises.some((r) => r.fromPage !== 0 && r.fromPage === r.toPage)
+                  }
                   onPress={() => handleSave(onClose)}
                 >
                   Добавить в базу

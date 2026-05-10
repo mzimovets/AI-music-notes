@@ -116,6 +116,7 @@ export default function MyDropzone({
     if (dzRef.current && selectedFile) {
       dzRef.current.removeFile(selectedFile);
       setSelectedFile(null);
+      onFileSelect?.(null);
     }
   };
 

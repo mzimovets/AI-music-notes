@@ -26,6 +26,8 @@ export interface SwipeBookViewerProps {
   contentRanges?: { offset: number; count: number }[];
   /** Вызывается при коротком тапе/клике (не свайпе) */
   onTap?: () => void;
+  /** Вызывается при смене текущей страницы */
+  onPageChange?: (page: number) => void;
 }
 
 // ─── Single page canvas renderer ─────────────────────────────────────────────
@@ -112,7 +114,9 @@ function PdfPage({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewerProps>(
-  ({ pdfUrl, pdfData, height, contentRanges = [], onTap }, ref) => {
+  ({ pdfUrl, pdfData, height, contentRanges = [], onTap, onPageChange }, ref) => {
+    const onPageChangeRef = useRef(onPageChange);
+    useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
     const [pdfDoc, setPdfDoc] = useState<any>(null);
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
@@ -146,6 +150,8 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       setPdfDoc(null);
       setNumPages(0);
       setCurrentPage(1);
+      setMobileIndex(0);
+      mobileIndexRef.current = 0;
       let cancelled = false;
 
       (async () => {
@@ -171,7 +177,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       })();
 
       return () => { cancelled = true; };
-    }, [pdfUrl]);
+    }, [pdfUrl, pdfData]);
 
     // Список реальных страниц для мобайла (без пустых/разделительных)
     // Строим из contentRanges: каждый диапазон [offset, offset+count)
@@ -194,15 +200,19 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
     // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
+      // onPageChangeRef вызывается СНАРУЖИ setState — нельзя обновлять родительский
+      // компонент (Page) изнутри функции-апдейтера дочернего компонента
       if (mobilePagesRef.current.length > 0) {
-        setMobileIndex((i) => {
-          const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, i + dir));
-          mobileIndexRef.current = next;
-          currentPageRef.current = mobilePagesRef.current[next];
-          return next;
-        });
+        const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, mobileIndexRef.current + dir));
+        mobileIndexRef.current = next;
+        currentPageRef.current = mobilePagesRef.current[next];
+        setMobileIndex(next);
+        onPageChangeRef.current?.(mobilePagesRef.current[next]);
       } else {
-        setCurrentPage((p) => Math.max(1, Math.min(numPagesRef.current, p + dir)));
+        const next = Math.max(1, Math.min(numPagesRef.current, currentPageRef.current + dir));
+        currentPageRef.current = next;
+        setCurrentPage(next);
+        onPageChangeRef.current?.(next);
       }
     }, []);
 
@@ -211,51 +221,60 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       goToPage: (page: number) => {
         const clamped = Math.max(1, Math.min(numPagesRef.current || 999, page));
         if (mobilePagesRef.current.length > 0) {
-          // Найти ближайшую реальную страницу
           const pages = mobilePagesRef.current;
           const idx = pages.findIndex((p) => p >= clamped);
           const newIdx = idx === -1 ? pages.length - 1 : idx;
           setMobileIndex(newIdx);
           mobileIndexRef.current = newIdx;
           currentPageRef.current = pages[newIdx];
+          onPageChangeRef.current?.(pages[newIdx]);
         } else {
           setCurrentPage(clamped);
           currentPageRef.current = clamped;
+          onPageChangeRef.current?.(clamped);
         }
       },
       getActivePage: () => currentPageRef.current,
       navigateStep: (step: -1 | 1) => navigate(step),
     }), [navigate]);
 
-    // ── Swipe / drag ────────────────────────────────────────────────────────
-    const dragStartX = useRef<number | null>(null);
-    const [dragOffset] = useState(0);
-    const dragging = useRef(false);
+    // ── Swipe via native touch events (надёжнее pointer events на iOS Safari) ─
+    const containerRef = useRef<HTMLDivElement>(null);
+    const touchStartX = useRef<number | null>(null);
+    const touchStartY = useRef<number | null>(null);
+    const onTapRef = useRef(onTap);
+    useEffect(() => { onTapRef.current = onTap; }, [onTap]);
 
-    const onPointerDown = (e: React.PointerEvent) => {
-      dragging.current = true;
-      dragStartX.current = e.clientX;
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    };
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
 
-    const onPointerMove = (_e: React.PointerEvent) => {};
+      const onTouchStart = (e: TouchEvent) => {
+        touchStartX.current = e.touches[0].clientX;
+        touchStartY.current = e.touches[0].clientY;
+      };
 
-    const onPointerUp = (e: React.PointerEvent) => {
-      if (!dragging.current || dragStartX.current === null) return;
-      dragging.current = false;
-      const delta = e.clientX - dragStartX.current;
-      dragStartX.current = null;
-      if (Math.abs(delta) > 40) {
-        navigate(delta < 0 ? 1 : -1);
-      } else {
-        onTap?.();
-      }
-    };
+      const onTouchEnd = (e: TouchEvent) => {
+        if (touchStartX.current === null || touchStartY.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        const dy = e.changedTouches[0].clientY - touchStartY.current;
+        touchStartX.current = null;
+        touchStartY.current = null;
 
-    const onPointerCancel = () => {
-      dragging.current = false;
-      dragStartX.current = null;
-    };
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) {
+          navigate(dx < 0 ? 1 : -1);
+        } else if (Math.abs(dx) < 10 && Math.abs(dy) < 10) {
+          onTapRef.current?.();
+        }
+      };
+
+      el.addEventListener("touchstart", onTouchStart, { passive: true });
+      el.addEventListener("touchend", onTouchEnd, { passive: true });
+      return () => {
+        el.removeEventListener("touchstart", onTouchStart);
+        el.removeEventListener("touchend", onTouchEnd);
+      };
+    }, [navigate]);
 
     // Всегда одна страница
     const pagesToShow = mobilePages.length > 0
@@ -267,31 +286,28 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
     return (
       <div
+        ref={containerRef}
         style={{
           height,
+          width: "100%",
           background: "#F7F4F1",
           overflow: "hidden",
           position: "relative",
           userSelect: "none",
-          touchAction: "pan-y",
-          cursor: dragging.current ? "grabbing" : "grab",
+          touchAction: "none",
+          cursor: "grab",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerCancel}
-        onPointerCancel={onPointerCancel}
       >
-        {/* Spread wrapper */}
+        {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{
-            transform: `translateX(${dragOffset}px)`,
             display: "flex",
             alignItems: "center",
             filter: "drop-shadow(0 4px 24px rgba(0,0,0,0.28))",
+            pointerEvents: "none",
           }}
         >
           {pdfDoc && pagesToShow.length > 0

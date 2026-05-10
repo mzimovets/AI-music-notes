@@ -16,9 +16,9 @@ export function StackContextProvider({
 }) {
   const [stackName, setStackName] = useState("");
   const [stackCover, setStackCover] = useState("");
-  const [stackSongs, setStackSongs] = useState([]);
-  const [mealType, setMealType] = useState<string | null>(null);
-  const [programSelected, setProgramSelected] = useState<string[]>([]);
+  const [stackSongs, setStackSongs] = useState<any[]>(() => (stackResponse.doc as any)?.songs || []);
+  const [mealType, setMealType] = useState<string | null>(() => (stackResponse.doc as any)?.mealType ?? null);
+  const [programSelected, setProgramSelected] = useState<string[]>(() => (stackResponse.doc as any)?.programSelected || []);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const removeSong = (instanceId) => {
