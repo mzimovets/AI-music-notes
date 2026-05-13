@@ -15,6 +15,7 @@
 
 #db
 /server/database.db
+/server/sync_metrics.db
 /server/uploads/*
 /server/backups/
 
