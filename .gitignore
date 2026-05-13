@@ -15,6 +15,7 @@
 
 #db
 /server/database.db
+/server/sync_metrics.db
 /server/uploads/*
 /server/backups/
 
@@ -42,7 +43,7 @@ next-env.d.ts
 
 pnpm-lock.yaml
 yarn.lock
-package-lock.json
+# package-lock.json
 bun.lockb
 
 # environment variables

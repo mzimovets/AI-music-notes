@@ -30,7 +30,7 @@ export const StackViewer = ({
 
   return (
     <div>
-      <div className="pt-3 flex flex-col items-center">
+      <div className={`${noPaddingTopMobile ? "md:pt-3" : "pt-3"} flex flex-col items-center`}>
         {/* Загружаем PDF только для получения numPages, если pageCount не передан снаружи */}
         {!pageCountProp && (
           <div style={{ display: "none" }}>
@@ -49,7 +49,7 @@ export const StackViewer = ({
             return (
               <div
                 key={i}
-                className="w-full flex justify-center mb-4"
+                className={`w-full flex justify-center mb-4 ${noLastMargin ? "last:mb-0" : ""}`}
                 data-page-number={absolutePageNum}
                 data-file-url={String(fileUrl)}
                 data-page-num={String(absolutePageNum)}

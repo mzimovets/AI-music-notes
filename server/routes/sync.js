@@ -5,6 +5,7 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
 import { database } from "../index.js";
+import { metricsDb } from "../metrics-db.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // uploads лежит на уровень выше (server/uploads/)
@@ -228,8 +229,94 @@ export const syncRoutes = (app, upload) => {
     });
   });
 
+  // GET /api/sync/metrics?limit=N&from=<unix_ms>&to=<unix_ms>
+  // Возвращает записи метрик синхронизации из sync_metrics.db.
+  // Параметры (все опциональны):
+  //   limit  — максимум записей (default: 200)
+  //   from   — unix timestamp нижней границы (включительно)
+  //   to     — unix timestamp верхней границы (включительно)
+  //
+  // Дополнительно возвращает агрегированную сводку по всем записям в выборке:
+  //   summary.avgLagMs, summary.avgReductionRatio, summary.totalSyncs и т.д.
+  app.get("/api/sync/metrics", verifyApiKey, (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 200, 1000);
+    const from = parseInt(req.query.from) || 0;
+    const to = parseInt(req.query.to) || Date.now();
+
+    const query = { timestamp: { $gte: from, $lte: to } };
+
+    metricsDb
+      .find(query)
+      .sort({ timestamp: -1 })
+      .limit(limit)
+      .exec((err, docs) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        // Агрегированная сводка для удобства анализа
+        const syncDocs = docs.filter((d) => d.type === "delta_sync");
+        const summary =
+          syncDocs.length === 0
+            ? null
+            : {
+                totalSyncs: syncDocs.length,
+
+                // Метрика №2 — Sync Lag
+                lag: {
+                  avgMs: Math.round(
+                    syncDocs
+                      .filter((d) => d.lag?.count > 0)
+                      .reduce((s, d) => s + d.lag.avgMs, 0) /
+                      (syncDocs.filter((d) => d.lag?.count > 0).length || 1),
+                  ),
+                  medianOfMediansMs: median(
+                    syncDocs.filter((d) => d.lag?.count > 0).map((d) => d.lag.medianMs),
+                  ),
+                  p95OfP95Ms: percentile95(
+                    syncDocs.filter((d) => d.lag?.count > 0).map((d) => d.lag.p95Ms),
+                  ),
+                  syncsWithChanges: syncDocs.filter((d) => d.lag?.count > 0).length,
+                },
+
+                // Метрика №3 — Bandwidth Efficiency
+                bandwidth: {
+                  avgReductionRatio: parseFloat(
+                    (
+                      syncDocs.reduce((s, d) => s + (d.bandwidth?.reductionRatio ?? 0), 0) /
+                      syncDocs.length
+                    ).toFixed(4),
+                  ),
+                  avgDeltaBytes: Math.round(
+                    syncDocs.reduce((s, d) => s + (d.bandwidth?.deltaBytes ?? 0), 0) /
+                      syncDocs.length,
+                  ),
+                  totalDeltaBytes: syncDocs.reduce(
+                    (s, d) => s + (d.bandwidth?.deltaBytes ?? 0),
+                    0,
+                  ),
+                  syncsWithNoChanges: syncDocs.filter(
+                    (d) => d.bandwidth?.deltaRecords === 0,
+                  ).length,
+                },
+              };
+
+        res.json({ metrics: docs, summary });
+      });
+  });
+
   // GET /api/health — проверка доступности сервера (без аутентификации)
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", ts: Date.now() });
   });
 };
+
+function median(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
+
+function percentile95(arr) {
+  if (!arr.length) return 0;
+  const s = [...arr].sort((a, b) => a - b);
+  return s[Math.floor(s.length * 0.95)];
+}

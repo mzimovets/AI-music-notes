@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { database } from "./index.js";
+import { metricsDb } from "./metrics-db.js";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
 
@@ -67,6 +68,52 @@ function dbFindOne(query) {
   return new Promise((resolve) =>
     database.findOne(query, (err, doc) => resolve(err ? null : doc)),
   );
+}
+
+function dbCount(query) {
+  return new Promise((resolve) =>
+    database.count(query, (err, n) => resolve(err ? 0 : n)),
+  );
+}
+
+// ---------------------------------------------------------------------
+// Метрики синхронизации
+// ---------------------------------------------------------------------
+
+/**
+ * Вычисляет статистику по массиву числовых значений.
+ * Возвращает count / avg / median / p95 / min / max (все в мс).
+ */
+function calcStats(values) {
+  if (!values.length) {
+    return { count: 0, avgMs: 0, medianMs: 0, p95Ms: 0, minMs: 0, maxMs: 0 };
+  }
+  const sorted = [...values].sort((a, b) => a - b);
+  const sum = sorted.reduce((a, b) => a + b, 0);
+  return {
+    count: sorted.length,
+    avgMs: Math.round(sum / sorted.length),
+    medianMs: sorted[Math.floor(sorted.length / 2)],
+    p95Ms: sorted[Math.floor(sorted.length * 0.95)],
+    minMs: sorted[0],
+    maxMs: sorted[sorted.length - 1],
+  };
+}
+
+/**
+ * Сохраняет запись метрики в sync_metrics.db.
+ * Не блокирует основной поток — ошибки только логируются.
+ */
+function saveMetric(doc) {
+  const record = {
+    ...doc,
+    _id: `${doc.type}_${Date.now()}`,
+    createdAt: Date.now(),
+  };
+  metricsDb.insert(record, (err) => {
+    if (err) console.warn("[metrics] Не удалось сохранить метрику:", err.message);
+    else console.log(`[metrics] Сохранена метрика: ${record.type} @ ${new Date(record.timestamp).toISOString()}`);
+  });
 }
 
 function deleteLocalFile(filename) {
@@ -278,14 +325,21 @@ export async function syncFromInternet() {
     `[sync] Старт синхронизации (since: ${new Date(since).toISOString()})`,
   );
 
+  // Читаем ответ как текст, чтобы измерить реальный размер дельты в байтах
+  // (Метрика №3 — Bandwidth Efficiency)
   let data;
+  let deltaBytes = 0;
+  const syncStartTs = Date.now();
+
   try {
     const res = await fetch(`${INTERNET_URL}/api/sync/export?since=${since}`, {
       headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
       signal: AbortSignal.timeout(30_000),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    data = await res.json();
+    const responseText = await res.text();
+    deltaBytes = Buffer.byteLength(responseText, "utf8");
+    data = JSON.parse(responseText);
   } catch (e) {
     console.error("[sync] Не удалось получить данные с мастера:", e.message);
     return;
@@ -298,6 +352,16 @@ export async function syncFromInternet() {
     deletedSongIds = [],
     deletedStackIds = [],
   } = data;
+
+  // ----- Метрика №2: Sync Lag -----
+  // lag = время между updatedAt записи на мастере и моментом получения её репликой
+  const receiveTs = Date.now();
+  const lagValues = [...songs, ...stacks]
+    .filter((d) => d.updatedAt && d.updatedAt > 0)
+    .map((d) => receiveTs - d.updatedAt)
+    .filter((lag) => lag >= 0); // отрицательные — аномалия расхождения часов
+
+  const lagStats = calcStats(lagValues);
 
   // Upsert songs
   for (const song of songs) {
@@ -324,9 +388,52 @@ export async function syncFromInternet() {
   }
 
   saveLastSyncTimestamp(timestamp);
+
+  // ----- Метрика №3: Bandwidth Efficiency -----
+  // Сравниваем размер дельты с гипотетическим полным экспортом.
+  // totalLocalRecords — количество живых записей после применения дельты.
+  const totalLocalRecords = await dbCount({
+    docType: { $in: ["song", "stack"] },
+    deletedAt: { $exists: false },
+  });
+  const deltaRecords =
+    songs.length + stacks.length + deletedSongIds.length + deletedStackIds.length;
+
+  // reductionRatio: 1.0 = нет изменений, 0.0 = изменилось всё
+  const reductionRatio =
+    totalLocalRecords > 0
+      ? Math.max(0, 1 - deltaRecords / totalLocalRecords)
+      : 0;
+
+  // ----- Сохраняем метрики в sync_metrics.db -----
+  saveMetric({
+    type: "delta_sync",
+    timestamp: syncStartTs,
+    since,
+    durationMs: Date.now() - syncStartTs,
+
+    // Метрика №2 — задержка распространения изменений
+    lag: lagStats,
+
+    // Метрика №3 — эффективность полосы пропускания
+    bandwidth: {
+      deltaBytes,
+      deltaRecords,
+      totalLocalRecords,
+      reductionRatio: parseFloat(reductionRatio.toFixed(4)),
+    },
+  });
+
+  const lagInfo =
+    lagStats.count > 0
+      ? `lag avg=${lagStats.avgMs}ms median=${lagStats.medianMs}ms p95=${lagStats.p95Ms}ms`
+      : "lag=n/a (нет изменений)";
+
   console.log(
     `[sync] Готово: +${songs.length} песен, +${stacks.length} стопок,` +
-      ` удалено: ${deletedSongIds.length + deletedStackIds.length}`,
+      ` удалено: ${deletedSongIds.length + deletedStackIds.length}` +
+      ` | ${deltaBytes} байт (reduction=${(reductionRatio * 100).toFixed(1)}%)` +
+      ` | ${lagInfo}`,
   );
 }
 
