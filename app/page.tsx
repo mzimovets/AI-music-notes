@@ -32,11 +32,18 @@ export default function Home() {
   const [stacks, setStacks] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [showStacks, setShowStacks] = useState(false);
+  const [showStacks, setShowStacks] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("showStacks") === "true";
+  });
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
   const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("showStacks", String(showStacks));
+  }, [showStacks]);
 
   useEffect(() => {
     const backUrl = getBackendBaseUrl();
