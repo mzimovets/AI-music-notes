@@ -10,12 +10,16 @@ import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 import { getUploadPath } from "@/lib/client-url";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useSession } from "next-auth/react";
-import { SwipeBookViewer, SwipeBookViewerHandle } from "@/app/stackView/[id]/components/SwipeBookViewer";
+import {
+  SwipeBookViewer,
+  SwipeBookViewerHandle,
+} from "@/app/stackView/[id]/components/SwipeBookViewer";
 
 export default function SongReadPage() {
   const { songResponse } = useSongContext();
   const { data: session, status: sessionStatus } = useSession();
-  const isSinger = sessionStatus === "loading" ? true : session?.user?.role !== "регент";
+  const isSinger =
+    sessionStatus === "loading" ? true : session?.user?.role !== "регент";
 
   const [showButton, setShowButton] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
@@ -28,7 +32,7 @@ export default function SongReadPage() {
   // Режим просмотра — общий с /stackView через localStorage
   const [viewMode, setViewMode] = useState<"scroll" | "book">("scroll");
   const [viewerHeight, setViewerHeight] = useState(() =>
-    typeof window !== "undefined" ? Math.max(400, window.innerHeight) : 600
+    typeof window !== "undefined" ? Math.max(400, window.innerHeight) : 600,
   );
   const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
 
@@ -101,7 +105,9 @@ export default function SongReadPage() {
         if (!cancelled) setPdfData(bytes);
       } catch {}
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [fileUrl]);
 
   // Тап в режиме книги — показать/скрыть с таймером
@@ -119,13 +125,18 @@ export default function SongReadPage() {
     if (viewModeRef.current === "book") return;
     const scope = viewerContainerRef.current;
     if (!scope) return;
-    const pages = Array.from(scope.querySelectorAll<HTMLElement>("[data-page-number]"));
+    const pages = Array.from(
+      scope.querySelectorAll<HTMLElement>("[data-page-number]"),
+    );
     if (pages.length === 0) return;
     let activeIndex = 0;
     let minDistance = Number.POSITIVE_INFINITY;
     pages.forEach((page, index) => {
       const distance = Math.abs(page.getBoundingClientRect().top);
-      if (distance < minDistance) { minDistance = distance; activeIndex = index; }
+      if (distance < minDistance) {
+        minDistance = distance;
+        activeIndex = index;
+      }
     });
     const el = pages[activeIndex];
     if (el) setCurrentPage(parseInt(el.dataset.pageNumber || "1", 10));
@@ -139,7 +150,9 @@ export default function SongReadPage() {
     }
     const scope = viewerContainerRef.current;
     if (!scope) return;
-    const target = scope.querySelector<HTMLElement>(`[data-page-number="${toPage}"]`);
+    const target = scope.querySelector<HTMLElement>(
+      `[data-page-number="${toPage}"]`,
+    );
     if (target) {
       const y = target.getBoundingClientRect().top + window.scrollY;
       smoothScrollTo(y);
@@ -172,15 +185,23 @@ export default function SongReadPage() {
     }
     const scope = viewerContainerRef.current;
     if (!scope) return;
-    const pages = Array.from(scope.querySelectorAll<HTMLElement>("[data-page-number]"));
+    const pages = Array.from(
+      scope.querySelectorAll<HTMLElement>("[data-page-number]"),
+    );
     if (pages.length === 0) return;
     let activeIndex = 0;
     let minDistance = Number.POSITIVE_INFINITY;
     pages.forEach((page, index) => {
       const distance = Math.abs(page.getBoundingClientRect().top);
-      if (distance < minDistance) { minDistance = distance; activeIndex = index; }
+      if (distance < minDistance) {
+        minDistance = distance;
+        activeIndex = index;
+      }
     });
-    const targetIndex = Math.max(0, Math.min(pages.length - 1, activeIndex + step));
+    const targetIndex = Math.max(
+      0,
+      Math.min(pages.length - 1, activeIndex + step),
+    );
     const targetEl = pages[targetIndex];
     if (targetEl) {
       const y = targetEl.getBoundingClientRect().top + window.scrollY;
@@ -217,14 +238,21 @@ export default function SongReadPage() {
   }, [scrollToPageByStep]);
 
   // Кликер
-  const { isConnected: clickerConnected } = useClicker(useCallback((direction) => {
-    if (direction === "down") scrollToPageByStep(1);
-    if (direction === "up") scrollToPageByStep(-1);
-  }, [scrollToPageByStep]));
+  const { isConnected: clickerConnected } = useClicker(
+    useCallback(
+      (direction) => {
+        if (direction === "down") scrollToPageByStep(1);
+        if (direction === "up") scrollToPageByStep(-1);
+      },
+      [scrollToPageByStep],
+    ),
+  );
 
   if (!songResponse?.doc?.file?.filename) return null;
 
-  const reprises = (songResponse.doc as any).reprises as Array<{ fromPage: number; toPage: number }> | undefined;
+  const reprises = (songResponse.doc as any).reprises as
+    | Array<{ fromPage: number; toPage: number }>
+    | undefined;
   const activeReprise = reprises?.find((r) => r.fromPage === currentPage);
 
   const visible = showButton ? "scale-100 opacity-100" : "scale-0 opacity-0";
@@ -250,10 +278,7 @@ export default function SongReadPage() {
       {viewMode === "scroll" && <ScrollToTop />}
 
       {!isSinger && (
-        <ClickerIndicator
-          isConnected={clickerConnected}
-          hidden={!showButton}
-        />
+        <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
 
       {/* Кнопка репризы — снизу по центру экрана */}
@@ -276,12 +301,16 @@ export default function SongReadPage() {
       )}
 
       {/* Кнопка закрытия — справа сверху */}
-      <div className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 ${visible}`}>
+      <div
+        className={`fixed right-3 top-2 z-50 transform-gpu transition-all duration-200 ${visible}`}
+      >
         <CloseReadButton />
       </div>
 
       {/* Переключатель режимов — по центру снизу */}
-      <div className={`fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none transition-all duration-200 ${visible}`}>
+      <div
+        className={`fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none transition-all duration-200 ${visible}`}
+      >
         <div className="flex gap-1 items-center px-1.5 py-1.5 bg-default-100 rounded-xl shadow-md pointer-events-auto">
           <button
             title="Листание"
@@ -292,10 +321,19 @@ export default function SongReadPage() {
                 : "text-default-400 hover:text-default-600"
             }`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="3" y1="6" x2="21" y2="6"/>
-              <line x1="3" y1="12" x2="21" y2="12"/>
-              <line x1="3" y1="18" x2="21" y2="18"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
           <button
@@ -307,9 +345,18 @@ export default function SongReadPage() {
                 : "text-default-400 hover:text-default-600"
             }`}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
           </button>
           {viewMode === "book" && (
@@ -318,9 +365,18 @@ export default function SongReadPage() {
               onClick={() => flipViewerRef.current?.goToPage(1)}
               className="px-3 py-1.5 rounded-lg transition-colors text-default-400 hover:text-[#7D5E42]"
             >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="11 17 6 12 11 7"/>
-                <polyline points="18 17 13 12 18 7"/>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <polyline points="11 17 6 12 11 7" />
+                <polyline points="18 17 13 12 18 7" />
               </svg>
             </button>
           )}
@@ -330,7 +386,10 @@ export default function SongReadPage() {
       {/* Режим пролистывания */}
       {viewMode === "scroll" && (
         <div ref={viewerContainerRef} className="flex justify-center mb-2">
-          <StackViewer fileUrl={getUploadPath(songResponse.doc.file.filename)} noPaddingTopMobile noLastMargin />
+          {/* noPaddingTopMobile noLastMargin */}
+          <StackViewer
+            fileUrl={getUploadPath(songResponse.doc.file.filename)}
+          />
         </div>
       )}
     </div>

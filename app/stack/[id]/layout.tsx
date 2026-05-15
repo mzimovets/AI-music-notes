@@ -3,9 +3,10 @@ import { StackContextProvider } from "./components/StackContextProvider";
 import { getStackById } from "@/lib/stack-requests";
 
 export default async function StackLayout({ children, params }) {
+  const { id } = await params;
   let stack;
   try {
-    stack = await getStackById(params.id);
+    stack = await getStackById(id);
   } catch (e) {
     // Офлайн или стопка ещё не синхронизирована (создана офлайн)
     stack = null;
@@ -16,7 +17,7 @@ export default async function StackLayout({ children, params }) {
     stack = {
       status: "ok",
       doc: {
-        _id: params.id,
+        _id: id,
         songs: [],
         name: "",
         isPublished: false,

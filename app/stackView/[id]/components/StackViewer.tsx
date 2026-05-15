@@ -28,9 +28,10 @@ export const StackViewer = ({
   // Используем явно переданный pageCount или numPages из загруженного PDF
   const numPages = pageCountProp ?? pdfDoc?.numPages ?? 0;
 
+  const noLastMargin = true;
   return (
     <div>
-      <div className={`${noPaddingTopMobile ? "md:pt-3" : "pt-3"} flex flex-col items-center`}>
+      <div className={`md:pt-3 flex flex-col items-center`}>
         {/* Загружаем PDF только для получения numPages, если pageCount не передан снаружи */}
         {!pageCountProp && (
           <div style={{ display: "none" }}>
@@ -44,7 +45,8 @@ export const StackViewer = ({
         {numPages > 0 &&
           Array.from({ length: numPages }, (_, i) => {
             const relativePageNum = i + 1; // номер страницы внутри этого PDF (для рендера)
-            const absolutePageNum = pageOffset != null ? pageOffset + i : relativePageNum; // для трекинга скролла
+            const absolutePageNum =
+              pageOffset != null ? pageOffset + i : relativePageNum; // для трекинга скролла
 
             return (
               <div
