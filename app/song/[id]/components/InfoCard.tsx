@@ -48,7 +48,11 @@ export const InfoCard = () => {
   const [numPages, setNumPages] = useState<number>(0);
   // Сырые строки инпутов — чтобы пользователь мог свободно стирать и вводить цифры
   const [repriseRaw, setRepriseRaw] = useState<{ from: string; to: string }[]>(
-    () => ((song.doc as any).reprises || []).map((r: Reprise) => ({ from: String(r.fromPage), to: String(r.toPage) }))
+    () =>
+      ((song.doc as any).reprises || []).map((r: Reprise) => ({
+        from: String(r.fromPage),
+        to: String(r.toPage),
+      })),
   );
   const [saveAttempted, setSaveAttempted] = useState(false);
 
@@ -214,9 +218,11 @@ export const InfoCard = () => {
               Удалить
             </Button>
           )}
-          <div className="flex items-center gap-6">
-            <SongActions />
-          </div>
+          {!isEdit && (
+            <div className="flex items-center gap-6">
+              <SongActions />
+            </div>
+          )}
           {session?.user?.role === "регент" && (
             <Button
               onPress={handleEdit}
@@ -313,7 +319,10 @@ export const InfoCard = () => {
                   </div>
                   <div className="w-full md:w-2/3 flex flex-col gap-1">
                     {reprises.map((r, i) => (
-                      <p key={i} className="text-gray-800 text-lg font-medium card-header">
+                      <p
+                        key={i}
+                        className="text-gray-800 text-lg font-medium card-header"
+                      >
                         стр. {r.fromPage} → стр. {r.toPage}
                       </p>
                     ))}
@@ -359,136 +368,199 @@ export const InfoCard = () => {
               </div>
 
               {/* Репризы — только если файл содержит 2+ страниц */}
-              {numPages !== 1 && <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30">
-                <div className="max-w-2xl mx-auto">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-800 card-header">
-                      Репризы
-                    </h3>
-                    <Button
-                      size="sm"
-                      variant="flat"
-                      className="input-header text-[#7D5E42]"
-                      onPress={() => {
-                        setReprises((r) => [...r, { fromPage: 0, toPage: 0 }]);
-                        setRepriseRaw((r) => [...r, { from: "", to: "" }]);
-                      }}
-                    >
-                      + Добавить
-                    </Button>
-                  </div>
-                  {numPages > 0 && (
-                    <p className="text-xs text-gray-400 input-header mb-2">
-                      Страниц в файле: {numPages}
-                    </p>
-                  )}
-                  {reprises.length === 0 ? (
-                    <p className="text-sm text-gray-400 input-header">
-                      Нет реприз. Нажмите «+ Добавить» чтобы указать переход
-                      между страницами
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {reprises.map((r, i) => {
-                        const rawFrom = parseInt(repriseRaw[i]?.from || "0") || 0;
-                        const rawTo = parseInt(repriseRaw[i]?.to || "0") || 0;
-                        const isEmpty = repriseRaw[i]?.from === "" || repriseRaw[i]?.to === "";
-                        const isSamePage = !isEmpty && rawFrom > 0 && rawTo > 0 && rawFrom === rawTo;
-                        return (
-                        <div key={i} className="flex flex-col gap-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs text-gray-500 input-header whitespace-nowrap">
-                              На стр.
-                            </span>
-                            <Input
-                              type="text"
-                              inputMode="numeric"
-                              size="sm"
-                              value={repriseRaw[i]?.from ?? String(r.fromPage)}
-                              isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.from === "")}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, "");
-                                setRepriseRaw((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, from: raw } : x)
-                                );
-                              }}
-                              onBlur={() => {
-                                const raw = repriseRaw[i]?.from;
-                                if (!raw) return;
-                                const clamped = numPages > 0
-                                  ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
-                                  : Math.max(1, parseInt(raw) || 1);
-                                setRepriseRaw((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, from: String(clamped) } : x)
-                                );
-                                setReprises((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, fromPage: clamped } : x)
-                                );
-                              }}
-                              classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
-                              className="input-header w-20"
-                            />
-                            <span className="text-xs text-gray-500 input-header whitespace-nowrap">
-                              → перейти на стр.
-                            </span>
-                            <Input
-                              type="text"
-                              inputMode="numeric"
-                              size="sm"
-                              value={repriseRaw[i]?.to ?? String(r.toPage)}
-                              isInvalid={isSamePage || (saveAttempted && repriseRaw[i]?.to === "")}
-                              onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, "");
-                                setRepriseRaw((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, to: raw } : x)
-                                );
-                              }}
-                              onBlur={() => {
-                                const raw = repriseRaw[i]?.to;
-                                if (!raw) return;
-                                const clamped = numPages > 0
-                                  ? Math.min(numPages, Math.max(1, parseInt(raw) || 1))
-                                  : Math.max(1, parseInt(raw) || 1);
-                                setRepriseRaw((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, to: String(clamped) } : x)
-                                );
-                                setReprises((prev) =>
-                                  prev.map((x, j) => j === i ? { ...x, toPage: clamped } : x)
-                                );
-                              }}
-                              classNames={{ input: "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" }}
-                              className="input-header w-20"
-                            />
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="light"
-                              className="text-danger min-w-unit-8 w-8 h-8"
-                              onPress={() => {
-                                setReprises((prev) => prev.filter((_, j) => j !== i));
-                                setRepriseRaw((prev) => prev.filter((_, j) => j !== i));
-                              }}
-                            >
-                              ✕
-                            </Button>
-                          </div>
-                          {saveAttempted && isEmpty && (
-                            <p className="text-xs text-danger input-header">
-                              Заполните оба поля
-                            </p>
-                          )}
-                          {isSamePage && (
-                            <p className="text-xs text-danger input-header">
-                              Страницы не могут совпадать
-                            </p>
-                          )}
-                        </div>
-                        );
-                      })}
+              {numPages !== 1 && (
+                <div className="px-8 py-6 border-t border-gray-200 bg-gray-50/30">
+                  <div className="max-w-2xl mx-auto">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-lg font-semibold text-gray-800 card-header">
+                        Репризы
+                      </h3>
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        className="input-header text-[#7D5E42]"
+                        onPress={() => {
+                          setReprises((r) => [
+                            ...r,
+                            { fromPage: 0, toPage: 0 },
+                          ]);
+                          setRepriseRaw((r) => [...r, { from: "", to: "" }]);
+                        }}
+                      >
+                        + Добавить
+                      </Button>
                     </div>
-                  )}
+                    {numPages > 0 && (
+                      <p className="text-xs text-gray-400 input-header mb-2">
+                        Страниц в файле: {numPages}
+                      </p>
+                    )}
+                    {reprises.length === 0 ? (
+                      <p className="text-sm text-gray-400 input-header">
+                        Нет реприз. Нажмите «+ Добавить» чтобы указать переход
+                        между страницами
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {reprises.map((r, i) => {
+                          const rawFrom =
+                            parseInt(repriseRaw[i]?.from || "0") || 0;
+                          const rawTo = parseInt(repriseRaw[i]?.to || "0") || 0;
+                          const isEmpty =
+                            repriseRaw[i]?.from === "" ||
+                            repriseRaw[i]?.to === "";
+                          const isSamePage =
+                            !isEmpty &&
+                            rawFrom > 0 &&
+                            rawTo > 0 &&
+                            rawFrom === rawTo;
+                          return (
+                            <div key={i} className="flex flex-col gap-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-gray-500 input-header whitespace-nowrap">
+                                  На стр.
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  size="sm"
+                                  value={
+                                    repriseRaw[i]?.from ?? String(r.fromPage)
+                                  }
+                                  isInvalid={
+                                    isSamePage ||
+                                    (saveAttempted &&
+                                      repriseRaw[i]?.from === "")
+                                  }
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(
+                                      /\D/g,
+                                      "",
+                                    );
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i ? { ...x, from: raw } : x,
+                                      ),
+                                    );
+                                  }}
+                                  onBlur={() => {
+                                    const raw = repriseRaw[i]?.from;
+                                    if (!raw) return;
+                                    const clamped =
+                                      numPages > 0
+                                        ? Math.min(
+                                            numPages,
+                                            Math.max(1, parseInt(raw) || 1),
+                                          )
+                                        : Math.max(1, parseInt(raw) || 1);
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i
+                                          ? { ...x, from: String(clamped) }
+                                          : x,
+                                      ),
+                                    );
+                                    setReprises((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i
+                                          ? { ...x, fromPage: clamped }
+                                          : x,
+                                      ),
+                                    );
+                                  }}
+                                  classNames={{
+                                    input:
+                                      "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                                  }}
+                                  className="input-header w-20"
+                                />
+                                <span className="text-xs text-gray-500 input-header whitespace-nowrap">
+                                  → перейти на стр.
+                                </span>
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  size="sm"
+                                  value={repriseRaw[i]?.to ?? String(r.toPage)}
+                                  isInvalid={
+                                    isSamePage ||
+                                    (saveAttempted && repriseRaw[i]?.to === "")
+                                  }
+                                  onChange={(e) => {
+                                    const raw = e.target.value.replace(
+                                      /\D/g,
+                                      "",
+                                    );
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i ? { ...x, to: raw } : x,
+                                      ),
+                                    );
+                                  }}
+                                  onBlur={() => {
+                                    const raw = repriseRaw[i]?.to;
+                                    if (!raw) return;
+                                    const clamped =
+                                      numPages > 0
+                                        ? Math.min(
+                                            numPages,
+                                            Math.max(1, parseInt(raw) || 1),
+                                          )
+                                        : Math.max(1, parseInt(raw) || 1);
+                                    setRepriseRaw((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i
+                                          ? { ...x, to: String(clamped) }
+                                          : x,
+                                      ),
+                                    );
+                                    setReprises((prev) =>
+                                      prev.map((x, j) =>
+                                        j === i ? { ...x, toPage: clamped } : x,
+                                      ),
+                                    );
+                                  }}
+                                  classNames={{
+                                    input:
+                                      "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none",
+                                  }}
+                                  className="input-header w-20"
+                                />
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="light"
+                                  className="text-danger min-w-unit-8 w-8 h-8"
+                                  onPress={() => {
+                                    setReprises((prev) =>
+                                      prev.filter((_, j) => j !== i),
+                                    );
+                                    setRepriseRaw((prev) =>
+                                      prev.filter((_, j) => j !== i),
+                                    );
+                                  }}
+                                >
+                                  ✕
+                                </Button>
+                              </div>
+                              {saveAttempted && isEmpty && (
+                                <p className="text-xs text-danger input-header">
+                                  Заполните оба поля
+                                </p>
+                              )}
+                              {isSamePage && (
+                                <p className="text-xs text-danger input-header">
+                                  Страницы не могут совпадать
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>}
+              )}
 
               <div className="px-8 py-6 bg-gray-50 border-t">
                 <div className="flex items-center justify-center gap-3">
