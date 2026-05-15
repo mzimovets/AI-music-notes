@@ -490,7 +490,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                         } else {
                           try {
                             const pdfjsLib = await import("pdfjs-dist/build/pdf");
-                            (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+                            (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
                             const buf = await file.arrayBuffer();
                             const pdf = await (pdfjsLib as any).getDocument({ data: buf }).promise;
                             setNumPages(pdf.numPages);

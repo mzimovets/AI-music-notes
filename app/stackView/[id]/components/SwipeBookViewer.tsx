@@ -157,7 +157,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       (async () => {
         try {
           const pdfjsLib = await import("pdfjs-dist/build/pdf");
-          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
 
           // Если байты уже есть — не скачиваем повторно.
           // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,

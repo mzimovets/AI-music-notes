@@ -61,7 +61,7 @@ export const InfoCard = () => {
     setSelectedFile(url);
     try {
       const pdfjsLib = await import("pdfjs-dist/build/pdf");
-      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
       const pdf = await (pdfjsLib as any).getDocument(url).promise;
       setNumPages(pdf.numPages);
     } catch {}
