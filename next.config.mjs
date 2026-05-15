@@ -1,4 +1,6 @@
 import withSerwist from "@serwist/next";
+import fs from "fs";
+import path from "path";
 
 const withSerwistConfig = withSerwist({
   swSrc: "app/sw.ts",
@@ -35,8 +37,6 @@ export default withSerwistConfig({
     config.plugins.push({
       apply(compiler) {
         compiler.hooks.afterEmit.tapAsync("CopyPdfWorker", (compilation, cb) => {
-          const fs = require("fs");
-          const path = require("path");
           const src = path.resolve("node_modules/pdfjs-dist/build/pdf.worker.min.mjs");
           const dest = path.resolve("public/pdf.worker.min.mjs");
           fs.copyFile(src, dest, cb);
