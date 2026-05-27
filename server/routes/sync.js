@@ -307,6 +307,44 @@ export const syncRoutes = (app, upload) => {
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", ts: Date.now() });
   });
+
+  // POST /api/sync/manual — ручной запуск синхронизации с интернет-сервером
+  app.post("/api/sync/manual", async (req, res) => {
+    const logs = [];
+    const origLog = console.log.bind(console);
+    const origWarn = console.warn.bind(console);
+    const origError = console.error.bind(console);
+
+    // Перехватываем вывод sync-клиента
+    const capture = (level) => (...args) => {
+      const line = args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ");
+      logs.push({ ts: Date.now(), level, line });
+      (level === "error" ? origError : level === "warn" ? origWarn : origLog)(...args);
+    };
+
+    console.log = capture("info");
+    console.warn = capture("warn");
+    console.error = capture("error");
+
+    const startTs = Date.now();
+    let ok = true;
+    let error = null;
+
+    try {
+      const { syncFromInternet } = await import("../sync-client.js");
+      await syncFromInternet();
+    } catch (e) {
+      ok = false;
+      error = e.message;
+      logs.push({ ts: Date.now(), level: "error", line: String(e.message) });
+    } finally {
+      console.log = origLog;
+      console.warn = origWarn;
+      console.error = origError;
+    }
+
+    res.json({ ok, error, duration: Date.now() - startTs, logs });
+  });
 };
 
 function median(arr) {

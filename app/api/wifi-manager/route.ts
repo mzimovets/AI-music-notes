@@ -4,129 +4,207 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-// ── Detect platform ────────────────────────────────────────────────────────────
+// ── Platform detection ─────────────────────────────────────────────────────────
 
-/** true — работаем на Linux с nmcli; false — мок (macOS / dev) */
-async function hasNmcli(): Promise<boolean> {
+/** true — Linux RPi с wpa_supplicant; false — мок (macOS / dev) */
+async function isLinux(): Promise<boolean> {
   try {
-    await execAsync("which nmcli", { timeout: 2_000 });
+    await execAsync("which iwgetid", { timeout: 2_000 });
     return true;
   } catch {
     return false;
   }
 }
 
-// ── Mock data (macOS / dev) ────────────────────────────────────────────────────
+// ── Mock (macOS / dev) ─────────────────────────────────────────────────────────
 
-// Сохраняем состояние между запросами в глобальном объекте (Next.js dev server)
 declare global {
   // eslint-disable-next-line no-var
   var _wifiMockState:
-    | { mode: "client" | "ap"; ssid: string; ip: string; connected: boolean }
+    | { ssid: string; ip: string; connected: boolean; apDevices: number; apActive: boolean }
     | undefined;
 }
 if (!globalThis._wifiMockState) {
   globalThis._wifiMockState = {
-    mode: "client",
     ssid: "HomeNetwork",
-    ip: "192.168.1.42",
+    ip: "192.168.1.200",
     connected: true,
+    apDevices: 3,
+    apActive: true,
   };
 }
 
 const MOCK_NETWORKS = [
-  { ssid: "HomeNetwork",   signal: 90, security: "WPA2", inUse: true  },
-  { ssid: "OfficeWiFi",    signal: 72, security: "WPA2", inUse: false },
-  { ssid: "CafeGuest",     signal: 55, security: "—",    inUse: false },
-  { ssid: "Neighbor_5G",   signal: 38, security: "WPA3", inUse: false },
-  { ssid: "IoT_Hub",       signal: 21, security: "WPA2", inUse: false },
+  { ssid: "HomeNetwork",  signal: 90, security: "WPA2", inUse: true  },
+  { ssid: "OfficeWiFi",  signal: 72, security: "WPA2", inUse: false },
+  { ssid: "CafeGuest",   signal: 55, security: "—",    inUse: false },
+  { ssid: "Neighbor_5G", signal: 38, security: "WPA3", inUse: false },
+  { ssid: "IoT_Hub",     signal: 21, security: "WPA2", inUse: false },
 ];
 
-// ── Helpers (real nmcli) ───────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────────
 
-async function run(cmd: string): Promise<string> {
+async function run(cmd: string, timeoutMs = 15_000): Promise<string> {
   try {
-    const { stdout } = await execAsync(cmd, { timeout: 10_000 });
+    const { stdout } = await execAsync(cmd, { timeout: timeoutMs });
     return stdout.trim();
   } catch (err: any) {
     return err?.stdout?.trim() ?? "";
   }
 }
 
-async function getIp(): Promise<string> {
-  const out = await run(
-    "ip -4 addr show scope global | grep -oP '(?<=inet )\\d+\\.\\d+\\.\\d+\\.\\d+' | head -1"
-  );
-  return out || "—";
+/** Количество устройств на wlan0 AP */
+async function getApDevices(): Promise<number> {
+  const out = await run("iw dev wlan0 station dump 2>/dev/null | grep -c '^Station'");
+  const n = parseInt(out);
+  return isNaN(n) ? 0 : n;
 }
 
-async function getWifiStatusReal(): Promise<{
-  ssid: string;
-  mode: "client" | "ap" | "unknown";
-  ip: string;
-  connected: boolean;
-}> {
-  const ip = await getIp();
-
-  const apCheck = await run(
-    "nmcli -t -f NAME,TYPE con show --active | grep ':802-11-wireless' | head -1"
-  );
-  if (apCheck.toLowerCase().includes("hotspot") || apCheck.toLowerCase().includes("ap")) {
-    const name = apCheck.split(":")[0] || "Hotspot";
-    return { ssid: name, mode: "ap", ip, connected: true };
-  }
-
-  const ssidOut = await run(
-    "nmcli -t -f active,ssid dev wifi | grep '^yes' | cut -d: -f2 | head -1"
-  );
-  if (ssidOut) {
-    return { ssid: ssidOut, mode: "client", ip, connected: true };
-  }
-
-  return { ssid: "—", mode: "unknown", ip, connected: false };
+/** wlan0 AP активна? */
+async function getApActive(): Promise<boolean> {
+  const out = await run("nmcli -t -f GENERAL.STATE con show pi-hotspot 2>/dev/null");
+  return out.includes("activated");
 }
 
-async function scanReal(): Promise<
+/** Статус wlan1 через ip / iwgetid (не nmcli — он не управляет wlan1) */
+async function getWlan1Status(): Promise<{ ssid: string; ip: string; connected: boolean }> {
+  const ip = await run(
+    "ip -4 addr show wlan1 scope global | grep -oP '(?<=inet )\\d+\\.\\d+\\.\\d+\\.\\d+' | head -1"
+  );
+  const ssid = await run("iwgetid wlan1 -r 2>/dev/null");
+  return {
+    ip: ip || "—",
+    ssid: ssid || "—",
+    connected: !!ip && !!ssid,
+  };
+}
+
+/** Сканирование через wpa_cli (wlan1 управляется wpa_supplicant) */
+async function scanWlan1(): Promise<
   { ssid: string; signal: number; security: string; inUse: boolean }[]
 > {
-  await run("nmcli dev wifi rescan").catch(() => {});
-  const out = await run("nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY dev wifi list");
+  const currentSsid = await run("iwgetid wlan1 -r 2>/dev/null");
 
+  // Запустить сканирование
+  await run("sudo wpa_cli -i wlan1 scan");
+  await new Promise((r) => setTimeout(r, 2500));
+
+  const out = await run("sudo wpa_cli -i wlan1 scan_results");
   const networks: { ssid: string; signal: number; security: string; inUse: boolean }[] = [];
   const seen = new Set<string>();
 
-  for (const line of out.split("\n")) {
-    const parts = line.split(":");
-    if (parts.length < 4) continue;
-    const inUse = parts[0] === "*";
-    const ssid = parts.slice(1, parts.length - 2).join(":").trim();
-    const signal = parseInt(parts[parts.length - 2]) || 0;
-    const security = parts[parts.length - 1] || "—";
-    if (!ssid || seen.has(ssid)) continue;
+  for (const line of out.split("\n").slice(1)) {
+    // Формат: bssid \t freq \t signal_dbm \t flags \t ssid
+    const parts = line.split("\t");
+    if (parts.length < 5) continue;
+    const [, , signalStr, flags, ssid] = parts;
+    if (!ssid || ssid.includes("\\x00") || seen.has(ssid)) continue;
     seen.add(ssid);
-    networks.push({ ssid, signal, security, inUse });
+
+    // dBm → проценты (приблизительно)
+    const dBm = parseInt(signalStr) || -100;
+    const signal = Math.max(0, Math.min(100, Math.round((dBm + 100) * 2)));
+
+    const security = flags.includes("WPA2")
+      ? "WPA2"
+      : flags.includes("WPA")
+      ? "WPA"
+      : flags.includes("WEP")
+      ? "WEP"
+      : "—";
+
+    networks.push({ ssid, signal, security, inUse: ssid === currentSsid });
   }
 
   return networks.sort((a, b) => b.signal - a.signal);
 }
 
-// ── Routes ─────────────────────────────────────────────────────────────────────
+/** Подключение wlan1 через wpa_supplicant */
+async function connectWlan1(
+  ssid: string,
+  password?: string
+): Promise<{ ok: boolean; error?: string }> {
+  const configPath = "/etc/wpa_supplicant/wpa_supplicant-wlan1.conf";
+
+  // 1. Читаем текущий конфиг и удаляем старую запись для этого SSID
+  const current = await run(`cat ${configPath} 2>/dev/null`);
+  const escapedSsid = ssid.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/"/g, '\\"');
+  const cleaned = current
+    .replace(new RegExp(`network=\\{[^}]*ssid="${escapedSsid}"[^}]*\\}`, "gs"), "")
+    .trim();
+
+  // 2. Формируем новый блок сети
+  let newBlock: string;
+  const safeSsid = ssid.replace(/"/g, '\\"');
+  const safePass = (password ?? "").replace(/"/g, '\\"');
+
+  if (password) {
+    const raw = await run(`wpa_passphrase "${safeSsid}" "${safePass}"`);
+    // Убираем строку с паролем в открытом виде
+    newBlock = raw.replace(/^\s*#psk=.*$/m, "").trim();
+  } else {
+    newBlock = `network={\n\tssid="${safeSsid}"\n\tkey_mgmt=NONE\n}`;
+  }
+
+  // 3. Записываем обновлённый конфиг
+  const newConfig = `${cleaned}\n\n${newBlock}\n`;
+  // Используем tee через base64 чтобы избежать проблем со спецсимволами
+  const b64 = Buffer.from(newConfig).toString("base64");
+  await run(`echo "${b64}" | base64 -d | sudo tee ${configPath} > /dev/null`);
+
+  // 4. Перезагружаем конфиг wpa_supplicant
+  await run("sudo wpa_cli -i wlan1 reconfigure");
+
+  // 5. Ждём подключения (до 15 сек)
+  for (let i = 0; i < 15; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const state = await run(
+      "sudo wpa_cli -i wlan1 status | grep wpa_state | cut -d= -f2"
+    );
+    if (state === "COMPLETED") {
+      // 6. Восстанавливаем статический ARP для шлюза (Keenetic)
+      await run("sudo arp -i wlan1 -s 192.168.1.1 50:ff:20:98:78:17").catch(() => {});
+      return { ok: true };
+    }
+  }
+
+  return { ok: false, error: "Не удалось подключиться. Проверьте пароль." };
+}
+
+// ── GET — статус ───────────────────────────────────────────────────────────────
 
 export async function GET() {
   try {
-    const nmcli = await hasNmcli();
+    const linux = await isLinux();
 
-    if (!nmcli) {
+    if (!linux) {
       const s = globalThis._wifiMockState!;
-      return NextResponse.json({ ok: true, ...s, _mock: true });
+      return NextResponse.json({ ok: true, mode: "client" as const, ...s, _mock: true });
     }
 
-    const status = await getWifiStatusReal();
-    return NextResponse.json({ ok: true, ...status });
+    const [wlan1, apActive, apDevices] = await Promise.all([
+      getWlan1Status(),
+      getApActive(),
+      getApDevices(),
+    ]);
+
+    return NextResponse.json({
+      ok: true,
+      // wlan1 клиент
+      mode: "client" as const,
+      ssid: wlan1.ssid,
+      ip: wlan1.ip,
+      connected: wlan1.connected,
+      // wlan0 точка доступа
+      apActive,
+      apDevices,
+    });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: String(err?.message) }, { status: 500 });
   }
 }
+
+// ── POST — действия ────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   let body: any;
@@ -137,13 +215,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { action } = body ?? {};
-  const nmcli = await hasNmcli();
+  const linux = await isLinux();
 
   try {
     // ── Scan ──────────────────────────────────────────────────────────────────
     if (action === "scan") {
-      if (!nmcli) {
-        // Небольшая задержка — имитируем реальное сканирование
+      if (!linux) {
         await new Promise((r) => setTimeout(r, 800));
         const s = globalThis._wifiMockState!;
         return NextResponse.json({
@@ -152,7 +229,7 @@ export async function POST(req: NextRequest) {
           networks: MOCK_NETWORKS.map((n) => ({ ...n, inUse: n.ssid === s.ssid })),
         });
       }
-      const networks = await scanReal();
+      const networks = await scanWlan1();
       return NextResponse.json({ ok: true, networks });
     }
 
@@ -163,73 +240,28 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: false, error: "ssid required" }, { status: 400 });
       }
 
-      if (!nmcli) {
+      if (!linux) {
         await new Promise((r) => setTimeout(r, 600));
         globalThis._wifiMockState = {
-          mode: "client",
           ssid,
           ip: "192.168.1." + Math.floor(Math.random() * 200 + 10),
           connected: true,
+          apDevices: globalThis._wifiMockState?.apDevices ?? 0,
+          apActive: true,
         };
-        const s = globalThis._wifiMockState;
-        return NextResponse.json({ ok: true, _mock: true, ...s });
+        return NextResponse.json({ ok: true, _mock: true, ...globalThis._wifiMockState });
       }
 
-      const existingOut = await run(
-        `nmcli -t -f NAME,TYPE con show | grep '802-11-wireless' | cut -d: -f1`
-      );
-      const existing = existingOut.split("\n").find(
-        (n) => n.toLowerCase() === ssid.toLowerCase()
-      );
+      const result = await connectWlan1(ssid, password);
+      if (!result.ok) return NextResponse.json(result);
 
-      let cmd: string;
-      if (existing) {
-        cmd = `nmcli con up "${existing.replace(/"/g, '\\"')}"`;
-      } else if (password) {
-        cmd = `nmcli dev wifi connect "${ssid.replace(/"/g, '\\"')}" password "${password.replace(/"/g, '\\"')}"`;
-      } else {
-        cmd = `nmcli dev wifi connect "${ssid.replace(/"/g, '\\"')}"`;
-      }
-
-      const out = await run(cmd);
-      const success = out.includes("successfully") || out.includes("активировано");
-      if (success) {
-        const status = await getWifiStatusReal();
-        return NextResponse.json({ ok: true, ...status });
-      } else {
-        return NextResponse.json({ ok: false, error: out || "Ошибка подключения" });
-      }
+      const wlan1 = await getWlan1Status();
+      return NextResponse.json({ ok: true, ...wlan1 });
     }
 
-    // ── Mode ──────────────────────────────────────────────────────────────────
+    // ── Mode (не используется — wlan0 всегда AP, wlan1 всегда клиент) ─────────
     if (action === "mode") {
-      const { mode } = body as { mode: "ap" | "client" };
-
-      if (!nmcli) {
-        await new Promise((r) => setTimeout(r, 400));
-        globalThis._wifiMockState = {
-          ...globalThis._wifiMockState!,
-          mode,
-          ssid: mode === "ap" ? "Music-Notes" : globalThis._wifiMockState!.ssid,
-        };
-        return NextResponse.json({ ok: true, _mock: true });
-      }
-
-      if (mode === "ap") {
-        const out = await run(
-          "nmcli dev wifi hotspot ifname wlan0 ssid 'Music-Notes' password '12345678'"
-        );
-        const ok = !out.toLowerCase().includes("error");
-        return NextResponse.json({ ok });
-      }
-
-      if (mode === "client") {
-        await run("nmcli con down Hotspot 2>/dev/null || true");
-        await run("nmcli radio wifi on");
-        return NextResponse.json({ ok: true });
-      }
-
-      return NextResponse.json({ ok: false, error: "unknown mode" }, { status: 400 });
+      return NextResponse.json({ ok: true });
     }
 
     return NextResponse.json({ ok: false, error: "unknown action" }, { status: 400 });
