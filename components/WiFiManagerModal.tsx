@@ -161,6 +161,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [updateDone, setUpdateDone] = useState(false);
   const [updateProgress, setUpdateProgress] = useState(0);
   const [updateStage, setUpdateStage] = useState("");
+  const [updateStartedAt, setUpdateStartedAt] = useState<number>(0);
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
@@ -371,7 +372,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   // ── Firmware update ──────────────────────────────────────────────────────────
   const handleGitUpdate = async () => {
     if (updating) return;
-    setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск");
+    setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
     try {
       await fetch("/api/git-update", { method: "POST" });
       let failures = 0;
@@ -910,7 +911,20 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600 }}>{updateStage}</span>
-                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700 }}>{updateProgress}%</span>
+                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700 }}>
+                            {updateProgress}%
+                            {updateProgress > 5 && updateStartedAt > 0 && (() => {
+                              const elapsed = (Date.now() - updateStartedAt) / 1000;
+                              const rate = updateProgress / elapsed;
+                              const remaining = rate > 0 ? Math.round((100 - updateProgress) / rate) : 0;
+                              if (remaining <= 0) return null;
+                              const m = Math.floor(remaining / 60);
+                              const s = remaining % 60;
+                              return <span style={{ fontWeight: 400, color: "rgba(0,0,0,0.35)", marginLeft: 6, fontSize: 11 }}>
+                                ~{m > 0 ? `${m}м ` : ""}{s}с
+                              </span>;
+                            })()}
+                          </span>
                         </div>
                         <div style={{ height: 5, background: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" }}>
                           <div style={{
@@ -931,7 +945,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       boxShadow: updateInfo?.hasUpdate && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
                     }}>
                       {updating && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
-                      {updating ? "Обновляю прошивку (~5 мин)..." : updateDone ? "Готово! Перезагружаю..." : "Обновить прошивку"}
+                      {updating ? "Обновляю прошивку..." : updateDone ? "Готово! Перезагружаю..." : "Обновить прошивку"}
                     </button>
                   </div>
 

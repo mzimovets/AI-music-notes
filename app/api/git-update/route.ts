@@ -6,8 +6,6 @@ const LOG_FILE = "/tmp/git-update.log";
 const REPO = "mzimovets/AI-music-notes";
 const APP_DIR = "/mnt/ssd/AI-music-notes";
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 function isLinux() {
   try { execSync("which git", { stdio: "ignore" }); return process.platform === "linux"; } catch { return false; }
 }
@@ -19,30 +17,34 @@ function localSha(): string {
 // ── GET — check for update ─────────────────────────────────────────────────────
 
 export async function GET() {
-  // Update process status + progress
   let processStatus: "idle" | "running" | "restarting" | "done" = "idle";
   let updateProgress = 0;
   let updateStage = "";
+
   if (existsSync(LOG_FILE)) {
     const log = readFileSync(LOG_FILE, "utf8");
     if (log.includes("DONE")) {
       processStatus = "done"; updateProgress = 100; updateStage = "Готово";
     } else if (log.includes("RESTARTING")) {
-      processStatus = "restarting"; updateProgress = 95; updateStage = "Перезапуск сервисов";
-    } else if (log.includes("Route (app)") || log.includes("✓ Compiled")) {
-      processStatus = "running"; updateProgress = 85; updateStage = "Финализация сборки";
-    } else if (log.includes("Creating an optimized") || log.includes("▲ Next.js")) {
-      processStatus = "running"; updateProgress = 55; updateStage = "Сборка приложения";
-    } else if (log.includes("audited") || log.includes("up to date")) {
+      processStatus = "restarting"; updateProgress = 90; updateStage = "Перезапуск сервисов";
+    } else if (log.includes("BUILDING")) {
+      // Inside build — detect sub-stages
+      if (log.includes("Route (app)") || log.includes("✓ Compiled")) {
+        processStatus = "running"; updateProgress = 85; updateStage = "Финализация сборки";
+      } else if (log.includes("Creating an optimized") || log.includes("▲ Next.js")) {
+        processStatus = "running"; updateProgress = 70; updateStage = "Сборка приложения";
+      } else {
+        processStatus = "running"; updateProgress = 60; updateStage = "Сборка приложения";
+      }
+    } else if (log.includes("INSTALLING")) {
       processStatus = "running"; updateProgress = 35; updateStage = "Установка зависимостей";
-    } else if (log.includes("From https://github") || log.includes("Already up to date")) {
+    } else if (log.includes("PULLING")) {
       processStatus = "running"; updateProgress = 15; updateStage = "Загрузка кода";
     } else if (log.includes("START")) {
       processStatus = "running"; updateProgress = 5; updateStage = "Запуск";
     }
   }
 
-  // Mock for macOS dev
   if (!isLinux()) {
     return NextResponse.json({
       processStatus, updateProgress, updateStage,
@@ -65,7 +67,7 @@ export async function GET() {
     });
 
     if (!res.ok) {
-      return NextResponse.json({ processStatus, error: "GitHub API недоступен" }, { status: 502 });
+      return NextResponse.json({ processStatus, updateProgress, updateStage, error: "GitHub API недоступен" }, { status: 502 });
     }
 
     const data = await res.json();
@@ -94,8 +96,11 @@ export async function POST() {
       "-c",
       `echo "START $(date)" > ${LOG_FILE} && \
 cd ${APP_DIR} && \
+echo "PULLING" >> ${LOG_FILE} && \
 git pull origin main >> ${LOG_FILE} 2>&1 && \
-npm install --omit=dev >> ${LOG_FILE} 2>&1 && \
+echo "INSTALLING" >> ${LOG_FILE} && \
+npm install >> ${LOG_FILE} 2>&1 && \
+echo "BUILDING" >> ${LOG_FILE} && \
 npm run build >> ${LOG_FILE} 2>&1 && \
 echo "RESTARTING" >> ${LOG_FILE} && \
 sudo systemctl restart music-frontend music-backend >> ${LOG_FILE} 2>&1 && \
