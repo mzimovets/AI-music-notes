@@ -214,7 +214,9 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     setChecking(true);
     try {
       const res = await fetch("/api/git-update");
-      if (res.ok) { setUpdateInfo(await res.json()); setCommitOpen(false); }
+      const data = await res.json();
+      setUpdateInfo(data);
+      setCommitOpen(false);
     } catch { setUpdateInfo({ error: "Нет соединения" }); }
     finally { setChecking(false); }
   }, []);
