@@ -1111,7 +1111,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                               const total = allChanges.length;
                               return (
                                 <div key={i} style={{
-                                  borderRadius: 12, overflow: "hidden",
+                                  borderRadius: 12, overflow: "hidden", flexShrink: 0,
                                   border: i === 0 ? "1px solid rgba(125,94,66,0.2)" : "1px solid rgba(0,0,0,0.07)",
                                   background: i === 0 ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)",
                                   boxShadow: i === 0 ? "0 1px 6px rgba(125,94,66,0.08)" : "none",
