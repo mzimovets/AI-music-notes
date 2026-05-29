@@ -83,12 +83,20 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
   error?: string | null; placeholder?: string;
 }) {
   const [show, setShow] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onFocus = () => {
+    setTimeout(() => {
+      const panel = inputRef.current?.closest("[data-expand-panel]");
+      panel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 250);
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <div style={{ position: "relative" }}>
         <input
+          ref={inputRef}
           type={show ? "text" : "password"} placeholder={placeholder} value={value} autoFocus
-          onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
+          onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} onFocus={onFocus}
           className="input-header"
           style={{
             width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
@@ -764,7 +772,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                   </div>
 
                                   {isEditing && (
-                                    <div style={{
+                                    <div data-expand-panel style={{
                                       background: "rgba(189,150,115,0.06)", borderRadius: "0 0 10px 10px",
                                       border: "1.5px solid rgba(125,94,66,0.2)", borderTop: "none",
                                       padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8,
@@ -1019,7 +1027,7 @@ function ScanNetItem({ net, status, connectingTo, selectedSsid, password, connec
         {!isCurrentNet && !isConnecting && !isOpen_(net) && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>}
       </button>
       {sel && !isOpen_(net) && (
-        <div style={{
+        <div data-expand-panel style={{
           background: "rgba(189,150,115,0.06)", border: "1.5px solid rgba(189,150,115,0.4)",
           borderTop: "none", borderRadius: "0 0 10px 10px", padding: "10px 12px",
           display: "flex", flexDirection: "column", gap: 8,
