@@ -23,6 +23,7 @@ import { QRModal } from "./home/QRModal";
 import { CacheStats } from "@/components/CacheStats";
 import { DeviceBatteryModal } from "@/components/DeviceBatteryModal";
 import { WiFiQRModal } from "@/components/WiFiQRModal";
+import { WiFiManagerModal } from "@/components/WiFiManagerModal";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -39,6 +40,7 @@ export default function Home() {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [isBatteryModalOpen, setIsBatteryModalOpen] = useState(false);
   const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
+  const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -153,6 +155,10 @@ export default function Home() {
           isOpen={isWifiModalOpen}
           onClose={() => setIsWifiModalOpen(false)}
         />
+        <WiFiManagerModal
+          isOpen={isWifiManagerOpen}
+          onClose={() => setIsWifiManagerOpen(false)}
+        />
         {/* Мобильный попоовер — одна кнопка раскрывает все три */}
         <div className="md:hidden fixed bottom-6 left-6 z-50">
           <Popover placement="top-start" offset={12} isOpen={isMenuOpen} onOpenChange={setIsMenuOpen}>
@@ -216,6 +222,22 @@ export default function Home() {
                     </svg>
                   </button>
                 )}
+                {isRegent && (
+                  <button
+                    onClick={() => { setIsMenuOpen(false); setIsWifiManagerOpen(true); }}
+                    className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                    aria-label="Wi-Fi менеджер"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                      <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                      <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                      <circle cx="12" cy="20" r="1" fill="white" stroke="none" />
+                      <line x1="12" y1="20" x2="12" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                      <circle cx="12" cy="13" r="1.5" fill="white" stroke="none" />
+                    </svg>
+                  </button>
+                )}
               </div>
             </PopoverContent>
           </Popover>
@@ -265,6 +287,22 @@ export default function Home() {
                 <path d="M1.42 9a16 16 0 0 1 21.16 0" />
                 <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
                 <circle cx="12" cy="20" r="1" fill="white" stroke="none" />
+              </svg>
+            </button>
+          )}
+          {isRegent && (
+            <button
+              onClick={() => setIsWifiManagerOpen(true)}
+              className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+              aria-label="Wi-Fi менеджер"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12.55a11 11 0 0 1 14.08 0" />
+                <path d="M1.42 9a16 16 0 0 1 21.16 0" />
+                <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
+                <circle cx="12" cy="20" r="1" fill="white" stroke="none" />
+                <line x1="12" y1="20" x2="12" y2="15" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                <circle cx="12" cy="13" r="1.5" fill="white" stroke="none" />
               </svg>
             </button>
           )}
