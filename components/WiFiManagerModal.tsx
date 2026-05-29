@@ -2,6 +2,7 @@
 
 import { Modal, ModalContent } from "@heroui/modal";
 import { Chip } from "@heroui/chip";
+import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 
 interface Props { isOpen: boolean; onClose: () => void; }
@@ -1149,56 +1150,39 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                       )}
                                     </div>
                                   </div>
-                                  {/* Таблица песен — единая сетка, заголовок + строки выровнены */}
-                                  <div style={{
-                                    display: "grid",
-                                    gridTemplateColumns: "1fr auto auto",
-                                    columnGap: 8,
-                                    padding: "0 12px",
-                                  }}>
-                                    {/* Заголовки */}
-                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Название</span>
-                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Статус</span>
-                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Тип</span>
-                                    {/* Строки данных */}
-                                    {allChanges.map((c, j) => (
-                                      <React.Fragment key={j}>
-                                        <span className="input-header" style={{
-                                          fontSize: 12, color: "#2d2015", fontWeight: 500,
-                                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                                          padding: "5px 0", alignSelf: "center",
-                                          borderTop: "1px solid rgba(0,0,0,0.04)",
-                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
-                                        }}>
-                                          {c.title}
-                                        </span>
-                                        <div style={{
-                                          display: "flex", alignItems: "center",
-                                          padding: "3px 0",
-                                          borderTop: "1px solid rgba(0,0,0,0.04)",
-                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
-                                        }}>
-                                          <Chip size="sm" variant="flat"
-                                            color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
-                                            classNames={{ content: "input-header font-bold text-[10px]" }}
-                                          >
-                                            {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
-                                          </Chip>
-                                        </div>
-                                        <span className="input-header" style={{
-                                          fontSize: 11, color: "rgba(0,0,0,0.38)", whiteSpace: "nowrap",
-                                          padding: "5px 0", alignSelf: "center",
-                                          borderTop: "1px solid rgba(0,0,0,0.04)",
-                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
-                                        }}>
-                                          {c.type === "song" ? "Песня" : "Стопка"}
-                                        </span>
-                                      </React.Fragment>
-                                    ))}
-                                    {total === 0 && (
-                                      <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)", padding: "8px 0", gridColumn: "1 / -1" }}>Изменений нет</span>
-                                    )}
-                                  </div>
+                                  {/* Таблица HeroUI */}
+                                  <Table
+                                    aria-label="Изменения синхронизации"
+                                    removeWrapper
+                                    isStriped
+                                    classNames={{
+                                      th: "input-header text-[9px] uppercase tracking-wide bg-black/[0.025] text-black/40 h-6 py-0",
+                                      td: "input-header text-[12px] py-1",
+                                      tr: "border-t border-black/[0.04]",
+                                    }}
+                                  >
+                                    <TableHeader>
+                                      <TableColumn>Название</TableColumn>
+                                      <TableColumn>Статус</TableColumn>
+                                      <TableColumn>Тип</TableColumn>
+                                    </TableHeader>
+                                    <TableBody emptyContent="Изменений нет">
+                                      {allChanges.map((c, j) => (
+                                        <TableRow key={j}>
+                                          <TableCell>{c.title}</TableCell>
+                                          <TableCell>
+                                            <Chip size="sm" variant="flat"
+                                              color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
+                                              classNames={{ content: "input-header font-bold text-[10px]" }}
+                                            >
+                                              {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
+                                            </Chip>
+                                          </TableCell>
+                                          <TableCell className="text-black/40">{c.type === "song" ? "Песня" : "Стопка"}</TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
                                 </div>
                               );
                             })}
