@@ -1,6 +1,7 @@
 "use client";
 
 import { Modal, ModalContent } from "@heroui/modal";
+import { Chip } from "@heroui/chip";
 import { useEffect, useState, useCallback, useRef } from "react";
 
 interface Props { isOpen: boolean; onClose: () => void; }
@@ -1152,30 +1153,29 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                   {/* Таблица песен */}
                                   <div style={{ display: "flex", flexDirection: "column" }}>
                                     {/* Шапка таблицы */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 48px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "0 8px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Название</span>
-                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Статус</span>
+                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Статус</span>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Тип</span>
                                     </div>
                                     {/* Строки */}
                                     {allChanges.map((c, j) => (
                                       <div key={j} style={{
-                                        display: "grid", gridTemplateColumns: "1fr 90px 48px",
-                                        padding: "5px 12px", alignItems: "center",
+                                        display: "grid", gridTemplateColumns: "1fr auto auto",
+                                        gap: "0 8px", padding: "4px 12px", alignItems: "center",
                                         borderTop: "1px solid rgba(0,0,0,0.04)",
                                         background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
                                       }}>
-                                        <span className="input-header" style={{ fontSize: 12, color: "#2d2015", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 6 }}>
+                                        <span className="input-header" style={{ fontSize: 12, color: "#2d2015", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                                           {c.title}
                                         </span>
-                                        <span className="input-header" style={{
-                                          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6,
-                                          display: "inline-block", textAlign: "center", whiteSpace: "nowrap",
-                                          color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
-                                          background: c.action === "added" ? "rgba(74,222,128,0.15)" : c.action === "updated" ? "rgba(251,191,36,0.18)" : "rgba(248,113,113,0.15)",
-                                        }}>
+                                        <Chip
+                                          size="sm"
+                                          variant="flat"
+                                          color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
+                                        >
                                           {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
-                                        </span>
+                                        </Chip>
                                         <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)", whiteSpace: "nowrap" }}>
                                           {c.type === "song" ? "Песня" : "Стопка"}
                                         </span>
