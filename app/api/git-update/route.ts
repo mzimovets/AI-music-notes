@@ -101,7 +101,7 @@ cd ${APP_DIR} && \
 echo "PULLING" >> ${LOG_FILE} && \
 git pull origin main >> ${LOG_FILE} 2>&1 && \
 echo "INSTALLING" >> ${LOG_FILE} && \
-npm install >> ${LOG_FILE} 2>&1 && \
+NODE_ENV=development npm install >> ${LOG_FILE} 2>&1 && \
 echo "BUILDING" >> ${LOG_FILE} && \
 npm run build >> ${LOG_FILE} 2>&1 && \
 echo "RESTARTING" >> ${LOG_FILE} && \

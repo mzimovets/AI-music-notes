@@ -911,8 +911,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600 }}>{updateStage}</span>
-                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700 }}>
-                            {updateProgress}%
+                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                             {updateProgress > 5 && updateStartedAt > 0 && (() => {
                               const elapsed = (Date.now() - updateStartedAt) / 1000;
                               const rate = updateProgress / elapsed;
@@ -920,10 +919,11 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                               if (remaining <= 0) return null;
                               const m = Math.floor(remaining / 60);
                               const s = remaining % 60;
-                              return <span style={{ fontWeight: 400, color: "rgba(0,0,0,0.35)", marginLeft: 6, fontSize: 11 }}>
+                              return <span style={{ fontWeight: 400, color: "rgba(0,0,0,0.4)", fontSize: 11 }}>
                                 ~{m > 0 ? `${m}м ` : ""}{s}с
                               </span>;
                             })()}
+                            {updateProgress}%
                           </span>
                         </div>
                         <div style={{ height: 5, background: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" }}>
