@@ -42,7 +42,21 @@ export default function Home() {
   const [isWifiModalOpen, setIsWifiModalOpen] = useState(false);
   const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
   const isOnBoardNetwork = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+
+  // Background firmware check every 30 min
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch("/api/git-update");
+        if (res.ok) { const d = await res.json(); setHasFirmwareUpdate(!!d.hasUpdate); }
+      } catch {}
+    };
+    check();
+    const t = setInterval(check, 30 * 60_000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("showStacks", String(showStacks));
@@ -295,7 +309,7 @@ export default function Home() {
             <button
               onClick={() => setIsWifiManagerOpen(true)}
               aria-label="Управление платой"
-              style={{
+              style={{ position: "relative",
                 width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: isOnBoardNetwork
@@ -328,6 +342,15 @@ export default function Home() {
                   </g>
                 </g>
               </svg>
+              {hasFirmwareUpdate && (
+                <span style={{
+                  position: "absolute", top: 2, right: 2,
+                  width: 10, height: 10, borderRadius: "50%",
+                  background: "#f59e0b",
+                  border: "2px solid white",
+                  boxShadow: "0 0 6px rgba(245,158,11,0.7)",
+                }} />
+              )}
             </button>
           )}
         </div>

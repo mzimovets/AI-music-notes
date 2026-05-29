@@ -83,8 +83,8 @@ export async function GET() {
       remote: { sha: remoteSha.slice(0, 7), message, date },
       localSha: sha.slice(0, 7),
     });
-  } catch (err: any) {
-    return NextResponse.json({ processStatus, updateProgress, updateStage, error: String(err?.message) }, { status: 500 });
+  } catch {
+    return NextResponse.json({ processStatus, updateProgress, updateStage, error: "Нет соединения с GitHub" }, { status: 500 });
   }
 }
 
