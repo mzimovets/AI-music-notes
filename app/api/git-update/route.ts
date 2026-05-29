@@ -57,8 +57,10 @@ export async function GET() {
   }
 
   try {
+    const headers: Record<string, string> = { "Accept": "application/vnd.github.v3+json" };
+    if (process.env.GITHUB_TOKEN) headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
     const res = await fetch(`https://api.github.com/repos/${REPO}/commits/main`, {
-      headers: { "Accept": "application/vnd.github.v3+json" },
+      headers,
       next: { revalidate: 0 },
     });
 
