@@ -1096,7 +1096,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       </button>
 
                       {historyOpen && (
-                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, height: 300, overflowY: "scroll", paddingBottom: 4, flexShrink: 0 }}>
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
                           {syncHistory.length === 0 && (
                             <div style={{ padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>
