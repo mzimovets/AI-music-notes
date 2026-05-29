@@ -17,6 +17,9 @@ interface SysData {
   temp: number; fanRpm: number; cpuPercent: number;
   ramUsed: number; ramTotal: number; uptime: string;
   wlan1Signal: number; throttled: boolean;
+  wlan1LinkMbps?: number;
+  wlan0RxBps: number; wlan0TxBps: number;
+  wlan1RxBps: number; wlan1TxBps: number;
 }
 interface SyncLogEntry { ts: number; level: "info" | "warn" | "error"; line: string; }
 interface SyncResult { ok: boolean; error?: string; duration: number; logs: SyncLogEntry[]; startedAt: number; }
@@ -24,7 +27,7 @@ interface UpdateInfo {
   hasUpdate?: boolean; error?: string;
   remote?: { sha: string; message: string; date: string };
 }
-type Tab = "system" | "wifi" | "firmware";
+type Tab = "system" | "network" | "firmware";
 
 // ── Fan SVG ────────────────────────────────────────────────────────────────────
 function FanIcon({ rpm }: { rpm: number }) {
@@ -130,6 +133,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [status, setStatus] = useState<WifiStatus | null>(null);
   const [networks, setNetworks] = useState<Network[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [scanDone, setScanDone] = useState(false);
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
   const [selectedSsid, setSelectedSsid] = useState<string | null>(null);
@@ -139,6 +143,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [noInternet, setNoInternet] = useState(false);
   const [forgetting, setForgetting] = useState<string | null>(null);
   const statusTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastScanRef = useRef<number>(0);
 
   // Firmware
   const [syncing, setSyncing] = useState(false);
@@ -150,6 +155,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number>(0);
   const checkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -210,6 +216,15 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     return () => { if (checkTimer.current) clearInterval(checkTimer.current); };
   }, [isOpen, checkUpdate]);
 
+  // ── Fetch last sync time on open ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isOpen) return;
+    fetch("/api/update-db")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); })
+      .catch(() => {});
+  }, [isOpen]);
+
   // ── Reset on close ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
@@ -217,20 +232,30 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       setConnectError(null); setEditingId(null); setEditPassword("");
       setSyncResult(null); setLogOpen(false); setCommitOpen(false);
       setUpdateDone(false); setNoInternet(false);
+      setScanDone(false); lastScanRef.current = 0;
     }
   }, [isOpen]);
 
   // ── WiFi actions ─────────────────────────────────────────────────────────────
-  const handleScan = async () => {
-    setScanning(true); setSelectedSsid(null); setPassword(""); setConnectError(null);
+  const handleScan = useCallback(async () => {
+    setScanning(true); setNetworks([]); setSelectedSsid(null); setPassword(""); setConnectError(null);
     try {
       const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "scan" }) });
       const data = await res.json();
       if (data.ok) setNetworks(data.networks ?? []);
       else showToast(data.error ?? "Ошибка сканирования", false);
     } catch { showToast("Ошибка сети", false); }
-    finally { setScanning(false); }
-  };
+    finally { setScanning(false); setScanDone(true); }
+  }, [showToast]);
+
+  // ── Auto-scan when network tab opens (30s cooldown) ──────────────────────────
+  useEffect(() => {
+    if (tab !== "network" || scanning) return;
+    const now = Date.now();
+    if (now - lastScanRef.current < 30_000) return;
+    lastScanRef.current = now;
+    handleScan();
+  }, [tab, handleScan, scanning]);
 
   const handleConnectSaved = async (networkId: string, ssid: string) => {
     setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
@@ -290,6 +315,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       const data = await res.json();
       if (data.ok) {
         setStatus((p) => p ? { ...p, savedNetworks: (p.savedNetworks ?? []).filter((n) => n.id !== networkId) } : p);
+        setNetworks((p) => p.filter((n) => n.ssid !== ssid));
         showToast(`Сеть «${ssid}» удалена`, true);
       }
     } catch { showToast("Ошибка", false); }
@@ -309,6 +335,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       if (progressTimer.current) clearInterval(progressTimer.current);
       setSyncProgress(100); setSyncResult({ ...data, startedAt });
       setLogOpen(true); setTimeout(() => setSyncProgress(0), 700);
+      fetch("/api/update-db").then((r) => r.ok ? r.json() : null).then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); }).catch(() => {});
     } catch (e: any) {
       if (progressTimer.current) clearInterval(progressTimer.current);
       setSyncProgress(0); setSyncResult({ ok: false, error: String(e?.message ?? "Ошибка"), duration: 0, logs: [], startedAt });
@@ -350,6 +377,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const savedIds = new Set((status?.savedNetworks ?? []).map((n) => n.ssid));
   const knownNets = networks.filter((n) => savedIds.has(n.ssid));
   const otherNets = networks.filter((n) => !savedIds.has(n.ssid));
+  const syncFresh = lastSyncedAt > Date.now() - 10 * 60_000;
 
   return (
     <Modal
@@ -360,7 +388,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       <ModalContent style={{
         background: "rgba(244,241,237,0.92)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
         border: "1px solid rgba(255,255,255,0.65)", boxShadow: "0 32px 80px rgba(0,0,0,0.24)",
-        borderRadius: 26, maxHeight: "min(680px, calc(100dvh - 32px))",
+        borderRadius: 26,
+        height: "min(700px, calc(100dvh - 32px))",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {() => (
@@ -394,8 +423,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
             {/* ── Tabs ────────────────────────────────────────────────────────── */}
             <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", flexShrink: 0 }}>
-              {(["system", "wifi", "firmware"] as Tab[]).map((t) => {
-                const labels: Record<Tab, string> = { system: "Система", wifi: "Wi-Fi", firmware: "Прошивка" };
+              {(["system", "network", "firmware"] as Tab[]).map((t) => {
+                const labels: Record<Tab, string> = { system: "Система", network: "Сеть", firmware: "Прошивка" };
                 const active = tab === t;
                 return (
                   <button key={t} onClick={() => setTab(t)} className="input-header" style={{
@@ -425,7 +454,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     <SectionLabel>Плата</SectionLabel>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-                      {/* Temperature */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={tempColor(sysData?.temp ?? 0)} strokeWidth="2" strokeLinecap="round">
@@ -439,7 +467,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </span>
                       </div>
 
-                      {/* CPU */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={cpuColor(sysData?.cpuPercent ?? 0)} strokeWidth="2" strokeLinecap="round">
@@ -457,7 +484,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </span>
                       </div>
 
-                      {/* RAM */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BD9673" strokeWidth="2" strokeLinecap="round">
@@ -473,7 +499,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </span>
                       </div>
 
-                      {/* Uptime */}
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2" strokeLinecap="round">
@@ -486,7 +511,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </span>
                       </div>
 
-                      {/* Throttled warning */}
                       {sysData?.throttled && (
                         <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
                           <span style={{ fontSize: 14 }}>⚠️</span>
@@ -518,7 +542,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     </div>
                   </div>
 
-                  {/* AP + WiFi status */}
+                  {/* Network status card */}
                   <div style={card}>
                     <SectionLabel>Сеть</SectionLabel>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -530,12 +554,39 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
                       <NetRow label="Wi-Fi (wlan1)" value={status?.ssid ?? "—"} dot={status?.connected ? "green" : "gray"} />
                       {status?.ip && <NetRow label="IP адрес" value={status.ip} mono />}
-                      {status && (
-                        <NetRow
-                          label="Сигнал"
-                          value={sysData ? `${sysData.wlan1Signal} dBm` : "—"}
-                          extra={<SignalBars signal={signalPct(sysData?.wlan1Signal ?? -100)} size={13} />}
-                        />
+                      <NetRow
+                        label="Сигнал"
+                        value={sysData ? `${sysData.wlan1Signal} дБм` : "—"}
+                        extra={<SignalBars signal={signalPct(sysData?.wlan1Signal ?? -100)} size={13} />}
+                      />
+                      {(sysData?.wlan1LinkMbps ?? 0) > 0 && (
+                        <NetRow label="Скорость Wi-Fi" value={`${sysData!.wlan1LinkMbps} Мбит/с`} />
+                      )}
+                      <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
+                      {/* Internet throughput */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontWeight: 500 }}>Интернет</span>
+                        <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "#2d2015" }}>
+                          ↓ {fmtBps(sysData?.wlan1RxBps ?? 0)} &nbsp;·&nbsp; ↑ {fmtBps(sysData?.wlan1TxBps ?? 0)}
+                        </span>
+                      </div>
+                      {/* Tablet throughput */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontWeight: 500 }}>Планшеты</span>
+                        <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "#2d2015" }}>
+                          ↓ {fmtBps(sysData?.wlan0TxBps ?? 0)} &nbsp;·&nbsp; ↑ {fmtBps(sysData?.wlan0RxBps ?? 0)}
+                        </span>
+                      </div>
+                      {/* Sync freshness */}
+                      {lastSyncedAt > 0 && (
+                        <>
+                          <div style={{ height: 1, background: "rgba(0,0,0,0.05)" }} />
+                          <NetRow
+                            label="Данные синхр."
+                            value={fmtAgo(lastSyncedAt)}
+                            dot={syncFresh ? "green" : "gray"}
+                          />
+                        </>
                       )}
                       {noInternet && (
                         <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 10px", borderRadius: 8, background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.35)" }}>
@@ -548,10 +599,10 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                 </>
               )}
 
-              {/* ══ WI-FI ════════════════════════════════════════════════════════ */}
-              {tab === "wifi" && (
+              {/* ══ СЕТЬ ═════════════════════════════════════════════════════════ */}
+              {tab === "network" && (
                 <>
-                  {/* Current */}
+                  {/* Current connection */}
                   <div style={card}>
                     <SectionLabel>Текущее подключение</SectionLabel>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -601,147 +652,168 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     </div>
                   </div>
 
-                  {/* Saved networks */}
-                  {(status?.savedNetworks?.length ?? 0) > 0 && (
-                    <div style={card}>
-                      <SectionLabel>Знакомые сети</SectionLabel>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                        {(status?.savedNetworks ?? []).map((sn) => {
-                          const inUse = sn.ssid === status?.ssid;
-                          const isEditing = editingId === sn.id;
-                          const isConnecting = connectingTo === sn.ssid;
-                          return (
-                            <div key={sn.id} style={{ display: "flex", flexDirection: "column" }}>
-                              <div style={{
-                                display: "flex", alignItems: "center", gap: 10,
-                                padding: "9px 12px", borderRadius: isEditing ? "10px 10px 0 0" : 10,
-                                background: inUse ? "rgba(125,94,66,0.1)" : "rgba(255,255,255,0.5)",
-                                border: inUse ? "1.5px solid rgba(125,94,66,0.3)" : "1px solid rgba(255,255,255,0.7)",
-                                borderBottom: isEditing ? "none" : undefined,
-                              }}>
-                                <div style={{
-                                  width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                                  background: inUse ? "#4ade80" : "rgba(0,0,0,0.15)",
-                                  boxShadow: inUse ? "0 0 0 2px rgba(74,222,128,0.25)" : "none",
-                                }} />
-                                <span className="input-header" style={{ flex: 1, fontSize: 14, fontWeight: inUse ? 700 : 500, color: inUse ? "#7D5E42" : "#2d2015" }}>
-                                  {sn.ssid}
-                                </span>
-                                {inUse && (
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                )}
-                                {!inUse && !isConnecting && (
-                                  <button onClick={() => handleConnectSaved(sn.id, sn.ssid)} className="input-header" style={smallBtn}>
-                                    Подключить
-                                  </button>
-                                )}
-                                {isConnecting && (
-                                  <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7D5E42" strokeWidth="2.5">
-                                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
-                                  </svg>
-                                )}
-                                {/* Settings button */}
-                                <button
-                                  onClick={() => { setEditingId(isEditing ? null : sn.id); setEditPassword(""); setConnectError(null); }}
-                                  style={{ background: "none", border: "none", cursor: "pointer", padding: 3, color: "rgba(0,0,0,0.3)", display: "flex" }}
-                                >
-                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                    <circle cx="12" cy="12" r="3"/>
-                                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                                  </svg>
-                                </button>
-                                {/* Forget button */}
-                                <button
-                                  onClick={() => handleForget(sn.id, sn.ssid)}
-                                  disabled={forgetting === sn.id}
-                                  style={{ background: "none", border: "none", cursor: "pointer", padding: 3, color: "rgba(248,113,113,0.6)", display: "flex" }}
-                                >
-                                  {forgetting === sn.id ? (
-                                    <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
-                                    </svg>
-                                  ) : (
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                                      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                                    </svg>
-                                  )}
-                                </button>
-                              </div>
+                  {/* Scan section header + refresh button */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "2px 2px 0" }}>
+                    <span className="input-header" style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.3)", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                      Доступные сети
+                    </span>
+                    <button
+                      onClick={() => { lastScanRef.current = 0; handleScan(); }}
+                      disabled={scanning}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 5,
+                        padding: "4px 10px", borderRadius: 8, border: "1px solid rgba(125,94,66,0.2)",
+                        background: "rgba(125,94,66,0.07)", cursor: scanning ? "not-allowed" : "pointer",
+                        opacity: scanning ? 0.5 : 1,
+                      }}
+                    >
+                      <svg
+                        width="11" height="11" viewBox="0 0 24 24" fill="none"
+                        stroke="#7D5E42" strokeWidth="2.5" strokeLinecap="round"
+                        className={scanning ? "animate-spin" : ""}
+                      >
+                        <polyline points="23 4 23 10 17 10"/>
+                        <polyline points="1 20 1 14 7 14"/>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                      </svg>
+                      <span className="input-header" style={{ fontSize: 11, fontWeight: 600, color: "#7D5E42" }}>
+                        {scanning ? "Поиск..." : "Обновить"}
+                      </span>
+                    </button>
+                  </div>
 
-                              {/* Edit password panel */}
-                              {isEditing && (
-                                <div style={{
-                                  background: "rgba(189,150,115,0.06)", borderRadius: "0 0 10px 10px",
-                                  border: "1.5px solid rgba(125,94,66,0.2)", borderTop: "none",
-                                  padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8,
-                                }}>
-                                  <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>Новый пароль</span>
-                                  <PasswordInput value={editPassword} onChange={(v) => { setEditPassword(v); setConnectError(null); }}
-                                    onKeyDown={(e) => { if (e.key === "Enter") handleUpdatePassword(sn.id, sn.ssid); }}
-                                    error={connectError} />
-                                  <button onClick={() => handleUpdatePassword(sn.id, sn.ssid)} disabled={!editPassword.trim()} className="input-header" style={{
-                                    padding: "8px 0", borderRadius: 8, border: "none",
-                                    background: "linear-gradient(135deg,#BD9673,#7D5E42)", color: "white",
-                                    fontSize: 13, fontWeight: 700, cursor: editPassword.trim() ? "pointer" : "not-allowed",
-                                    opacity: editPassword.trim() ? 1 : 0.5,
-                                  }}>
-                                    Сохранить и подключиться
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Scan button */}
-                  <button onClick={handleScan} disabled={scanning} className="input-header" style={{
-                    padding: "11px 16px", borderRadius: 13, border: "1px solid rgba(255,255,255,0.7)",
-                    background: scanning ? "rgba(255,255,255,0.38)" : "rgba(255,255,255,0.55)",
-                    cursor: scanning ? "not-allowed" : "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8, flexShrink: 0,
-                  }}>
-                    {scanning ? (
+                  {/* Scanning indicator */}
+                  {scanning && (
+                    <div style={{ ...card, flexDirection: "row", alignItems: "center", gap: 10, padding: "12px 14px" }}>
                       <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7D5E42" strokeWidth="2.5">
                         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
                       </svg>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7D5E42" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="#7D5E42" stroke="none"/>
-                      </svg>
-                    )}
-                    <span style={{ fontSize: 14, fontWeight: 600, color: "#7D5E42" }}>
-                      {scanning ? "Сканирую..." : "Сканировать сети"}
-                    </span>
-                  </button>
+                      <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.4)" }}>Сканирую сети...</span>
+                    </div>
+                  )}
 
                   {/* Scan results */}
-                  {networks.length > 0 && (
+                  {!scanning && networks.length > 0 && (
                     <>
-                      {/* Known networks from scan */}
+                      {/* Known networks (from scan, saved in wpa_supplicant) */}
                       {knownNets.length > 0 && (
                         <div style={card}>
-                          <SectionLabel>Знакомые (из скана)</SectionLabel>
-                          {knownNets.map((net) => <ScanNetItem key={net.ssid} net={net} savedIds={savedIds} status={status} connectingTo={connectingTo} selectedSsid={selectedSsid} password={password} connectError={connectError} setSelectedSsid={setSelectedSsid} setPassword={setPassword} setConnectError={setConnectError} handleConnectNew={handleConnectNew} isOpen_={isOpen_} onConnectSaved={(ssid) => { const sn = status?.savedNetworks?.find(n => n.ssid === ssid); if (sn) handleConnectSaved(sn.id, ssid); }} />)}
+                          <SectionLabel>Знакомые сети</SectionLabel>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            {knownNets.map((net) => {
+                              const sn = status?.savedNetworks?.find((n) => n.ssid === net.ssid);
+                              if (!sn) return null;
+                              const inUse = net.ssid === status?.ssid;
+                              const isEditing = editingId === sn.id;
+                              const isConnecting = connectingTo === net.ssid;
+                              return (
+                                <div key={sn.id} style={{ display: "flex", flexDirection: "column" }}>
+                                  <div style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    padding: "9px 12px", borderRadius: isEditing ? "10px 10px 0 0" : 10,
+                                    background: inUse ? "rgba(125,94,66,0.1)" : "rgba(255,255,255,0.5)",
+                                    border: inUse ? "1.5px solid rgba(125,94,66,0.3)" : "1px solid rgba(255,255,255,0.7)",
+                                    borderBottom: isEditing ? "none" : undefined,
+                                  }}>
+                                    <SignalBars signal={net.signal} size={13} />
+                                    <div style={{
+                                      width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                                      background: inUse ? "#4ade80" : "rgba(0,0,0,0.15)",
+                                      boxShadow: inUse ? "0 0 0 2px rgba(74,222,128,0.25)" : "none",
+                                    }} />
+                                    <span className="input-header" style={{ flex: 1, fontSize: 14, fontWeight: inUse ? 700 : 500, color: inUse ? "#7D5E42" : "#2d2015" }}>
+                                      {sn.ssid}
+                                    </span>
+                                    {inUse && (
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                    )}
+                                    {!inUse && !isConnecting && (
+                                      <button onClick={() => handleConnectSaved(sn.id, sn.ssid)} className="input-header" style={smallBtn}>
+                                        Подключить
+                                      </button>
+                                    )}
+                                    {isConnecting && (
+                                      <svg className="animate-spin" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7D5E42" strokeWidth="2.5">
+                                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                      </svg>
+                                    )}
+                                    <button
+                                      onClick={() => { setEditingId(isEditing ? null : sn.id); setEditPassword(""); setConnectError(null); }}
+                                      style={{ background: "none", border: "none", cursor: "pointer", padding: 3, color: "rgba(0,0,0,0.3)", display: "flex" }}
+                                    >
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => handleForget(sn.id, sn.ssid)}
+                                      disabled={forgetting === sn.id}
+                                      style={{ background: "none", border: "none", cursor: "pointer", padding: 3, color: "rgba(248,113,113,0.6)", display: "flex" }}
+                                    >
+                                      {forgetting === sn.id ? (
+                                        <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4"/>
+                                        </svg>
+                                      ) : (
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                                        </svg>
+                                      )}
+                                    </button>
+                                  </div>
+
+                                  {isEditing && (
+                                    <div style={{
+                                      background: "rgba(189,150,115,0.06)", borderRadius: "0 0 10px 10px",
+                                      border: "1.5px solid rgba(125,94,66,0.2)", borderTop: "none",
+                                      padding: "10px 12px", display: "flex", flexDirection: "column", gap: 8,
+                                    }}>
+                                      <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>Новый пароль</span>
+                                      <PasswordInput value={editPassword} onChange={(v) => { setEditPassword(v); setConnectError(null); }}
+                                        onKeyDown={(e) => { if (e.key === "Enter") handleUpdatePassword(sn.id, sn.ssid); }}
+                                        error={connectError} />
+                                      <button onClick={() => handleUpdatePassword(sn.id, sn.ssid)} disabled={!editPassword.trim()} className="input-header" style={{
+                                        padding: "8px 0", borderRadius: 8, border: "none",
+                                        background: "linear-gradient(135deg,#BD9673,#7D5E42)", color: "white",
+                                        fontSize: 13, fontWeight: 700, cursor: editPassword.trim() ? "pointer" : "not-allowed",
+                                        opacity: editPassword.trim() ? 1 : 0.5,
+                                      }}>
+                                        Сохранить и подключиться
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
-                      {/* Other networks from scan */}
+
+                      {/* Unknown networks */}
                       {otherNets.length > 0 && (
                         <div style={card}>
                           <SectionLabel>Другие сети</SectionLabel>
-                          {otherNets.map((net) => <ScanNetItem key={net.ssid} net={net} savedIds={savedIds} status={status} connectingTo={connectingTo} selectedSsid={selectedSsid} password={password} connectError={connectError} setSelectedSsid={setSelectedSsid} setPassword={setPassword} setConnectError={setConnectError} handleConnectNew={handleConnectNew} isOpen_={isOpen_} onConnectSaved={() => {}} />)}
+                          {otherNets.map((net) => (
+                            <ScanNetItem
+                              key={net.ssid} net={net} status={status}
+                              connectingTo={connectingTo} selectedSsid={selectedSsid}
+                              password={password} connectError={connectError}
+                              setSelectedSsid={setSelectedSsid} setPassword={setPassword}
+                              setConnectError={setConnectError}
+                              handleConnectNew={handleConnectNew} isOpen_={isOpen_}
+                            />
+                          ))}
                         </div>
                       )}
                     </>
                   )}
 
-                  {networks.length === 0 && !scanning && (
+                  {/* Empty state after scan */}
+                  {!scanning && scanDone && networks.length === 0 && (
                     <div style={{ ...card, alignItems: "center", padding: "20px 16px" }}>
                       <p className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", margin: 0 }}>
-                        Нажмите «Сканировать сети» для поиска
+                        Сети не найдены
                       </p>
                     </div>
                   )}
@@ -769,7 +841,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       </button>
                     </div>
 
-                    {/* Update status */}
                     {checking && <div className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", marginBottom: 10 }}>Проверка обновления...</div>}
                     {!checking && updateInfo && (
                       <div style={{ marginBottom: 10 }}>
@@ -822,7 +893,21 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
                   {/* DB Sync */}
                   <div style={card}>
-                    <SectionLabel>База данных</SectionLabel>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                      <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
+                      {lastSyncedAt > 0 && (
+                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                          <div style={{
+                            width: 6, height: 6, borderRadius: "50%",
+                            background: syncFresh ? "#4ade80" : lastSyncedAt > Date.now() - 60 * 60_000 ? "#fbbf24" : "#f87171",
+                            boxShadow: syncFresh ? "0 0 0 2px rgba(74,222,128,0.22)" : "none",
+                          }} />
+                          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>
+                            {fmtAgo(lastSyncedAt)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={handleSync} disabled={syncing} className="input-header" style={{
                         flex: 1, padding: "11px 0", borderRadius: syncResult ? "11px 0 0 11px" : 11, border: "none",
@@ -834,7 +919,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       }}>
                         {syncing ? <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>}
-                        {syncing ? "Синхронизирую..." : "Синхронизировать БД"}
+                        {syncing ? "Синхронизирую..." : "Синхронизировать"}
                       </button>
                       {syncResult && (
                         <button onClick={() => setLogOpen((v) => !v)} style={{
@@ -888,26 +973,23 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   );
 }
 
-// ── Scan network item ──────────────────────────────────────────────────────────
-function ScanNetItem({ net, savedIds, status, connectingTo, selectedSsid, password, connectError,
-  setSelectedSsid, setPassword, setConnectError, handleConnectNew, isOpen_, onConnectSaved }: {
-  net: Network; savedIds: Set<string>; status: WifiStatus | null;
+// ── Scan network item (unknown networks only) ──────────────────────────────────
+function ScanNetItem({ net, status, connectingTo, selectedSsid, password, connectError,
+  setSelectedSsid, setPassword, setConnectError, handleConnectNew, isOpen_ }: {
+  net: Network; status: WifiStatus | null;
   connectingTo: string | null; selectedSsid: string | null; password: string;
   connectError: string | null;
   setSelectedSsid: (v: string | null) => void; setPassword: (v: string) => void;
   setConnectError: (v: string | null) => void;
   handleConnectNew: (ssid: string, pwd: string) => void;
   isOpen_: (net: Network) => boolean;
-  onConnectSaved: (ssid: string) => void;
 }) {
   const sel = selectedSsid === net.ssid;
-  const known = savedIds.has(net.ssid);
   const isConnecting = connectingTo === net.ssid;
   const isCurrentNet = net.ssid === status?.ssid;
 
   const handleClick = () => {
     if (isCurrentNet || isConnecting) return;
-    if (known) { onConnectSaved(net.ssid); return; }
     if (isOpen_(net)) { handleConnectNew(net.ssid, ""); return; }
     setConnectError(null); setPassword("");
     setSelectedSsid(sel ? null : net.ssid);
@@ -1005,4 +1087,20 @@ function fmtDate(iso: string) {
   if (!iso) return "";
   try { return new Date(iso).toLocaleString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
   catch { return iso; }
+}
+
+function fmtAgo(ts: number): string {
+  if (!ts) return "—";
+  const sec = Math.floor((Date.now() - ts) / 1000);
+  if (sec < 60) return "только что";
+  if (sec < 3600) return `${Math.floor(sec / 60)} мин назад`;
+  if (sec < 86400) return `${Math.floor(sec / 3600)} ч назад`;
+  return `${Math.floor(sec / 86400)} д назад`;
+}
+
+function fmtBps(bps: number): string {
+  if (!bps || bps < 100) return "0";
+  if (bps < 1024) return `${bps} Б/с`;
+  if (bps < 1024 * 1024) return `${(bps / 1024).toFixed(0)} КБ/с`;
+  return `${(bps / (1024 * 1024)).toFixed(1)} МБ/с`;
 }
