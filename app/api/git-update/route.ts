@@ -117,7 +117,8 @@ NODE_ENV=development npm install >> ${LOG_FILE} 2>&1 && \
 echo "BUILDING" >> ${LOG_FILE} && \
 npm run build >> ${LOG_FILE} 2>&1 && \
 echo "RESTARTING" >> ${LOG_FILE} && \
-sudo systemctl restart music-frontend music-backend >> ${LOG_FILE} 2>&1 && \
+sudo systemctl restart music-frontend >> ${LOG_FILE} 2>&1 && \
+sudo systemctl restart music-backend >> ${LOG_FILE} 2>&1 && \
 echo "DONE" >> ${LOG_FILE}`,
     ],
     { detached: true, stdio: "ignore" }
