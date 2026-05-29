@@ -926,8 +926,19 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         ) : (
                           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                              <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", flex: 1 }}>Актуальная прошивка</span>
+                              {(updateDone || updateInfo.processStatus === "done") ? (
+                                <>
+                                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", boxShadow: "0 0 0 2px rgba(74,222,128,0.22)", flexShrink: 0 }} />
+                                  <span className="input-header" style={{ fontSize: 12, color: "#166534", fontWeight: 600, flex: 1 }}>Актуальная прошивка</span>
+                                </>
+                              ) : (
+                                <>
+                                  <div style={{ width: 7, height: 7, borderRadius: "50%", background: "rgba(0,0,0,0.18)", flexShrink: 0 }} />
+                                  <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.38)", flex: 1 }}>
+                                    {updateInfo.remote?.date ? `Обновлено ${fmtDate(updateInfo.remote.date)}` : "Прошивка актуальна"}
+                                  </span>
+                                </>
+                              )}
                               {updateInfo.localSha && (
                                 <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(0,0,0,0.25)" }}>{updateInfo.localSha}</span>
                               )}
@@ -1004,25 +1015,24 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                   <div style={card}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
-                      {lastSyncedAt > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                          <div style={{
-                            width: 6, height: 6, borderRadius: "50%",
-                            background: syncFresh ? "#4ade80" : lastSyncedAt > Date.now() - 60 * 60_000 ? "#fbbf24" : "#f87171",
-                            boxShadow: syncFresh ? "0 0 0 2px rgba(74,222,128,0.22)" : "none",
-                          }} />
-                          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>
-                            {fmtAgo(lastSyncedAt)}
-                          </span>
-                        </div>
-                      )}
                     </div>
 
-                    {/* Auto-sync note */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
-                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                      <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)" }}>Авто-синхронизация каждые 5 минут</span>
-                    </div>
+                    {/* DB status */}
+                    {lastSyncedAt > 0 && !syncing && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                        <div style={{
+                          width: 7, height: 7, borderRadius: "50%", flexShrink: 0,
+                          background: syncFresh ? "#4ade80" : lastSyncedAt > Date.now() - 60 * 60_000 ? "#fbbf24" : "#f87171",
+                          boxShadow: syncFresh ? "0 0 0 2px rgba(74,222,128,0.22)" : "none",
+                        }} />
+                        <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: syncFresh ? "#166534" : "rgba(0,0,0,0.4)", flex: 1 }}>
+                          {syncFresh ? "Актуальная база данных" : `Синхронизировано ${fmtAgo(lastSyncedAt)}`}
+                        </span>
+                        {syncFresh && (
+                          <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{fmtAgo(lastSyncedAt)}</span>
+                        )}
+                      </div>
+                    )}
 
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={handleSync} disabled={syncing} className="input-header" style={{
@@ -1052,64 +1062,104 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                           background: "none", border: "none", cursor: "pointer", padding: "4px 0",
                         }}>
                           <span className="input-header" style={{ fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.45)" }}>
-                            История изменений · {syncHistory.length} записей
+                            Журнал изменений
                           </span>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" strokeLinecap="round"
-                            style={{ transform: historyOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}>
-                            <polyline points="6 9 12 15 18 9"/>
-                          </svg>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{syncHistory.length} записей</span>
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" strokeLinecap="round"
+                              style={{ transform: historyOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}>
+                              <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                          </div>
                         </button>
 
                         {historyOpen && (
-                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto" }}>
+                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, maxHeight: 360, overflowY: "auto" }}>
                             {syncHistory.map((entry, i) => {
                               const allChanges = [
                                 ...entry.added.map(c => ({ ...c, action: "added" as const })),
                                 ...entry.updated.map(c => ({ ...c, action: "updated" as const })),
                                 ...entry.deleted.map(c => ({ ...c, action: "deleted" as const })),
                               ];
+                              const total = allChanges.length;
                               return (
-                                <div key={i} style={{ background: "rgba(0,0,0,0.03)", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)" }}>
-                                  {/* Заголовок */}
-                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "rgba(0,0,0,0.04)" }}>
-                                    <span className="input-header" style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.5)" }}>
-                                      {new Date(entry.timestamp).toLocaleString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                                    </span>
-                                    <div style={{ display: "flex", gap: 6 }}>
-                                      {entry.added.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#166534", background: "rgba(74,222,128,0.15)", padding: "1px 6px", borderRadius: 5 }}>+{entry.added.length}</span>}
-                                      {entry.updated.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e", background: "rgba(251,191,36,0.18)", padding: "1px 6px", borderRadius: 5 }}>~{entry.updated.length}</span>}
-                                      {entry.deleted.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#991b1b", background: "rgba(248,113,113,0.15)", padding: "1px 6px", borderRadius: 5 }}>−{entry.deleted.length}</span>}
+                                <div key={i} style={{
+                                  borderRadius: 12, overflow: "hidden",
+                                  border: i === 0 ? "1px solid rgba(125,94,66,0.2)" : "1px solid rgba(0,0,0,0.07)",
+                                  background: i === 0 ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.4)",
+                                  boxShadow: i === 0 ? "0 1px 6px rgba(125,94,66,0.08)" : "none",
+                                }}>
+                                  {/* Заголовок записи */}
+                                  <div style={{
+                                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                                    padding: "7px 12px",
+                                    background: i === 0 ? "rgba(125,94,66,0.07)" : "rgba(0,0,0,0.04)",
+                                    borderBottom: "1px solid rgba(0,0,0,0.06)",
+                                  }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                      {i === 0 && <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#BD9673", flexShrink: 0 }} />}
+                                      <span className="input-header" style={{ fontSize: 11, fontWeight: 700, color: i === 0 ? "#7D5E42" : "rgba(0,0,0,0.45)" }}>
+                                        {new Date(entry.timestamp).toLocaleString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                      </span>
+                                      {entry.duration > 0 && (
+                                        <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.28)" }}>· {(entry.duration / 1000).toFixed(1)}с</span>
+                                      )}
+                                    </div>
+                                    <div style={{ display: "flex", gap: 4 }}>
+                                      {entry.added.length > 0 && (
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: "#166534", background: "rgba(74,222,128,0.18)", padding: "2px 7px", borderRadius: 6, letterSpacing: 0.2 }}>
+                                          +{entry.added.length}
+                                        </span>
+                                      )}
+                                      {entry.updated.length > 0 && (
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e", background: "rgba(251,191,36,0.22)", padding: "2px 7px", borderRadius: 6, letterSpacing: 0.2 }}>
+                                          ~{entry.updated.length}
+                                        </span>
+                                      )}
+                                      {entry.deleted.length > 0 && (
+                                        <span style={{ fontSize: 10, fontWeight: 700, color: "#991b1b", background: "rgba(248,113,113,0.18)", padding: "2px 7px", borderRadius: 6, letterSpacing: 0.2 }}>
+                                          −{entry.deleted.length}
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
-                                  {/* Таблица */}
-                                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                                    <thead>
-                                      <tr style={{ background: "rgba(0,0,0,0.03)" }}>
-                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 10px", textTransform: "uppercase", letterSpacing: 0.3 }}>Название</th>
-                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 8px", textTransform: "uppercase", letterSpacing: 0.3, width: 80 }}>Действие</th>
-                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 10px 4px 4px", textTransform: "uppercase", letterSpacing: 0.3, width: 60 }}>Тип</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {allChanges.map((c, j) => (
-                                        <tr key={j} style={{ borderTop: "1px solid rgba(0,0,0,0.05)" }}>
-                                          <td className="input-header" style={{ fontSize: 12, color: "#2d2015", padding: "5px 10px", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</td>
-                                          <td style={{ padding: "5px 8px" }}>
-                                            <span className="input-header" style={{
-                                              fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
-                                              color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
-                                              background: c.action === "added" ? "rgba(74,222,128,0.15)" : c.action === "updated" ? "rgba(251,191,36,0.18)" : "rgba(248,113,113,0.15)",
-                                            }}>
-                                              {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
-                                            </span>
-                                          </td>
-                                          <td className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", padding: "5px 10px 5px 4px" }}>
-                                            {c.type === "song" ? "Песня" : "Стопка"}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
+                                  {/* Таблица песен */}
+                                  <div style={{ display: "flex", flexDirection: "column" }}>
+                                    {/* Шапка таблицы */}
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 52px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
+                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Название</span>
+                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Статус</span>
+                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Тип</span>
+                                    </div>
+                                    {/* Строки */}
+                                    {allChanges.map((c, j) => (
+                                      <div key={j} style={{
+                                        display: "grid", gridTemplateColumns: "1fr 80px 52px",
+                                        padding: "5px 12px", alignItems: "center",
+                                        borderTop: "1px solid rgba(0,0,0,0.04)",
+                                        background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
+                                      }}>
+                                        <span className="input-header" style={{ fontSize: 12, color: "#2d2015", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", paddingRight: 6 }}>
+                                          {c.title}
+                                        </span>
+                                        <span className="input-header" style={{
+                                          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "inline-block", textAlign: "center",
+                                          color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
+                                          background: c.action === "added" ? "rgba(74,222,128,0.15)" : c.action === "updated" ? "rgba(251,191,36,0.18)" : "rgba(248,113,113,0.15)",
+                                        }}>
+                                          {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
+                                        </span>
+                                        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)" }}>
+                                          {c.type === "song" ? "Песня" : "Стопка"}
+                                        </span>
+                                      </div>
+                                    ))}
+                                    {total === 0 && (
+                                      <div style={{ padding: "8px 12px" }}>
+                                        <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Изменений нет</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
                               );
                             })}
