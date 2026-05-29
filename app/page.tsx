@@ -29,8 +29,21 @@ export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
   const { data: session } = useSession();
-  const isRegent = session?.user?.role === "регент";
   const [stacks, setStacks] = useState([]);
+
+  // Кэшируем роль в localStorage — кнопка появляется сразу после перезагрузки
+  const [cachedRegent, setCachedRegent] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("isRegent") === "true";
+  });
+  useEffect(() => {
+    if (session?.user?.role !== undefined) {
+      const regent = session.user.role === "регент";
+      setCachedRegent(regent);
+      localStorage.setItem("isRegent", String(regent));
+    }
+  }, [session?.user?.role]);
+  const isRegent = cachedRegent || session?.user?.role === "регент";
 
   const [isLoading, setIsLoading] = useState(false);
   const [showStacks, setShowStacks] = useState(() => {

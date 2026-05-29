@@ -454,13 +454,27 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 0", flexShrink: 0 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-                background: "linear-gradient(135deg,#BD9673,#7D5E42)",
+                background: "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 3px 12px rgba(125,94,66,0.35)",
+                boxShadow: "0 0 0 2px rgba(232,69,122,0.2), 0 3px 12px rgba(158,18,57,0.35)",
               }}>
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/>
-                  <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><circle cx="12" cy="20" r="1" fill="white" stroke="none"/>
+                <svg width="19" height="19" viewBox="0 0 32 32" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg">
+                  <g><g>
+                    <path d="M13.8,6.4c-1.4-1.1-2.9-1.9-4.6-2.5c1.5,0.9,3,1.7,4.2,2.9c-0.1,1.1-1.5,1.8-3.1,1.7c-0.1-0.1,0.1-0.1,0.1-0.3C10,8.1,9.5,8.2,9.2,8c0-0.1,0.2-0.1,0.1-0.2C9,7.6,8.6,7.5,8.3,7.3c0-0.1,0.2-0.1,0.3-0.2c-0.3-0.2-0.7-0.3-1-0.6c0.1-0.1,0.2,0,0.3-0.2C7.6,6.1,7.3,5.9,7.1,5.6c0.1-0.1,0.2,0,0.3-0.1C7.3,5.2,6.9,5,6.8,4.7c0.2,0,0.3,0.1,0.5-0.1C7.1,4.3,6.7,4.2,6.6,3.8c0.1-0.1,0.3,0,0.4-0.1c0-0.3-0.2-0.5-0.3-0.8c0.3-0.1,0.7,0,1-0.1c0-0.1-0.1-0.2-0.1-0.3c0.4-0.2,0.8,0,1.2,0.1c0.1-0.2-0.1-0.2,0-0.4c0.3,0,0.6,0.2,1,0.2C9.9,2.2,9.6,2.2,9.6,2c0.4,0,0.7,0.2,1,0.4c0.1-0.1,0-0.2,0.1-0.4c0.3,0.1,0.5,0.3,0.8,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.1,0.5,0.4,0.7,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.2,0.5,0.5,0.7,0.7c0.2,0,0.1-0.2,0.3-0.2c0.6,0.7,1.2,1.5,1.1,2.5C14.7,5.9,14.3,6.2,13.8,6.4L13.8,6.4z"/>
+                    <path d="M23.5,7.1c0.1,0.1,0.2,0.1,0.3,0.1c-0.3,0.3-0.7,0.3-1.1,0.5c0,0.1,0.1,0.1,0.1,0.2c-0.3,0.2-0.8,0.1-1.1,0.2c-0.1,0.1,0.1,0.2,0,0.3c-0.4,0.1-0.8,0-1.3-0.1c-0.9-0.2-1.6-0.6-1.9-1.5c1.2-1.3,2.7-2.1,4.2-2.9c-1.7,0.6-3.2,1.4-4.6,2.4c-0.6-0.2-0.9-0.7-0.9-1.3c0-0.7,0.6-1.8,1.2-2.3l0.2,0.3c0.3-0.2,0.5-0.6,0.8-0.7c0.1,0.1,0,0.3,0.2,0.3c0.2-0.1,0.4-0.4,0.7-0.5c0.1,0.1,0,0.2,0.2,0.3C20.8,2.4,21,2.1,21.4,2c0,0.1-0.1,0.2,0,0.4C21.7,2.2,22,2,22.4,2c0,0.1-0.2,0.2-0.1,0.4c0.3,0,0.6-0.2,1-0.2c0,0.1-0.1,0.2,0,0.4c0.4-0.1,0.8-0.2,1.2-0.1c0,0.1-0.1,0.2-0.1,0.3c0.3,0.1,0.7,0,1,0.1C25.3,3.2,25,3.4,25,3.7c0.1,0.1,0.3,0,0.4,0.1c-0.1,0.4-0.5,0.5-0.6,0.8c0.1,0.2,0.3,0,0.4,0.1c-0.1,0.3-0.5,0.5-0.7,0.8c0.1,0.2,0.2,0.1,0.3,0.1c-0.2,0.3-0.5,0.4-0.7,0.7c0.1,0.1,0.2,0.1,0.3,0.2C24.2,6.8,23.8,6.9,23.5,7.1L23.5,7.1z"/>
+                  </g><g>
+                    <path d="M15.4,16c0,1.8-1.4,3.6-3.2,4c-1.8,0.4-3.4-0.9-3.5-2.7c-0.1-1.8,1.2-3.6,2.9-4C13.7,12.7,15.4,14,15.4,16z"/>
+                    <path d="M23.4,16.9c0,2.1-1.8,3.4-3.8,2.8c-1.8-0.6-3.1-2.5-2.8-4.4c0.3-1.8,2.1-2.9,3.9-2.2C22.3,13.7,23.4,15.3,23.4,16.9L23.4,16.9z"/>
+                    <path d="M16.1,19.4c1,0,2,0.4,2.7,1.2c1.2,1.3,1.1,3.2-0.2,4.3c-1.3,1.1-3.4,1.2-4.7,0.1c-1-0.8-1.4-1.8-1.2-3.1c0.3-1.3,1.2-2,2.4-2.4C15.4,19.5,15.7,19.4,16.1,19.4L16.1,19.4z"/>
+                    <path d="M19.8,25.3c0.1-1,0.5-2,1.3-2.9c0.5-0.5,1-1,1.5-1.4c0.3-0.2,0.6-0.3,0.9-0.4c0.6-0.1,1.1,0.1,1.3,0.7c0.4,1,0.5,2,0,3c-0.6,1.4-1.7,2.3-3.2,2.6c-0.1,0-0.3,0-0.5,0C20.2,27,19.8,26.6,19.8,25.3z"/>
+                    <path d="M6.9,22.7c0,0,0-0.2,0-0.3c0.1-1.1,0.7-1.5,1.8-1.2c1.7,0.5,3.3,2.5,3.4,4.3c0,1.1-0.5,1.6-1.6,1.4c-1.5-0.2-2.5-1-3.1-2.3C7,24,6.9,23.4,6.9,22.7L6.9,22.7z"/>
+                    <path d="M16.2,12.8c-0.8,0-1.6-0.1-2.3-0.5c-1.3-0.7-1.3-1.6-0.2-2.4c1.5-1.1,3.5-1,4.9,0.2c0.1,0.1,0.2,0.2,0.3,0.3c0.5,0.6,0.4,1.2-0.2,1.7c-0.5,0.4-1.1,0.5-1.7,0.6C16.7,12.8,16.4,12.8,16.2,12.8L16.2,12.8z"/>
+                    <path d="M16,30c-1.2,0-2.2-0.5-3.1-1.4c-0.4-0.4-0.4-0.8,0.1-1.1c0.7-0.4,1.4-0.6,2.2-0.7c1-0.1,2-0.1,3,0.2c0.2,0.1,0.5,0.2,0.7,0.3c0.6,0.3,0.7,0.6,0.2,1.2c0,0,0,0-0.1,0.1C18.3,29.5,17.3,30,16,30z"/>
+                    <path d="M7.8,16.8c0,1.1-0.2,2.1-0.6,3.1c-0.1,0.3-0.2,0.5-0.4,0.7C6.5,21,6.3,21,6,20.7c-1.4-1.4-1.2-4.1,0.5-5.3c0.6-0.5,1-0.4,1.2,0.4C7.7,16.1,7.8,16.5,7.8,16.8L7.8,16.8z"/>
+                    <path d="M26.9,18.3c0,0.8-0.3,1.7-0.9,2.4c-0.3,0.3-0.5,0.3-0.8,0c-0.3-0.4-0.5-0.9-0.6-1.4c-0.3-1-0.4-2.1-0.3-3.2c0-0.2,0.1-0.5,0.2-0.7c0.2-0.4,0.4-0.5,0.8-0.2C26.3,15.8,26.9,16.9,26.9,18.3z"/>
+                    <path d="M7.5,13.9c-0.1-1.3,0.3-2.5,1.4-3.3c1.1-0.8,2.3-1,3.6-0.8c0,0.3-0.2,0.5-0.3,0.7c-0.7,0.9-1.6,1.6-2.4,2.3c-0.5,0.4-1,0.7-1.5,1C7.9,13.9,7.7,14.1,7.5,13.9z"/>
+                    <path d="M24.6,14c-0.2,0.1-0.5,0-0.7-0.2c-0.7-0.4-1.4-0.9-2-1.4c-0.7-0.6-1.3-1.2-1.9-1.8c-0.1-0.2-0.3-0.4-0.3-0.6c0.6-0.3,2.6-0.2,3.6,0.7C24.3,11.5,24.9,13.1,24.6,14z"/>
+                  </g></g>
                 </svg>
               </div>
               <span className="input-header" style={{ fontSize: 16, fontWeight: 700, color: "#2d2015", flex: 1 }}>
@@ -1006,11 +1020,11 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
                     <button onClick={handleGitUpdate} disabled={updating || !updateInfo?.hasUpdate} className="input-header" style={{
                       width: "100%", padding: "11px 0", borderRadius: 11, border: "none",
-                      background: updating ? "rgba(125,94,66,0.12)" : updateDone ? "rgba(74,222,128,0.15)" : updateInfo?.hasUpdate ? "linear-gradient(135deg,#BD9673,#7D5E42)" : "rgba(0,0,0,0.07)",
-                      color: updating || !updateInfo?.hasUpdate ? (updating ? "#7D5E42" : "rgba(0,0,0,0.3)") : "white",
+                      background: updating ? "rgba(125,94,66,0.12)" : updateDone ? "linear-gradient(135deg,#BD9673,#7D5E42)" : updateInfo?.hasUpdate ? "linear-gradient(135deg,#BD9673,#7D5E42)" : "rgba(0,0,0,0.07)",
+                      color: updating ? "#7D5E42" : updateDone ? "white" : updateInfo?.hasUpdate ? "white" : "rgba(0,0,0,0.3)",
                       fontSize: 14, fontWeight: 700, cursor: (updating || !updateInfo?.hasUpdate) ? "not-allowed" : "pointer",
                       display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s",
-                      boxShadow: updateInfo?.hasUpdate && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
+                      boxShadow: (updateInfo?.hasUpdate || updateDone) && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
                     }}>
                       {updating && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
                       {updating ? "Обновляю прошивку..." : updateDone ? "Готово! Перезагружаю..." : "Обновить прошивку"}
@@ -1138,7 +1152,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                   {/* Таблица песен */}
                                   <div style={{ display: "flex", flexDirection: "column" }}>
                                     {/* Шапка таблицы */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 52px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
+                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 90px 48px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Название</span>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Статус</span>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Тип</span>
@@ -1146,7 +1160,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                     {/* Строки */}
                                     {allChanges.map((c, j) => (
                                       <div key={j} style={{
-                                        display: "grid", gridTemplateColumns: "1fr 80px 52px",
+                                        display: "grid", gridTemplateColumns: "1fr 90px 48px",
                                         padding: "5px 12px", alignItems: "center",
                                         borderTop: "1px solid rgba(0,0,0,0.04)",
                                         background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
@@ -1155,13 +1169,14 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                           {c.title}
                                         </span>
                                         <span className="input-header" style={{
-                                          fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 6, display: "inline-block", textAlign: "center",
+                                          fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 6,
+                                          display: "inline-block", textAlign: "center", whiteSpace: "nowrap",
                                           color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
                                           background: c.action === "added" ? "rgba(74,222,128,0.15)" : c.action === "updated" ? "rgba(251,191,36,0.18)" : "rgba(248,113,113,0.15)",
                                         }}>
                                           {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
                                         </span>
-                                        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)" }}>
+                                        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)", whiteSpace: "nowrap" }}>
                                           {c.type === "song" ? "Песня" : "Стопка"}
                                         </span>
                                       </div>
