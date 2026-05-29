@@ -23,8 +23,12 @@ export async function GET() {
   let updateStage = "";
 
   if (existsSync(LOG_FILE)) {
+    const { mtimeMs } = require("fs").statSync(LOG_FILE);
+    const stale = Date.now() - mtimeMs > 15 * 60_000;
     const log = readFileSync(LOG_FILE, "utf8");
-    if (log.includes("DONE")) {
+    if (stale && !log.includes("DONE")) {
+      // Stale log without DONE — treat as idle
+    } else if (log.includes("DONE")) {
       processStatus = "done"; updateProgress = 100; updateStage = "Готово";
     } else if (log.includes("RESTARTING")) {
       processStatus = "restarting"; updateProgress = 90; updateStage = "Перезапуск сервисов";
