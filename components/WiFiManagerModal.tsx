@@ -152,6 +152,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [forgetting, setForgetting] = useState<string | null>(null);
   const statusTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastScanRef = useRef<number>(0);
+  const lastFirmwareCheckRef = useRef<number>(0);
 
   // Firmware
   const [syncing, setSyncing] = useState(false);
@@ -269,10 +270,14 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     handleScan();
   }, [tab, handleScan, scanning]);
 
-  // ── Refresh firmware + DB when firmware tab opens ────────────────────────────
+  // ── Refresh firmware + DB when firmware tab opens (5 min cooldown) ──────────
   useEffect(() => {
     if (tab !== "firmware") return;
-    checkUpdate();
+    const now = Date.now();
+    if (now - lastFirmwareCheckRef.current > 5 * 60_000) {
+      lastFirmwareCheckRef.current = now;
+      checkUpdate();
+    }
     fetch("/api/update-db")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); })
