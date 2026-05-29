@@ -94,7 +94,7 @@ export async function POST() {
   const child = spawn(
     "bash",
     [
-      "-c",
+      "-lc",
       `echo "START $(date)" > ${LOG_FILE} && \
 cd ${APP_DIR} && \
 echo "PULLING" >> ${LOG_FILE} && \
