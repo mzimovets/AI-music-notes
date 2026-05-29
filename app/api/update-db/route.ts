@@ -4,17 +4,23 @@ import { join } from "path";
 
 const BACKEND = process.env.NEXT_PUBLIC_BASIC_BACK_URL || "http://localhost:4000";
 const SYNC_STATE_PATH = join(process.cwd(), "server", "sync-state.json");
+const SYNC_HISTORY_PATH = join(process.cwd(), "server", "sync-history.json");
 
 export async function GET() {
   let lastSyncedAt = 0;
+  let history: any[] = [];
   try {
     if (existsSync(SYNC_STATE_PATH)) {
-      const raw = readFileSync(SYNC_STATE_PATH, "utf8");
-      const parsed = JSON.parse(raw);
+      const parsed = JSON.parse(readFileSync(SYNC_STATE_PATH, "utf8"));
       lastSyncedAt = parsed.timestamp || parsed.lastSyncedAt || 0;
     }
   } catch {}
-  return NextResponse.json({ lastSyncedAt });
+  try {
+    if (existsSync(SYNC_HISTORY_PATH)) {
+      history = JSON.parse(readFileSync(SYNC_HISTORY_PATH, "utf8"));
+    }
+  } catch {}
+  return NextResponse.json({ lastSyncedAt, history });
 }
 
 export async function POST() {

@@ -27,6 +27,13 @@ interface UpdateInfo {
   hasUpdate?: boolean; error?: string;
   remote?: { sha: string; message: string; date: string };
 }
+interface SyncHistoryEntry {
+  timestamp: number;
+  added: { title: string; type: string }[];
+  updated: { title: string; type: string }[];
+  deleted: { title: string; type: string }[];
+  duration: number;
+}
 type Tab = "system" | "network" | "firmware";
 
 // ── Fan SVG ────────────────────────────────────────────────────────────────────
@@ -166,6 +173,9 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number>(0);
+  const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const syncPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const checkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -228,14 +238,23 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     return () => { if (checkTimer.current) clearInterval(checkTimer.current); };
   }, [isOpen, checkUpdate]);
 
-  // ── Fetch last sync time on open ─────────────────────────────────────────────
+  // ── Poll sync status every 5 min ─────────────────────────────────────────────
+  const fetchSyncStatus = useCallback(async () => {
+    try {
+      const r = await fetch("/api/update-db");
+      if (!r.ok) return;
+      const d = await r.json();
+      if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt);
+      if (d?.history) setSyncHistory(d.history);
+    } catch {}
+  }, []);
+
   useEffect(() => {
-    if (!isOpen) return;
-    fetch("/api/update-db")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); })
-      .catch(() => {});
-  }, [isOpen]);
+    if (!isOpen) { if (syncPollTimer.current) clearInterval(syncPollTimer.current); return; }
+    fetchSyncStatus();
+    syncPollTimer.current = setInterval(fetchSyncStatus, 5 * 60_000);
+    return () => { if (syncPollTimer.current) clearInterval(syncPollTimer.current); };
+  }, [isOpen, fetchSyncStatus]);
 
   // ── Reset on close ───────────────────────────────────────────────────────────
   useEffect(() => {
@@ -277,11 +296,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       lastFirmwareCheckRef.current = now;
       checkUpdate();
     }
-    fetch("/api/update-db")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); })
-      .catch(() => {});
-  }, [tab, checkUpdate]);
+    fetchSyncStatus();
+  }, [tab, checkUpdate, fetchSyncStatus]);
 
   const handleConnectSaved = async (networkId: string, ssid: string) => {
     setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
@@ -351,7 +367,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   // ── DB Sync ──────────────────────────────────────────────────────────────────
   const handleSync = async () => {
     if (syncing) return;
-    setSyncing(true); setSyncProgress(5);
+    setSyncing(true); setSyncProgress(5); setHistoryOpen(false);
     let p = 5;
     progressTimer.current = setInterval(() => { p = Math.min(p + Math.random() * 5 + 2, 85); setSyncProgress(p); }, 400);
     const startedAt = Date.now();
@@ -361,7 +377,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       if (progressTimer.current) clearInterval(progressTimer.current);
       setSyncProgress(100); setSyncResult({ ...data, startedAt });
       setLogOpen(true); setTimeout(() => setSyncProgress(0), 700);
-      fetch("/api/update-db").then((r) => r.ok ? r.json() : null).then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); }).catch(() => {});
+      fetchSyncStatus();
     } catch (e: any) {
       if (progressTimer.current) clearInterval(progressTimer.current);
       setSyncProgress(0); setSyncResult({ ok: false, error: String(e?.message ?? "Ошибка"), duration: 0, logs: [], startedAt });
@@ -966,10 +982,16 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </div>
                       )}
                     </div>
+
+                    {/* Auto-sync note */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 5, marginBottom: 8 }}>
+                      <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
+                      <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)" }}>Авто-синхронизация каждые 5 минут</span>
+                    </div>
+
                     <div style={{ display: "flex", gap: 8 }}>
                       <button onClick={handleSync} disabled={syncing} className="input-header" style={{
-                        flex: 1, padding: "11px 0", borderRadius: syncResult ? "11px 0 0 11px" : 11, border: "none",
-                        borderRight: syncResult ? "1px solid rgba(0,0,0,0.06)" : "none",
+                        flex: 1, padding: "11px 0", borderRadius: 11, border: "none",
                         background: syncing ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.7)",
                         color: "#7D5E42", fontSize: 14, fontWeight: 700,
                         cursor: syncing ? "not-allowed" : "pointer",
@@ -977,35 +999,116 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       }}>
                         {syncing ? <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>}
-                        {syncing ? "Синхронизирую..." : "Синхронизировать"}
+                        {syncing ? "Синхронизирую..." : "Синхронизировать вручную"}
                       </button>
-                      {syncResult && (
-                        <button onClick={() => setLogOpen((v) => !v)} style={{
-                          width: 40, background: logOpen ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.7)",
-                          border: "none", borderRadius: "0 11px 11px 0", cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}>
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={syncResult.ok ? "rgba(0,0,0,0.4)" : "#dc2626"} strokeWidth="2.5" strokeLinecap="round" style={{ transform: logOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
-                            <polyline points="6 9 12 15 18 9"/>
-                          </svg>
-                        </button>
-                      )}
                     </div>
+
                     {syncing && syncProgress > 0 && (
-                      <div style={{ height: 3, background: "rgba(0,0,0,0.06)", borderRadius: "0 0 4px 4px", overflow: "hidden", marginTop: 2 }}>
+                      <div style={{ height: 3, background: "rgba(0,0,0,0.06)", borderRadius: 3, overflow: "hidden", marginTop: 6 }}>
                         <div style={{ height: "100%", width: `${syncProgress}%`, background: "linear-gradient(90deg,#BD9673,#7D5E42)", transition: "width 0.4s ease" }} />
                       </div>
                     )}
-                    {logOpen && syncResult && (
-                      <div style={{ background: "rgba(22,14,6,0.87)", borderRadius: "0 0 11px 11px", padding: "8px 10px", maxHeight: 130, overflowY: "auto", marginTop: 2 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
-                          <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{new Date(syncResult.startedAt).toLocaleTimeString("ru")}</span>
-                          <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{(syncResult.duration / 1000).toFixed(1)}с</span>
-                        </div>
-                        {syncResult.logs.length > 0
-                          ? syncResult.logs.map((e, i) => <div key={i} style={{ fontFamily: "monospace", fontSize: 11, lineHeight: 1.5, color: e.level === "error" ? "#f87171" : e.level === "warn" ? "#fbbf24" : "#a3e635", wordBreak: "break-all" }}>{e.line}</div>)
-                          : <div style={{ fontFamily: "monospace", fontSize: 11, color: syncResult.ok ? "#a3e635" : "#f87171" }}>{syncResult.ok ? "✓ Готово" : `✗ ${syncResult.error ?? "Ошибка"}`}</div>
-                        }
+
+                    {/* История изменений */}
+                    {syncHistory.length > 0 && (
+                      <div style={{ marginTop: 8 }}>
+                        <button onClick={() => setHistoryOpen((v) => !v)} style={{
+                          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "none", border: "none", cursor: "pointer", padding: "4px 0",
+                        }}>
+                          <span className="input-header" style={{ fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.45)" }}>
+                            История изменений · {syncHistory.length} записей
+                          </span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" strokeLinecap="round"
+                            style={{ transform: historyOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+
+                        {historyOpen && (
+                          <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 8, maxHeight: 320, overflowY: "auto" }}>
+                            {syncHistory.map((entry, i) => {
+                              const allChanges = [
+                                ...entry.added.map(c => ({ ...c, action: "added" as const })),
+                                ...entry.updated.map(c => ({ ...c, action: "updated" as const })),
+                                ...entry.deleted.map(c => ({ ...c, action: "deleted" as const })),
+                              ];
+                              return (
+                                <div key={i} style={{ background: "rgba(0,0,0,0.03)", borderRadius: 10, overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)" }}>
+                                  {/* Заголовок */}
+                                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 10px", background: "rgba(0,0,0,0.04)" }}>
+                                    <span className="input-header" style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.5)" }}>
+                                      {new Date(entry.timestamp).toLocaleString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                                    </span>
+                                    <div style={{ display: "flex", gap: 6 }}>
+                                      {entry.added.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#166534", background: "rgba(74,222,128,0.15)", padding: "1px 6px", borderRadius: 5 }}>+{entry.added.length}</span>}
+                                      {entry.updated.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#92400e", background: "rgba(251,191,36,0.18)", padding: "1px 6px", borderRadius: 5 }}>~{entry.updated.length}</span>}
+                                      {entry.deleted.length > 0 && <span style={{ fontSize: 10, fontWeight: 700, color: "#991b1b", background: "rgba(248,113,113,0.15)", padding: "1px 6px", borderRadius: 5 }}>−{entry.deleted.length}</span>}
+                                    </div>
+                                  </div>
+                                  {/* Таблица */}
+                                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                                    <thead>
+                                      <tr style={{ background: "rgba(0,0,0,0.03)" }}>
+                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 10px", textTransform: "uppercase", letterSpacing: 0.3 }}>Название</th>
+                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 8px", textTransform: "uppercase", letterSpacing: 0.3, width: 80 }}>Действие</th>
+                                        <th className="input-header" style={{ fontSize: 10, fontWeight: 700, color: "rgba(0,0,0,0.35)", textAlign: "left", padding: "4px 10px 4px 4px", textTransform: "uppercase", letterSpacing: 0.3, width: 60 }}>Тип</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {allChanges.map((c, j) => (
+                                        <tr key={j} style={{ borderTop: "1px solid rgba(0,0,0,0.05)" }}>
+                                          <td className="input-header" style={{ fontSize: 12, color: "#2d2015", padding: "5px 10px", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.title}</td>
+                                          <td style={{ padding: "5px 8px" }}>
+                                            <span className="input-header" style={{
+                                              fontSize: 10, fontWeight: 700, padding: "2px 7px", borderRadius: 5,
+                                              color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
+                                              background: c.action === "added" ? "rgba(74,222,128,0.15)" : c.action === "updated" ? "rgba(251,191,36,0.18)" : "rgba(248,113,113,0.15)",
+                                            }}>
+                                              {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
+                                            </span>
+                                          </td>
+                                          <td className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", padding: "5px 10px 5px 4px" }}>
+                                            {c.type === "song" ? "Песня" : "Стопка"}
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {syncResult && (
+                      <div style={{ marginTop: 6 }}>
+                        <button onClick={() => setLogOpen((v) => !v)} style={{
+                          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+                          background: "none", border: "none", cursor: "pointer", padding: "4px 0",
+                        }}>
+                          <span className="input-header" style={{ fontSize: 12, fontWeight: 700, color: syncResult.ok ? "rgba(0,0,0,0.4)" : "#dc2626" }}>
+                            {syncResult.ok ? "Лог последней синхронизации" : "Ошибка синхронизации"}
+                          </span>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={syncResult.ok ? "rgba(0,0,0,0.35)" : "#dc2626"} strokeWidth="2.5" strokeLinecap="round"
+                            style={{ transform: logOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}>
+                            <polyline points="6 9 12 15 18 9"/>
+                          </svg>
+                        </button>
+                        {logOpen && (
+                          <div style={{ background: "rgba(22,14,6,0.87)", borderRadius: 10, padding: "8px 10px", maxHeight: 130, overflowY: "auto", marginTop: 4 }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+                              <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{new Date(syncResult.startedAt).toLocaleTimeString("ru")}</span>
+                              <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.3)" }}>{(syncResult.duration / 1000).toFixed(1)}с</span>
+                            </div>
+                            {syncResult.logs.length > 0
+                              ? syncResult.logs.map((e, i) => <div key={i} style={{ fontFamily: "monospace", fontSize: 11, lineHeight: 1.5, color: e.level === "error" ? "#f87171" : e.level === "warn" ? "#fbbf24" : "#a3e635", wordBreak: "break-all" }}>{e.line}</div>)
+                              : <div style={{ fontFamily: "monospace", fontSize: 11, color: syncResult.ok ? "#a3e635" : "#f87171" }}>{syncResult.ok ? "✓ Готово" : `✗ ${syncResult.error ?? "Ошибка"}`}</div>
+                            }
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

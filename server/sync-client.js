@@ -16,6 +16,19 @@ const INTERNET_URL = process.env.SYNC_MASTER_URL; // https://songs.nevsky-sobor.
 const SYNC_API_KEY = process.env.SYNC_API_KEY;
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 минут
 const STATE_FILE = path.join(__dirname, "sync-state.json");
+const HISTORY_FILE = path.join(__dirname, "sync-history.json");
+const HISTORY_MAX = 30;
+
+function loadHistory() {
+  try { return JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8")); } catch { return []; }
+}
+
+function saveHistory(entry) {
+  const history = loadHistory();
+  history.unshift(entry);
+  if (history.length > HISTORY_MAX) history.splice(HISTORY_MAX);
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf8"); } catch {}
+}
 
 function getLastSyncTimestamp() {
   try {
@@ -363,31 +376,59 @@ export async function syncFromInternet() {
 
   const lagStats = calcStats(lagValues);
 
-  // Upsert songs
+  // Track changes for history
+  const changeAdded = [];
+  const changeUpdated = [];
+  const changeDeleted = [];
+
+  // Upsert songs — determine added vs updated
   for (const song of songs) {
+    const existing = await dbFindOne({ _id: song._id });
     await dbUpdate({ _id: song._id }, song);
     if (song.file?.filename) await downloadFile(song.file.filename);
+    const title = song.title || song.name || song._id;
+    if (existing) changeUpdated.push({ title, type: "song" });
+    else changeAdded.push({ title, type: "song" });
   }
 
   // Upsert stacks
   for (const stack of stacks) {
+    const existing = await dbFindOne({ _id: stack._id });
     await dbUpdate({ _id: stack._id }, stack);
+    const title = stack.title || stack.name || stack._id;
+    if (existing) changeUpdated.push({ title, type: "stack" });
+    else changeAdded.push({ title, type: "stack" });
   }
 
   // Физически удаляем soft-deleted записи у реплики вместе с файлами
   if (deletedSongIds.length) {
-    // Сначала достаём записи из локальной БД, чтобы знать имена файлов
     const docsToDelete = await dbFind({ _id: { $in: deletedSongIds } });
     for (const doc of docsToDelete) {
       deleteLocalFile(doc.file?.filename);
+      changeDeleted.push({ title: doc.title || doc.name || doc._id, type: "song" });
     }
     await dbRemove({ _id: { $in: deletedSongIds } });
   }
   if (deletedStackIds.length) {
+    const docsToDelete = await dbFind({ _id: { $in: deletedStackIds } });
+    for (const doc of docsToDelete) {
+      changeDeleted.push({ title: doc.title || doc.name || doc._id, type: "stack" });
+    }
     await dbRemove({ _id: { $in: deletedStackIds } });
   }
 
   saveLastSyncTimestamp(timestamp);
+
+  // Save history entry if anything changed
+  if (changeAdded.length || changeUpdated.length || changeDeleted.length) {
+    saveHistory({
+      timestamp: syncStartTs,
+      added: changeAdded,
+      updated: changeUpdated,
+      deleted: changeDeleted,
+      duration: Date.now() - syncStartTs,
+    });
+  }
 
   // ----- Метрика №3: Bandwidth Efficiency -----
   // Сравниваем размер дельты с гипотетическим полным экспортом.
