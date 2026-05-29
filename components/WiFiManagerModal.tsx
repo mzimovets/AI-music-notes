@@ -2,7 +2,7 @@
 
 import { Modal, ModalContent } from "@heroui/modal";
 import { Chip } from "@heroui/chip";
-import { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 
 interface Props { isOpen: boolean; onClose: () => void; }
 
@@ -1152,42 +1152,54 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                       )}
                                     </div>
                                   </div>
-                                  {/* Таблица песен */}
-                                  <div style={{ display: "flex", flexDirection: "column" }}>
-                                    {/* Шапка таблицы */}
-                                    <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "0 8px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
-                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Название</span>
-                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Статус</span>
-                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Тип</span>
-                                    </div>
-                                    {/* Строки */}
+                                  {/* Таблица песен — единая сетка, заголовок + строки выровнены */}
+                                  <div style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "1fr auto auto",
+                                    columnGap: 8,
+                                    padding: "0 12px",
+                                  }}>
+                                    {/* Заголовки */}
+                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Название</span>
+                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Статус</span>
+                                    <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, padding: "3px 0", background: "rgba(0,0,0,0.025)" }}>Тип</span>
+                                    {/* Строки данных */}
                                     {allChanges.map((c, j) => (
-                                      <div key={j} style={{
-                                        display: "grid", gridTemplateColumns: "1fr auto auto",
-                                        gap: "0 8px", padding: "4px 12px", alignItems: "center",
-                                        borderTop: "1px solid rgba(0,0,0,0.04)",
-                                        background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
-                                      }}>
-                                        <span className="input-header" style={{ fontSize: 12, color: "#2d2015", fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                      <React.Fragment key={j}>
+                                        <span className="input-header" style={{
+                                          fontSize: 12, color: "#2d2015", fontWeight: 500,
+                                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                          padding: "5px 0", alignSelf: "center",
+                                          borderTop: "1px solid rgba(0,0,0,0.04)",
+                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
+                                        }}>
                                           {c.title}
                                         </span>
-                                        <Chip
-                                          size="sm"
-                                          variant="flat"
-                                          color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
-                                          classNames={{ content: "input-header font-bold text-[10px]" }}
-                                        >
-                                          {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
-                                        </Chip>
-                                        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.38)", whiteSpace: "nowrap" }}>
+                                        <div style={{
+                                          display: "flex", alignItems: "center",
+                                          padding: "3px 0",
+                                          borderTop: "1px solid rgba(0,0,0,0.04)",
+                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
+                                        }}>
+                                          <Chip size="sm" variant="flat"
+                                            color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
+                                            classNames={{ content: "input-header font-bold text-[10px]" }}
+                                          >
+                                            {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
+                                          </Chip>
+                                        </div>
+                                        <span className="input-header" style={{
+                                          fontSize: 11, color: "rgba(0,0,0,0.38)", whiteSpace: "nowrap",
+                                          padding: "5px 0", alignSelf: "center",
+                                          borderTop: "1px solid rgba(0,0,0,0.04)",
+                                          background: j % 2 === 0 ? "transparent" : "rgba(0,0,0,0.015)",
+                                        }}>
                                           {c.type === "song" ? "Песня" : "Стопка"}
                                         </span>
-                                      </div>
+                                      </React.Fragment>
                                     ))}
                                     {total === 0 && (
-                                      <div style={{ padding: "8px 12px" }}>
-                                        <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Изменений нет</span>
-                                      </div>
+                                      <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)", padding: "8px 0", gridColumn: "1 / -1" }}>Изменений нет</span>
                                     )}
                                   </div>
                                 </div>
