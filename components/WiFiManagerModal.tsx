@@ -1048,12 +1048,9 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                           background: syncFresh ? "#4ade80" : lastSyncedAt > Date.now() - 60 * 60_000 ? "#fbbf24" : "#f87171",
                           boxShadow: syncFresh ? "0 0 0 2px rgba(74,222,128,0.22)" : "none",
                         }} />
-                        <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: syncFresh ? "#166534" : "rgba(0,0,0,0.4)", flex: 1 }}>
-                          {syncFresh ? "Актуальная база данных" : `Синхронизировано ${fmtAgo(lastSyncedAt)}`}
+                        <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", flex: 1 }}>
+                          Синхронизировано {fmtAgo(lastSyncedAt)}
                         </span>
-                        {syncFresh && (
-                          <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{fmtAgo(lastSyncedAt)}</span>
-                        )}
                       </div>
                     )}
 
