@@ -1036,7 +1036,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                   </div>
 
                   {/* DB Sync */}
-                  <div style={card}>
+                  <div style={{ ...card, maxHeight: 420, overflowY: "auto" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
                     </div>
