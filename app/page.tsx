@@ -161,8 +161,17 @@ export default function Home() {
     };
 
     socket.on("stack-visibility-changed", handleVisibilityChanged);
+
+    // После синхронизации БД обновляем данные
+    const handleDbSync = () => {
+      fetchAllSongs();
+      fetchAllStacks();
+    };
+    window.addEventListener("db-sync-complete", handleDbSync);
+
     return () => {
       socket.off("stack-visibility-changed", handleVisibilityChanged);
+      window.removeEventListener("db-sync-complete", handleDbSync);
     };
   }, []);
 

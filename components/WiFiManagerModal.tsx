@@ -388,6 +388,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       } else {
         await fetchSyncStatus();
         setHistoryOpen(true);
+        // Уведомляем page.tsx обновить данные (песни/стопки)
+        window.dispatchEvent(new CustomEvent("db-sync-complete"));
       }
     } catch (e: any) {
       if (progressTimer.current) clearInterval(progressTimer.current);
@@ -1102,7 +1104,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>
                             </div>
                           )}
-                            {syncHistory.map((entry, i) => {
+                            {syncHistory.slice(0, 10).map((entry, i) => {
                               const allChanges = [
                                 ...entry.added.map(c => ({ ...c, action: "added" as const })),
                                 ...entry.updated.map(c => ({ ...c, action: "updated" as const })),
@@ -1155,7 +1157,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                     {/* Шапка таблицы */}
                                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto", gap: "0 8px", padding: "3px 12px", background: "rgba(0,0,0,0.025)" }}>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Название</span>
-                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5, textAlign: "center" }}>Статус</span>
+                                      <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Статус</span>
                                       <span className="input-header" style={{ fontSize: 9, fontWeight: 700, color: "rgba(0,0,0,0.28)", textTransform: "uppercase", letterSpacing: 0.5 }}>Тип</span>
                                     </div>
                                     {/* Строки */}
@@ -1173,6 +1175,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                           size="sm"
                                           variant="flat"
                                           color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
+                                          classNames={{ content: "input-header font-bold text-[10px]" }}
                                         >
                                           {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
                                         </Chip>
