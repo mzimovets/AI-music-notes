@@ -503,7 +503,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>ОЗУ</span>
                         <ProgressBar value={sysData?.ramUsed ?? 0} max={sysData?.ramTotal ?? 4096} color="#BD9673" />
                         <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 50, textAlign: "right" }}>
-                          {sysData ? `${sysData.ramUsed}М` : "—"}
+                          {sysData ? `${sysData.ramUsed}МБ` : "—"}
                         </span>
                       </div>
 
