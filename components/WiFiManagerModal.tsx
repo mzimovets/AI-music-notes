@@ -267,6 +267,16 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     handleScan();
   }, [tab, handleScan, scanning]);
 
+  // ── Refresh firmware + DB when firmware tab opens ────────────────────────────
+  useEffect(() => {
+    if (tab !== "firmware") return;
+    checkUpdate();
+    fetch("/api/update-db")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt); })
+      .catch(() => {});
+  }, [tab, checkUpdate]);
+
   const handleConnectSaved = async (networkId: string, ssid: string) => {
     setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
     try {
