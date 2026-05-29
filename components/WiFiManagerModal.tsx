@@ -26,6 +26,8 @@ interface SyncResult { ok: boolean; error?: string; duration: number; logs: Sync
 interface UpdateInfo {
   hasUpdate?: boolean; error?: string;
   remote?: { sha: string; message: string; date: string };
+  localSha?: string;
+  recentCommits?: { sha: string; message: string; date: string }[];
 }
 interface SyncHistoryEntry {
   timestamp: number;
@@ -172,6 +174,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
+  const [firmwareLogOpen, setFirmwareLogOpen] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number>(0);
   const [syncHistory, setSyncHistory] = useState<SyncHistoryEntry[]>([]);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -915,9 +918,35 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                             )}
                           </div>
                         ) : (
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
-                            <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>Изменений нет. Актуальная прошивка</span>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", flexShrink: 0 }} />
+                              <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", flex: 1 }}>Актуальная прошивка</span>
+                              {updateInfo.localSha && (
+                                <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(0,0,0,0.25)" }}>{updateInfo.localSha}</span>
+                              )}
+                              {(updateInfo.recentCommits?.length ?? 0) > 0 && (
+                                <button onClick={() => setFirmwareLogOpen(v => !v)} className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                                  {firmwareLogOpen ? "Скрыть" : "Подробнее"}
+                                </button>
+                              )}
+                            </div>
+                            {firmwareLogOpen && updateInfo.recentCommits && (
+                              <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 2 }}>
+                                {updateInfo.recentCommits.map((c, i) => (
+                                  <div key={i} style={{
+                                    display: "flex", alignItems: "flex-start", gap: 8,
+                                    padding: "6px 10px", borderRadius: 8,
+                                    background: i === 0 ? "rgba(74,222,128,0.08)" : "rgba(0,0,0,0.03)",
+                                    border: i === 0 ? "1px solid rgba(74,222,128,0.2)" : "1px solid rgba(0,0,0,0.05)",
+                                  }}>
+                                    <span style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(0,0,0,0.3)", flexShrink: 0, marginTop: 1 }}>{c.sha}</span>
+                                    <span className="input-header" style={{ fontSize: 12, color: "#2d2015", flex: 1, lineHeight: 1.4 }}>{c.message}</span>
+                                    <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)", flexShrink: 0, whiteSpace: "nowrap" }}>{fmtDate(c.date)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

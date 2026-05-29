@@ -62,26 +62,38 @@ export async function GET() {
   try {
     const headers: Record<string, string> = { "Accept": "application/vnd.github.v3+json" };
     if (process.env.GITHUB_TOKEN) headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
-    const res = await fetch(`https://api.github.com/repos/${REPO}/commits/main`, {
-      headers,
-      next: { revalidate: 0 },
-    });
 
-    if (!res.ok) {
+    const [latestRes, commitsRes] = await Promise.all([
+      fetch(`https://api.github.com/repos/${REPO}/commits/main`, { headers, next: { revalidate: 0 } }),
+      fetch(`https://api.github.com/repos/${REPO}/commits?per_page=10`, { headers, next: { revalidate: 0 } }),
+    ]);
+
+    if (!latestRes.ok) {
       return NextResponse.json({ processStatus, updateProgress, updateStage, error: "GitHub API недоступен" }, { status: 502 });
     }
 
-    const data = await res.json();
+    const data = await latestRes.json();
     const remoteSha: string = data.sha ?? "";
     const message: string = data.commit?.message ?? "";
     const date: string = data.commit?.author?.date ?? data.commit?.committer?.date ?? "";
     const sha = localSha();
+
+    let recentCommits: { sha: string; message: string; date: string }[] = [];
+    if (commitsRes.ok) {
+      const commits = await commitsRes.json();
+      recentCommits = (Array.isArray(commits) ? commits : []).slice(0, 10).map((c: any) => ({
+        sha: (c.sha ?? "").slice(0, 7),
+        message: c.commit?.message ?? "",
+        date: c.commit?.author?.date ?? c.commit?.committer?.date ?? "",
+      }));
+    }
 
     return NextResponse.json({
       processStatus, updateProgress, updateStage,
       hasUpdate: !!remoteSha && remoteSha !== sha,
       remote: { sha: remoteSha.slice(0, 7), message, date },
       localSha: sha.slice(0, 7),
+      recentCommits,
     });
   } catch {
     return NextResponse.json({ processStatus, updateProgress, updateStage, error: "Нет соединения с GitHub" }, { status: 500 });
