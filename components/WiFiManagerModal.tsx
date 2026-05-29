@@ -34,15 +34,13 @@ function FanIcon({ rpm }: { rpm: number }) {
   const duration = rpm > 100 ? `${Math.max(0.08, 6000 / rpm).toFixed(2)}s` : undefined;
   return (
     <svg
-      viewBox="0 0 40 40" width="36" height="36"
+      viewBox="0 0 24 24" width="36" height="36"
       className={duration ? "animate-spin" : ""}
       style={duration ? { animationDuration: duration } : undefined}
+      xmlns="http://www.w3.org/2000/svg"
     >
-      <circle cx="20" cy="20" r="3.5" fill="#7D5E42" />
-      <path d="M20 16.5 C21.5 11 23 5 20 3 C16 3 14.5 9 17.5 14 Z" fill="#BD9673" opacity="0.9"/>
-      <path d="M23.5 20 C29 18.5 35 17 37 20 C38 24 33 26.5 28 23.5 Z" fill="#BD9673" opacity="0.9"/>
-      <path d="M20 23.5 C18.5 29 17 35 20 37 C24 38 25.5 32 22.5 27 Z" fill="#BD9673" opacity="0.9"/>
-      <path d="M16.5 20 C11 21.5 5 23 3 20 C2 16 7 13.5 12 16.5 Z" fill="#BD9673" opacity="0.9"/>
+      <rect width="24" height="24" fill="none"/>
+      <path fill="#BD9673" d="M12,11a1,1,0,1,0,1,1,1,1,0,0,0-1-1m.5-9C17,2,17.1,5.57,14.73,6.75a3.36,3.36,0,0,0-1.62,2.47,3.17,3.17,0,0,1,1.23.91C18,8.13,22,8.92,22,12.5c0,4.5-3.58,4.6-4.75,2.23a3.44,3.44,0,0,0-2.5-1.62,3.24,3.24,0,0,1-.91,1.23c2,3.69,1.2,7.66-2.38,7.66C7,22,6.89,18.42,9.26,17.24a3.46,3.46,0,0,0,1.62-2.45,3,3,0,0,1-1.25-.92C5.94,15.85,2,15.07,2,11.5,2,7,5.54,6.89,6.72,9.26A3.39,3.39,0,0,0,9.2,10.87a2.91,2.91,0,0,1,.92-1.22C8.13,6,8.92,2,12.48,2Z"/>
     </svg>
   );
 }
