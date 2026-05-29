@@ -160,6 +160,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const [syncProgress, setSyncProgress] = useState(0);
   const [updating, setUpdating] = useState(false);
   const [updateDone, setUpdateDone] = useState(false);
+  const [updateProgress, setUpdateProgress] = useState(0);
+  const [updateStage, setUpdateStage] = useState("");
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
@@ -354,7 +356,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   // ── Firmware update ──────────────────────────────────────────────────────────
   const handleGitUpdate = async () => {
     if (updating) return;
-    setUpdating(true); setUpdateDone(false);
+    setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск");
     try {
       await fetch("/api/git-update", { method: "POST" });
       let failures = 0;
@@ -363,8 +365,11 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
           const res = await fetch("/api/git-update");
           if (res.ok) {
             const data = await res.json();
+            if (data.updateProgress) setUpdateProgress(data.updateProgress);
+            if (data.updateStage) setUpdateStage(data.updateStage);
             if (data.processStatus === "done") {
-              clearInterval(poll); setUpdateDone(true); setUpdating(false);
+              clearInterval(poll); setUpdateProgress(100); setUpdateStage("Готово");
+              setUpdateDone(true); setUpdating(false);
               setTimeout(() => window.location.reload(), 1500);
             }
           }
@@ -883,6 +888,22 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                             <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)" }}>Изменений нет. Актуальная прошивка</span>
                           </div>
                         )}
+                      </div>
+                    )}
+
+                    {updating && (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600 }}>{updateStage}</span>
+                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700 }}>{updateProgress}%</span>
+                        </div>
+                        <div style={{ height: 5, background: "rgba(0,0,0,0.07)", borderRadius: 3, overflow: "hidden" }}>
+                          <div style={{
+                            height: "100%", width: `${updateProgress}%`, borderRadius: 3,
+                            background: "linear-gradient(90deg,#BD9673,#7D5E42)",
+                            transition: "width 0.8s ease",
+                          }} />
+                        </div>
                       </div>
                     )}
 

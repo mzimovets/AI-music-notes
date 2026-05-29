@@ -60,7 +60,7 @@ export async function GET() {
 
   const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr] = await Promise.all([
     run("cat /sys/class/thermal/thermal_zone0/temp"),
-    run("{ cat /sys/class/hwmon/hwmon0/fan1_input 2>/dev/null || cat /sys/class/hwmon/hwmon1/fan1_input 2>/dev/null || cat /sys/class/hwmon/hwmon2/fan1_input 2>/dev/null; } | head -1"),
+    run("cat /sys/class/hwmon/hwmon*/fan1_input 2>/dev/null | head -1"),
     run("cat /proc/loadavg"),
     run("cat /proc/meminfo"),
     run("cat /proc/uptime"),

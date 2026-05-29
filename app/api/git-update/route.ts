@@ -19,17 +19,33 @@ function localSha(): string {
 // ── GET — check for update ─────────────────────────────────────────────────────
 
 export async function GET() {
-  // Update process status
+  // Update process status + progress
   let processStatus: "idle" | "running" | "restarting" | "done" = "idle";
+  let updateProgress = 0;
+  let updateStage = "";
   if (existsSync(LOG_FILE)) {
     const log = readFileSync(LOG_FILE, "utf8");
-    processStatus = log.includes("DONE") ? "done" : log.includes("RESTARTING") ? "restarting" : log.includes("START") ? "running" : "idle";
+    if (log.includes("DONE")) {
+      processStatus = "done"; updateProgress = 100; updateStage = "Готово";
+    } else if (log.includes("RESTARTING")) {
+      processStatus = "restarting"; updateProgress = 95; updateStage = "Перезапуск сервисов";
+    } else if (log.includes("Route (app)") || log.includes("✓ Compiled")) {
+      processStatus = "running"; updateProgress = 85; updateStage = "Финализация сборки";
+    } else if (log.includes("Creating an optimized") || log.includes("▲ Next.js")) {
+      processStatus = "running"; updateProgress = 55; updateStage = "Сборка приложения";
+    } else if (log.includes("audited") || log.includes("up to date")) {
+      processStatus = "running"; updateProgress = 35; updateStage = "Установка зависимостей";
+    } else if (log.includes("From https://github") || log.includes("Already up to date")) {
+      processStatus = "running"; updateProgress = 15; updateStage = "Загрузка кода";
+    } else if (log.includes("START")) {
+      processStatus = "running"; updateProgress = 5; updateStage = "Запуск";
+    }
   }
 
   // Mock for macOS dev
   if (!isLinux()) {
     return NextResponse.json({
-      processStatus,
+      processStatus, updateProgress, updateStage,
       hasUpdate: true,
       remote: {
         sha: "abc1234",
@@ -57,13 +73,13 @@ export async function GET() {
     const sha = localSha();
 
     return NextResponse.json({
-      processStatus,
+      processStatus, updateProgress, updateStage,
       hasUpdate: !!remoteSha && remoteSha !== sha,
       remote: { sha: remoteSha.slice(0, 7), message, date },
       localSha: sha.slice(0, 7),
     });
   } catch (err: any) {
-    return NextResponse.json({ processStatus, error: String(err?.message) }, { status: 500 });
+    return NextResponse.json({ processStatus, updateProgress, updateStage, error: String(err?.message) }, { status: 500 });
   }
 }
 
