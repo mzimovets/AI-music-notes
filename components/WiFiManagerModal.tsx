@@ -1163,14 +1163,14 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                   >
                                     <TableHeader>
                                       <TableColumn>Название</TableColumn>
-                                      <TableColumn>Статус</TableColumn>
-                                      <TableColumn>Тип</TableColumn>
+                                      <TableColumn align="center">Статус</TableColumn>
+                                      <TableColumn align="center">Тип</TableColumn>
                                     </TableHeader>
                                     <TableBody emptyContent="Изменений нет">
                                       {allChanges.map((c, j) => (
                                         <TableRow key={j}>
                                           <TableCell>{c.title}</TableCell>
-                                          <TableCell>
+                                          <TableCell className="text-center">
                                             <Chip size="sm" variant="flat"
                                               color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
                                               classNames={{ content: "input-header font-bold text-[10px]" }}
@@ -1178,7 +1178,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                               {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
                                             </Chip>
                                           </TableCell>
-                                          <TableCell className="text-black/40">{c.type === "song" ? "Песня" : "Стопка"}</TableCell>
+                                          <TableCell className="text-center text-black/40">{c.type === "song" ? "Песня" : "Стопка"}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
