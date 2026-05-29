@@ -1036,7 +1036,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                   </div>
 
                   {/* DB Sync */}
-                  <div style={{ ...card, maxHeight: 420, overflowY: "auto" }}>
+                  <div style={card}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
                     </div>
@@ -1096,7 +1096,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       </button>
 
                       {historyOpen && (
-                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
                           {syncHistory.length === 0 && (
                             <div style={{ padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>
