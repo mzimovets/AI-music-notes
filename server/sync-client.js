@@ -349,6 +349,7 @@ export async function syncFromInternet() {
   if (changeAdded.length || changeUpdated.length || changeDeleted.length) {
     saveHistory({
       timestamp: syncStartTs,
+      direction: "site→local",
       added: changeAdded,
       updated: changeUpdated,
       deleted: changeDeleted,

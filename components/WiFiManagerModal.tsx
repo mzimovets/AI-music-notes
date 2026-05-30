@@ -388,7 +388,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
         setLogOpen(true);
       } else {
         await fetchSyncStatus();
-        setHistoryOpen(true);
         // Уведомляем page.tsx обновить данные (песни/стопки)
         window.dispatchEvent(new CustomEvent("db-sync-complete"));
       }
@@ -1131,6 +1130,13 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                       {entry.duration > 0 && (
                                         <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.28)" }}>· {(entry.duration / 1000).toFixed(1)}с</span>
                                       )}
+                                      <span className="input-header" style={{
+                                        fontSize: 10, color: "rgba(0,0,0,0.3)",
+                                        background: "rgba(0,0,0,0.05)", borderRadius: 5,
+                                        padding: "1px 5px", letterSpacing: 0.2,
+                                      }}>
+                                        {(entry as any).direction === "local→site" ? "Плата → Сайт" : "Сайт → Плата"}
+                                      </span>
                                     </div>
                                     <div style={{ display: "flex", gap: 4 }}>
                                       {entry.added.length > 0 && (
