@@ -1,4 +1,5 @@
 import { database } from "../index.js";
+import { pushLocalChangeToRemote } from "../push-remote.js";
 
 export const songsRoutes = (app, urlencodedParser, upload) => {
   app.get("/song/:songId", (req, res) => {
@@ -41,6 +42,8 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
         console.log("adding song: ", req.params.songId, serverSong);
         if (err) console.log("err", err);
         res.json({ status: "ok", doc });
+        // Мгновенный push на мастер (фоново, не блокирует ответ)
+        if (!err && doc) pushLocalChangeToRemote(doc);
       });
     },
   );
@@ -62,10 +65,16 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
       database.update(
         { _id: req.params.songId },
         { $set: { ...serverSong } },
-        (err, doc) => {
+        (err, num) => {
           console.log("edited song: ", req.params.songId);
           if (err) console.log("err", err);
-          res.json({ status: "ok", doc });
+          res.json({ status: "ok", doc: num });
+          // Получаем обновлённый документ и пушим на мастер (фоново)
+          if (!err) {
+            database.findOne({ _id: req.params.songId }, (findErr, doc) => {
+              if (!findErr && doc) pushLocalChangeToRemote(doc);
+            });
+          }
         },
       );
     },
@@ -82,6 +91,12 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
         console.log("soft-deleted song: ", req.params.songId, num);
         if (err) console.log("err", err);
         res.json({ status: "ok", num });
+        // Получаем помеченный документ и пушим на мастер (фоново)
+        if (!err) {
+          database.findOne({ _id: req.params.songId }, (findErr, doc) => {
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
+          });
+        }
       },
     );
   });

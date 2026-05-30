@@ -9,6 +9,12 @@ import { database } from "./index.js";
 import { metricsDb } from "./metrics-db.js";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
+import {
+  pushSongToRemote,
+  pushFileToRemote,
+  pushStackToRemote,
+  flushOutbox,
+} from "./push-remote.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -142,89 +148,6 @@ function deleteLocalFile(filename) {
   }
 }
 
-// ---------------------------------------------------------------------
-// Сценарий A: Local wins — запись есть на локальном, нет на мастере
-// Пушим её на мастер вместе с файлом (если есть).
-// ---------------------------------------------------------------------
-
-async function pushSongToRemote(doc) {
-  const form = new FormData();
-  // Передаём полный документ как JSON-строку
-  form.append("doc", JSON.stringify(doc));
-
-  // Прикладываем PDF, если файл существует локально
-  const filename = doc.file?.filename;
-  if (filename) {
-    const filePath = path.join(__dirname, "uploads", filename);
-    if (fs.existsSync(filePath)) {
-      const blob = new Blob([fs.readFileSync(filePath)], {
-        type: doc.file.mimetype || "application/pdf",
-      });
-      form.append("file", blob, filename);
-    }
-  }
-
-  const res = await fetch(`${INTERNET_URL}/api/sync/push-song`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
-    body: form,
-    signal: AbortSignal.timeout(60_000), // увеличенный timeout для загрузки файла
-  });
-
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  console.log(`[sync/reconcile] Песня запушена на мастер: ${doc._id}`);
-}
-
-async function pushFileToRemote(filename, mimetype) {
-  const filePath = path.join(__dirname, "uploads", filename);
-  if (!fs.existsSync(filePath)) {
-    console.warn(
-      `[sync/reconcile] Файл не найден локально, пропускаю: ${filename}`,
-    );
-    return;
-  }
-
-  const form = new FormData();
-  const blob = new Blob([fs.readFileSync(filePath)], {
-    type: mimetype || "application/pdf",
-  });
-  form.append("file", blob, filename);
-  form.append("filename", filename);
-
-  const res = await fetch(`${INTERNET_URL}/api/sync/push-file`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${SYNC_API_KEY}` },
-    body: form,
-    signal: AbortSignal.timeout(60_000),
-  });
-
-  try {
-    console.log(
-      `[sync/reconcile] Восстанавливаю файл на мастере form: ${JSON.stringify(form)}`,
-    );
-  } catch (error) {
-    console.log("cannot stringify form data");
-  }
-
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  console.log(`[sync/reconcile] Файл восстановлен на мастере: ${filename}`);
-}
-
-async function pushStackToRemote(doc) {
-  const res = await fetch(`${INTERNET_URL}/api/sync/push-stack`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SYNC_API_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(doc),
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  console.log(`[sync/reconcile] Стопка запушена на мастер: ${doc._id}`);
-}
-
 // Полная сверка: находит локальные записи, которых нет на мастере, и пушит их.
 // Запускается раз в сутки — закрывает случаи hard-delete на мастере
 // и записей, созданных напрямую на локальном сервере.
@@ -332,6 +255,9 @@ export async function syncFromInternet() {
     );
     return;
   }
+
+  // Сначала отправляем накопившиеся изменения (если были без интернета)
+  await flushOutbox();
 
   const since = getLastSyncTimestamp();
   console.log(
@@ -487,11 +413,11 @@ export function startSyncScheduler() {
     syncFromInternet();
     setInterval(syncFromInternet, SYNC_INTERVAL_MS);
 
-    // Полная сверка (Local wins) — раз в сутки
-    // Первый прогон через 1 мин после старта, далее каждые 24 часа
+    // Полная сверка (Local wins) — раз в час
+    // Первый прогон через 1 мин после старта, далее каждый час
     setTimeout(() => {
       fullReconciliation();
-      setInterval(fullReconciliation, 24 * 60 * 60 * 1000);
+      setInterval(fullReconciliation, 60 * 60 * 1000);
     }, 60_000);
   }, 3000);
 }

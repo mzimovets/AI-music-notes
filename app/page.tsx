@@ -331,6 +331,7 @@ export default function Home() {
             <button
               onClick={() => setIsWifiManagerOpen(true)}
               aria-label="Управление платой"
+              className="hover:scale-110 active:scale-95"
               style={{ position: "relative",
                 width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
@@ -340,7 +341,7 @@ export default function Home() {
                 boxShadow: isOnBoardNetwork
                   ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
                   : "0 4px 14px rgba(0,0,0,0.2)",
-                transition: "box-shadow 0.3s ease, background 0.3s ease",
+                transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
               }}
             >
               <svg width="22" height="22" viewBox="0 0 32 32" fill={isOnBoardNetwork ? "rgba(255,255,255,0.95)" : "white"} xmlns="http://www.w3.org/2000/svg">

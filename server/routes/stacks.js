@@ -1,4 +1,5 @@
 import { database } from "../index.js";
+import { pushLocalChangeToRemote } from "../push-remote.js";
 
 export const stacksRoutes = (app, urlencodedParser) => {
   app.get("/stack/:stackId", (req, res) => {
@@ -22,6 +23,8 @@ export const stacksRoutes = (app, urlencodedParser) => {
       console.log("adding stack: ", req.params.stackId);
       if (err) console.log("err", err);
       res.json({ status: "ok", doc });
+      // Мгновенный push на мастер (фоново)
+      if (!err && doc) pushLocalChangeToRemote(doc);
     });
   });
 
@@ -30,10 +33,16 @@ export const stacksRoutes = (app, urlencodedParser) => {
     database.update(
       { _id: req.params.stackId },
       { $set: { ...req.body, updatedAt: Date.now() } },
-      (err, doc) => {
+      (err, num) => {
         console.log("updating stack: ", req.params.stackId);
         if (err) console.log("err", err);
-        res.json({ status: "ok", doc });
+        res.json({ status: "ok", doc: num });
+        // Получаем обновлённый документ и пушим на мастер (фоново)
+        if (!err) {
+          database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
+          });
+        }
       },
     );
   });
@@ -42,10 +51,16 @@ export const stacksRoutes = (app, urlencodedParser) => {
     database.update(
       { _id: req.params.stackId },
       { $set: { ...req.body, updatedAt: Date.now() } },
-      (err, doc) => {
+      (err, num) => {
         console.log("edited stack: ", req.params.stackId);
         if (err) console.log("err", err);
-        res.json({ status: "ok", doc });
+        res.json({ status: "ok", doc: num });
+        // Получаем обновлённый документ и пушим на мастер (фоново)
+        if (!err) {
+          database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
+          });
+        }
       },
     );
   });
@@ -60,6 +75,12 @@ export const stacksRoutes = (app, urlencodedParser) => {
         console.log("soft-deleted stack: ", req.params.stackId, num);
         if (err) console.log("err", err);
         res.json({ status: "ok", num });
+        // Получаем помеченный документ и пушим на мастер (фоново)
+        if (!err) {
+          database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
+          });
+        }
       },
     );
   });
