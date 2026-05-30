@@ -894,9 +894,9 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
               {/* ══ ПРОШИВКА ════════════════════════════════════════════════════ */}
               {tab === "firmware" && (
-                <>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden", minHeight: 0 }}>
                   {/* Git update */}
-                  <div style={card}>
+                  <div style={{ ...card, flexShrink: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                       <SectionLabel style={{ margin: 0 }}>Прошивка</SectionLabel>
                       <button onClick={checkUpdate} disabled={checking || updating} style={{ background: "none", border: "none", cursor: checking ? "not-allowed" : "pointer", padding: 3, color: "rgba(0,0,0,0.3)", display: "flex" }}>
@@ -1035,7 +1035,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                   </div>
 
                   {/* DB Sync */}
-                  <div style={card}>
+                  <div style={{ ...card, flex: 1, overflow: "hidden", minHeight: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
                     </div>
@@ -1085,7 +1085,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </span>
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           {syncHistory.length > 0 && (
-                            <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{syncHistory.length} записей</span>
+                            <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.3)" }}>{Math.min(syncHistory.length, 10)} записей</span>
                           )}
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" strokeLinecap="round"
                             style={{ transform: historyOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}>
@@ -1095,7 +1095,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       </button>
 
                       {historyOpen && (
-                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, maxHeight: 320, overflowY: "auto" }}>
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, flex: 1, overflowY: "auto", minHeight: 0 }}>
                           {syncHistory.length === 0 && (
                             <div style={{ padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>
@@ -1207,7 +1207,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       </div>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
               {/* Toast */}

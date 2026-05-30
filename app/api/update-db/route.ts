@@ -17,7 +17,7 @@ export async function GET() {
   } catch {}
   try {
     if (existsSync(SYNC_HISTORY_PATH)) {
-      history = JSON.parse(readFileSync(SYNC_HISTORY_PATH, "utf8"));
+      history = JSON.parse(readFileSync(SYNC_HISTORY_PATH, "utf8")).slice(0, 10);
     }
   } catch {}
   return NextResponse.json({ lastSyncedAt, history });
