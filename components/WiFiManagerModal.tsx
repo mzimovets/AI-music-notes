@@ -516,7 +516,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
             <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 16px 0", flexShrink: 0 }} />
 
             {/* ── Content ─────────────────────────────────────────────────────── */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ flex: 1, overflow: "hidden", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
 
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
               {tab === "system" && (

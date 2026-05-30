@@ -23,7 +23,7 @@ const SYNC_API_KEY = process.env.SYNC_API_KEY;
 const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 минут
 const STATE_FILE = path.join(__dirname, "sync-state.json");
 const HISTORY_FILE = path.join(__dirname, "sync-history.json");
-const HISTORY_MAX = 30;
+const HISTORY_MAX = 10;
 
 function loadHistory() {
   try { return JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8")); } catch { return []; }
