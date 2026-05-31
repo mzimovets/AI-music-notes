@@ -65,16 +65,21 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   });
 
   useEffect(() => {
-    if (!isOpen && !isSaved) {
+    if (!isOpen) {
       setSelectedFile(null);
+      setName("");
+      setAuthor("");
+      setAuthorLyrics("");
+      setAuthorArrange("");
+      setCategory("");
       setReprises([]);
       setRepriseRaw([]);
       setSaveAttempted(false);
       setNumPages(0);
       setValidationErrors({ name: false, category: false, file: false });
+      setIsSaved(false);
     }
-    if (!isOpen) setIsSaved(false);
-  }, [isOpen, isSaved]);
+  }, [isOpen]);
 
   const validateForm = () => {
     const errors = {
@@ -266,6 +271,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       label="Название"
                       labelPlacement="outside"
                       placeholder="Введите название партитуры"
+                      value={name}
                       onChange={(e) => {
                         setName(e.target.value);
                         if (validationErrors.name)
@@ -275,6 +281,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                           }));
                       }}
                       className="input-header mb-0"
+                      classNames={{ label: "input-header" }}
                     />
 
                     <Select
@@ -287,6 +294,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       placeholder="Выберите категорию"
                       labelPlacement="outside"
                       scrollShadowProps={{ isEnabled: false }}
+                      selectedKeys={category ? [category] : []}
                       onSelectionChange={(keys) => {
                         setCategory(Array.from(keys)[0] as string);
                         if (validationErrors.category)
@@ -315,37 +323,43 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       label="Автор музыки"
                       labelPlacement="outside"
                       placeholder="Введите автора"
+                      value={author}
                       description={
-                        <span className="text-gray-600">
+                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
                       onChange={(e) => setAuthor(e.target.value)}
                       className="input-header mb-0"
+                      classNames={{ label: "input-header" }}
                     />
                     <Input
                       label="Автор слов"
                       labelPlacement="outside"
                       placeholder="Введите автора"
+                      value={authorLyrics}
                       description={
-                        <span className="text-gray-600 ">
+                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
                       onChange={(e) => setAuthorLyrics(e.target.value)}
                       className="input-header mb-0"
+                      classNames={{ label: "input-header" }}
                     />
                     <Input
                       label="Автор аранжировки"
                       labelPlacement="outside"
                       placeholder="Введите автора"
+                      value={authorArrange}
                       description={
-                        <span className="text-gray-600">
+                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
                       onChange={(e) => setAuthorArrange(e.target.value)}
                       className="input-header mb-0"
+                      classNames={{ label: "input-header" }}
                     />
                   </div>
 

@@ -29,11 +29,15 @@ export const SongsTable = () => {
   const filteredSongs = useMemo(() => {
     if (!songs) return [];
 
-    if (!searchValue.trim()) return songs;
+    const sorted = [...songs].sort((a, b) =>
+      (a.name || "").localeCompare(b.name || "", "ru", { sensitivity: "base" })
+    );
+
+    if (!searchValue.trim()) return sorted;
 
     const lowerSearch = searchValue.toLowerCase().trim();
 
-    return songs.filter((song) => {
+    return sorted.filter((song) => {
       const nameMatch = song.name?.toLowerCase().includes(lowerSearch);
       const authorMatch = song.author?.toLowerCase().includes(lowerSearch);
       return nameMatch || authorMatch;

@@ -62,7 +62,7 @@ export const CategoryHeader = () => {
         <Card className="py-4 w-full h-full">
           <CardHeader className="py-0 flex-col items-start">
             <p className="font-header ">{categoryObj?.name || category}</p>
-            <small className="text-default-500">
+            <small className="text-default-500 font-pheader" style={{ fontSize: "16px" }}>
               {songs.length} {getSongWord(songs.length)}
             </small>
           </CardHeader>
