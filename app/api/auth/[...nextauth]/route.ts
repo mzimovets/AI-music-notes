@@ -59,11 +59,17 @@ const authOptions = {
 
   callbacks: {
     async jwt({ token, user }: any) {
-      if (user) token.role = user.role;
+      if (user) {
+        token.role = user.role;
+        token.username = user.name; // имя пользователя для авто-входа на плате
+      }
       return token;
     },
     async session({ session, token }: any) {
-      if (session.user) session.user.role = token.role;
+      if (session.user) {
+        session.user.role = token.role;
+        (session.user as any).username = token.username;
+      }
       return session;
     },
   },

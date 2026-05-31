@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useBoardDetect } from "@/hooks/useBoardDetect";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
@@ -15,21 +16,29 @@ const BOARD_URL = "https://raspberrypi-songs.local";
 export function BoardBanner() {
   const { isLocal, loading: localLoading } = useLocalServer();
   const { boardAvailable, dismissed, dismiss } = useBoardDetect();
+  const { data: session, status: sessionStatus } = useSession();
 
   // Плавное появление
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    if (boardAvailable && !dismissed && !isLocal) {
+    if (boardAvailable && !dismissed && !isLocal && sessionStatus === "authenticated") {
       const t = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(t);
     } else {
       setVisible(false);
     }
-  }, [boardAvailable, dismissed, isLocal]);
+  }, [boardAvailable, dismissed, isLocal, sessionStatus]);
 
-  // Не рендерим на плате или пока грузится
+  // Не рендерим на плате, пока грузится, или если не авторизован
   if (localLoading || isLocal) return null;
+  if (sessionStatus !== "authenticated") return null;
   if (!boardAvailable || dismissed) return null;
+
+  // Передаём роль пользователя в URL — плата автоматически залогинит
+  const username = (session?.user as any)?.username ?? (session?.user?.name ?? "");
+  const boardUrl = username
+    ? `https://raspberrypi-songs.local/api/auth/local-signin?username=${encodeURIComponent(username)}&redirect=/`
+    : "https://raspberrypi-songs.local";
 
   return (
     <div
@@ -52,7 +61,7 @@ export function BoardBanner() {
     >
       {/* Левая часть — кнопка перехода */}
       <button
-        onClick={() => window.open(BOARD_URL, "_self")}
+        onClick={() => window.open(boardUrl, "_self")}
         style={{
           display: "flex",
           alignItems: "center",
