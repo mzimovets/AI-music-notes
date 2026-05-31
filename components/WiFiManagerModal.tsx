@@ -22,7 +22,9 @@ interface SysData {
   wlan1LinkMbps?: number;
   wlan0RxBps: number; wlan0TxBps: number;
   wlan1RxBps: number; wlan1TxBps: number;
-  voltageCore?: number; clockArmMhz?: number;
+  voltageCore?: number; voltageSdram?: number;
+  clockArmMhz?: number; cpuGovernor?: string;
+  throttleFlags?: number;
 }
 interface SyncLogEntry { ts: number; level: "info" | "warn" | "error"; line: string; }
 interface SyncResult { ok: boolean; error?: string; duration: number; logs: SyncLogEntry[]; startedAt: number; }
@@ -934,70 +936,120 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     </div>
                   )}
 
-                  {!boardOffline && (
-                    <div style={{ ...card, width: "100%" }}>
-                      <SectionLabel>Питание</SectionLabel>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  {!boardOffline && (() => {
+                    const voltOk = (v: number) => v >= 0.9 && v <= 1.25;
+                    const voltColor = (v: number | undefined) => !v ? "rgba(0,0,0,0.2)" : voltOk(v) ? "#4ade80" : "#f87171";
+                    const voltTextColor = (v: number | undefined) => !v ? "rgba(0,0,0,0.3)" : voltOk(v) ? "#4ade80" : "#f87171";
+                    const flags = sysData?.throttleFlags ?? 0;
+                    const undervoltagNow = !!(flags & 0x1);
+                    const thermalNow = !!(flags & 0xC);
+                    const undervoltageEver = !!(flags & 0x10000);
+                    const thermalEver = !!(flags & 0xC0000);
+                    return (
+                      <>
+                        {/* Напряжения */}
+                        <div style={{ ...card, width: "100%" }}>
+                          <SectionLabel>Напряжение</SectionLabel>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-                        {/* Напряжение ядра */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-                              stroke={!sysData?.voltageCore ? "rgba(0,0,0,0.3)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80"}
-                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                              <polyline points="13 2 13 9 19 9 11 22 11 15 5 15 13 2"/>
-                            </svg>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                                  stroke={voltColor(sysData?.voltageCore)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="13 2 13 9 19 9 11 22 11 15 5 15 13 2"/>
+                                </svg>
+                              </div>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Ядро CPU</span>
+                              <ProgressBar value={sysData?.voltageCore ?? 0} max={1.4} color={voltColor(sysData?.voltageCore)} />
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 700, width: 54, textAlign: "right", color: voltTextColor(sysData?.voltageCore) }}>
+                                {sysData?.voltageCore ? `${sysData.voltageCore.toFixed(3)}В` : "—"}
+                              </span>
+                            </div>
+
+                            {(sysData?.voltageSdram ?? 0) > 0 && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                                <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                                    stroke={voltColor(sysData?.voltageSdram)} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                    <line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/>
+                                    <line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/>
+                                  </svg>
+                                </div>
+                                <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>SDRAM</span>
+                                <ProgressBar value={sysData?.voltageSdram ?? 0} max={1.4} color={voltColor(sysData?.voltageSdram)} />
+                                <span className="input-header" style={{ fontSize: 13, fontWeight: 600, width: 54, textAlign: "right", color: voltTextColor(sysData?.voltageSdram) }}>
+                                  {sysData?.voltageSdram ? `${sysData.voltageSdram.toFixed(3)}В` : "—"}
+                                </span>
+                              </div>
+                            )}
+
+                            {(undervoltagNow || undervoltageEver) && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+                                <span style={{ fontSize: 14 }}>⚡</span>
+                                <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>
+                                  {undervoltagNow ? "Пониженное напряжение — плохой блок питания" : "Было пониженное напряжение"}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Напряжение</span>
-                          <ProgressBar
-                            value={sysData ? Math.max(0, sysData.voltageCore ?? 0) : 0}
-                            max={1.4}
-                            color={!sysData?.voltageCore ? "rgba(0,0,0,0.2)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80"}
-                          />
-                          <span className="input-header" style={{ fontSize: 13, fontWeight: 700, width: 50, textAlign: "right",
-                            color: !sysData?.voltageCore ? "rgba(0,0,0,0.3)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80" }}>
-                            {sysData?.voltageCore ? `${sysData.voltageCore.toFixed(2)}В` : "—"}
-                          </span>
                         </div>
 
-                        {/* Частота ARM */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BD9673" strokeWidth="2" strokeLinecap="round">
-                              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                            </svg>
-                          </div>
-                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Частота</span>
-                          <ProgressBar value={sysData?.clockArmMhz ?? 0} max={2400} color="#BD9673" />
-                          <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 50, textAlign: "right" }}>
-                            {sysData?.clockArmMhz ? `${sysData.clockArmMhz}` : "—"}
-                            {sysData?.clockArmMhz ? <span style={{ fontSize: 10, fontWeight: 400 }}> МГц</span> : null}
-                          </span>
-                        </div>
+                        {/* Процессор */}
+                        <div style={{ ...card, width: "100%" }}>
+                          <SectionLabel>Процессор</SectionLabel>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
-                        {/* Аптайм */}
-                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
-                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2" strokeLinecap="round">
-                              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                            </svg>
-                          </div>
-                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Работает</span>
-                          <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
-                            {sysData?.uptime ?? "—"}
-                          </span>
-                        </div>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BD9673" strokeWidth="2" strokeLinecap="round">
+                                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                                </svg>
+                              </div>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Частота</span>
+                              <ProgressBar value={sysData?.clockArmMhz ?? 0} max={2400} color="#BD9673" />
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 54, textAlign: "right" }}>
+                                {sysData?.clockArmMhz ? `${sysData.clockArmMhz} МГц` : "—"}
+                              </span>
+                            </div>
 
-                        {/* Тротлинг */}
-                        {sysData?.throttled && (
-                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
-                            <span style={{ fontSize: 14 }}>⚠️</span>
-                            <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>Тротлинг — проверьте питание</span>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2" strokeLinecap="round">
+                                  <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+                                </svg>
+                              </div>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Режим</span>
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
+                                {sysData?.cpuGovernor ?? "—"}
+                              </span>
+                            </div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2" strokeLinecap="round">
+                                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                              </div>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Работает</span>
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
+                                {sysData?.uptime ?? "—"}
+                              </span>
+                            </div>
+
+                            {(thermalNow || thermalEver) && (
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+                                <span style={{ fontSize: 14 }}>🌡️</span>
+                                <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>
+                                  {thermalNow ? "Тепловой тротлинг" : "Был тепловой тротлинг"}
+                                </span>
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 

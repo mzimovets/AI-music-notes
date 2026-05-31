@@ -50,17 +50,20 @@ export async function GET() {
       uptime: "1д 6ч",
       wlan1Signal: -52,
       throttled: false,
+      throttleFlags: 0,
       wlan1LinkMbps: 144,
       wlan0RxBps: Math.round(Math.random() * 20_000),
       wlan0TxBps: Math.round(60_000 + Math.random() * 180_000),
       wlan1RxBps: Math.round(100_000 + Math.random() * 400_000),
       wlan1TxBps: Math.round(5_000 + Math.random() * 40_000),
       voltageCore: +(1.08 + Math.sin(Date.now() / 20_000) * 0.05).toFixed(3),
+      voltageSdram: +(1.10 + Math.sin(Date.now() / 25_000) * 0.02).toFixed(3),
       clockArmMhz: Math.round(1800 + Math.random() * 600),
+      cpuGovernor: "ondemand",
     });
   }
 
-  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr, voltStr, clockStr] = await Promise.all([
+  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr, voltStr, voltSdramStr, clockSysfsStr, clockVcgStr, governorStr] = await Promise.all([
     run("cat /sys/class/thermal/thermal_zone0/temp"),
     run("cat /sys/class/hwmon/hwmon*/fan1_input 2>/dev/null | head -1"),
     run("cat /proc/loadavg"),
@@ -72,7 +75,12 @@ export async function GET() {
     run("cat /proc/net/dev"),
     run("iw dev wlan1 link 2>/dev/null | grep 'tx bitrate'"),
     run("vcgencmd measure_volts core 2>/dev/null || echo volt=0V"),
+    run("vcgencmd measure_volts sdram_c 2>/dev/null || echo volt=0V"),
+    // sysfs — надёжнее на RPi5, возвращает кГц
+    run("cat /sys/devices/system/cpu/cpufreq/policy0/scaling_cur_freq 2>/dev/null || echo 0"),
+    // vcgencmd как запасной вариант, возвращает Гц
     run("vcgencmd measure_clock arm 2>/dev/null || echo frequency(48)=0"),
+    run("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo unknown"),
   ]);
 
   const temp = +((parseInt(tempStr) / 1000) || 0).toFixed(1);
@@ -108,13 +116,25 @@ export async function GET() {
 
   const voltMatch = voltStr.match(/volt=([\d.]+)V/);
   const voltageCore = voltMatch ? +parseFloat(voltMatch[1]).toFixed(3) : 0;
-  const clockMatch = clockStr.match(/frequency\(\d+\)=(\d+)/);
-  const clockArmMhz = clockMatch ? Math.round(parseInt(clockMatch[1]) / 1_000_000) : 0;
+
+  const voltSdramMatch = voltSdramStr.match(/volt=([\d.]+)V/);
+  const voltageSdram = voltSdramMatch ? +parseFloat(voltSdramMatch[1]).toFixed(3) : 0;
+
+  // sysfs в кГц (надёжнее), vcgencmd в Гц как запасной
+  const sysfsKhz = parseInt(clockSysfsStr) || 0;
+  const vcgMatch = clockVcgStr.match(/frequency\(\d+\)=(\d+)/);
+  const vcgHz = vcgMatch ? parseInt(vcgMatch[1]) : 0;
+  const clockArmMhz = sysfsKhz > 0 ? Math.round(sysfsKhz / 1000) : Math.round(vcgHz / 1_000_000);
+
+  const throttleFlagsMatch = throttledStr.match(/throttled=0x([0-9a-fA-F]+)/);
+  const throttleFlags = throttleFlagsMatch ? parseInt(throttleFlagsMatch[1], 16) : 0;
+
+  const cpuGovernor = governorStr.trim() || "unknown";
 
   return NextResponse.json({
     temp, fanRpm, cpuPercent, ramUsed, ramTotal: memTotal, uptime,
-    wlan1Signal, throttled, wlan1LinkMbps,
+    wlan1Signal, throttled, throttleFlags, wlan1LinkMbps,
     wlan0RxBps, wlan0TxBps, wlan1RxBps, wlan1TxBps,
-    voltageCore, clockArmMhz,
+    voltageCore, voltageSdram, clockArmMhz, cpuGovernor,
   });
 }
