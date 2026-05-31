@@ -601,6 +601,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                 const labels: Record<Tab, string> = { system: "Система", power: "Питание", network: "Сеть", firmware: "Прошивка" };
                 const active = tab === t;
                 const disabled = boardOffline && t !== "system" && t !== "power";
+                const hasDot = t === "firmware" && !boardOffline && updateInfo?.hasUpdate;
                 return (
                   <button key={t} onClick={() => !disabled && setTab(t)} className="input-header" style={{
                     flex: 1, padding: "7px 2px", borderRadius: 10, border: "none",
@@ -609,8 +610,17 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                     fontSize: 12, fontWeight: active ? 700 : 500,
                     cursor: disabled ? "not-allowed" : "pointer",
                     transition: "all 0.15s",
+                    position: "relative",
                   }}>
                     {labels[t]}
+                    {hasDot && (
+                      <span style={{
+                        position: "absolute", top: 4, right: "18%",
+                        width: 6, height: 6, borderRadius: "50%",
+                        background: "#f59e0b",
+                        boxShadow: "0 0 4px rgba(245,158,11,0.8)",
+                      }} />
+                    )}
                   </button>
                 );
               })}
@@ -1894,7 +1904,14 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
   const [revealedFlat, setRevealedFlat] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const groups = buildDiagGroups(sysData, status, noInternet, syncFresh, lastSyncedAt);
+  // Снимок данных в момент запуска — не меняется пока диагностика идёт/показана
+  const [snapshot, setSnapshot] = useState<{
+    sysData: SysData | null; status: WifiStatus | null;
+    noInternet: boolean; syncFresh: boolean; lastSyncedAt: number;
+  } | null>(null);
+
+  const activeData = snapshot ?? { sysData, status, noInternet, syncFresh, lastSyncedAt };
+  const groups = buildDiagGroups(activeData.sysData, activeData.status, activeData.noInternet, activeData.syncFresh, activeData.lastSyncedAt);
 
   // Flat sequence: group header → items → next group header → ...
   const flat: FlatEntry[] = [];
@@ -1913,6 +1930,8 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
   }, [phase, revealedFlat, flat.length]);
 
   const run = () => {
+    // Фиксируем данные в момент запуска
+    setSnapshot({ sysData, status, noInternet, syncFresh, lastSyncedAt });
     setPhase("running");
     setRevealedFlat(0);
     setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
@@ -2081,7 +2100,7 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
               {/* Закрыть */}
               <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
                 <button
-                  onClick={() => setPhase("idle")}
+                  onClick={() => { setPhase("idle"); setSnapshot(null); }}
                   style={{
                     background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.1)",
                     borderRadius: 8, padding: "6px 20px", cursor: "pointer",

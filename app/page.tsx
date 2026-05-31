@@ -390,7 +390,7 @@ export default function Home() {
                   </g>
                 </g>
               </svg>
-              {hasFirmwareUpdate && (
+              {hasFirmwareUpdate && !boardOffline && (
                 <span style={{
                   position: "absolute", top: 2, right: 2,
                   width: 10, height: 10, borderRadius: "50%",
