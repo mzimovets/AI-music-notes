@@ -270,6 +270,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
       setSyncResult(null); setLogOpen(false); setCommitOpen(false);
       setUpdateDone(false); setNoInternet(false);
       setScanDone(false); lastScanRef.current = 0;
+      // Сбрасываем состояние обновления прошивки — иначе при повторном открытии виден застрявший прогресс
+      setUpdating(false); setUpdateProgress(0); setUpdateStage("");
     }
   }, [isOpen]);
 
@@ -995,7 +997,16 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     {updating && (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600 }}>{updateStage}</span>
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 600 }}>{updateStage}</span>
+                            <button
+                              onClick={() => { setUpdating(false); setUpdateProgress(0); setUpdateStage(""); }}
+                              className="input-header"
+                              style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                            >
+                              Отменить
+                            </button>
+                          </div>
                           <span className="input-header" style={{ fontSize: 12, color: "#7D5E42", fontWeight: 700, display: "flex", alignItems: "center", gap: 6 }}>
                             {updateProgress > 5 && updateStartedAt > 0 && (() => {
                               const elapsed = (Date.now() - updateStartedAt) / 1000;

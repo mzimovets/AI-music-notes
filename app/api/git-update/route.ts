@@ -24,16 +24,26 @@ export async function GET() {
 
   if (existsSync(LOG_FILE)) {
     const { mtimeMs } = require("fs").statSync(LOG_FILE);
-    const stale = Date.now() - mtimeMs > 15 * 60_000;
+    // 3 мин — если лог не обновлялся дольше, считаем процесс завершённым/упавшим
+    const stale = Date.now() - mtimeMs > 3 * 60_000;
     const log = readFileSync(LOG_FILE, "utf8");
-    if (stale && !log.includes("DONE")) {
-      // Stale log without DONE — treat as idle
+
+    // Явные признаки ошибки git pull (нет интернета, нет доступа и т.д.)
+    const hasPullError =
+      log.includes("PULLING") &&
+      !log.includes("INSTALLING") &&
+      (log.includes("fatal:") || log.includes("error:") || log.includes("Could not") || stale);
+
+    if (hasPullError) {
+      // git pull упал — показываем ошибку, не крутим спиннер
+      processStatus = "idle"; updateProgress = 0; updateStage = "";
+    } else if (stale && !log.includes("DONE")) {
+      // Устаревший лог без DONE — считаем idle
     } else if (log.includes("DONE")) {
       processStatus = "done"; updateProgress = 100; updateStage = "Готово";
     } else if (log.includes("RESTARTING")) {
       processStatus = "restarting"; updateProgress = 90; updateStage = "Перезапуск сервисов";
     } else if (log.includes("BUILDING")) {
-      // Inside build — detect sub-stages
       if (log.includes("Route (app)") || log.includes("✓ Compiled")) {
         processStatus = "running"; updateProgress = 85; updateStage = "Финализация сборки";
       } else if (log.includes("Creating an optimized") || log.includes("▲ Next.js")) {
