@@ -523,6 +523,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
               {tab === "system" && (
                 <>
+                  {/* Shutdown */}
+                  <ShutdownButton />
                   {/* CPU / Temp / RAM card */}
                   <div style={card}>
                     <SectionLabel>Плата</SectionLabel>
@@ -670,8 +672,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       )}
                     </div>
                   </div>
-                  {/* Shutdown button */}
-                  <ShutdownButton />
                 </>
               )}
 
@@ -1316,11 +1316,29 @@ function ScanNetItem({ net, status, connectingTo, selectedSsid, password, connec
 }
 
 // ── Shutdown Button ────────────────────────────────────────────────────────────
+function RaspberryIcon({ color, size = 24 }: { color: string; size?: number }) {
+  // Официальный логотип Raspberry Pi (упрощённый)
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
+      <path d="M12 2C9.5 2 7.5 3.5 7 5.5C5.5 5.8 4.5 7 4.5 8.5C3.2 9 2.5 10.2 2.5 11.5C2.5 13.2 3.7 14.5 5.3 14.8C5.6 16.3 6.8 17.5 8.3 17.8L8.5 19.5C8.6 20.3 9.2 21 10 21H14C14.8 21 15.4 20.3 15.5 19.5L15.7 17.8C17.2 17.5 18.4 16.3 18.7 14.8C20.3 14.5 21.5 13.2 21.5 11.5C21.5 10.2 20.8 9 19.5 8.5C19.5 7 18.5 5.8 17 5.5C16.5 3.5 14.5 2 12 2ZM10.5 8C11 8 11.5 8.4 11.5 9C11.5 9.6 11 10 10.5 10C10 10 9.5 9.6 9.5 9C9.5 8.4 10 8 10.5 8ZM13.5 8C14 8 14.5 8.4 14.5 9C14.5 9.6 14 10 13.5 10C13 10 12.5 9.6 12.5 9C12.5 8.4 13 8 13.5 8ZM12 11C13.1 11 14 11.9 14 13C14 14.1 13.1 15 12 15C10.9 15 10 14.1 10 13C10 11.9 10.9 11 12 11Z"/>
+    </svg>
+  );
+}
+
 function ShutdownButton() {
-  const [progress, setProgress] = useState(0); // 0..100
+  const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const HOLD_MS = 3000;
+
+  const SIZE = 64;
+  const STROKE = 4;
+  const R = (SIZE - STROKE) / 2;
+  const C = 2 * Math.PI * R;
+  const offset = C - (progress / 100) * C;
+
+  const color = done ? "#94a3b8" : "#c51a4a";
+  const bgColor = done ? "rgba(148,163,184,0.10)" : "rgba(197,26,74,0.08)";
 
   const startHold = () => {
     if (done) return;
@@ -1342,45 +1360,46 @@ function ShutdownButton() {
   };
 
   return (
-    <div style={{ marginTop: 4 }}>
-      <button
-        onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
-        onTouchStart={startHold} onTouchEnd={cancelHold} onTouchCancel={cancelHold}
-        disabled={done}
-        style={{
-          position: "relative", overflow: "hidden",
-          width: "100%", padding: "11px 0", borderRadius: 12,
-          border: done ? "1px solid rgba(248,113,113,0.4)" : "1px solid rgba(248,113,113,0.25)",
-          background: done ? "rgba(248,113,113,0.12)" : "rgba(255,255,255,0.55)",
-          cursor: done ? "default" : "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-        }}
-      >
-        {/* Progress fill */}
-        <div style={{
-          position: "absolute", inset: 0, left: 0, top: 0, bottom: 0,
-          width: `${progress}%`,
-          background: "rgba(248,113,113,0.15)",
-          transition: progress === 0 ? "width 0.15s ease" : "none",
-          pointerEvents: "none",
-        }} />
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke={done ? "#dc2626" : "rgba(220,38,38,0.6)"} strokeWidth="2.2" strokeLinecap="round">
-          <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
-          <line x1="12" y1="2" x2="12" y2="12"/>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 0 4px" }}>
+      <div style={{ position: "relative", width: SIZE, height: SIZE }}>
+        {/* Кольцо прогресса */}
+        <svg width={SIZE} height={SIZE} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={STROKE} />
+          <circle
+            cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none"
+            stroke={color} strokeWidth={STROKE}
+            strokeDasharray={C} strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{ transition: progress === 0 ? "stroke-dashoffset 0.2s ease" : "none" }}
+          />
         </svg>
-        <span className="input-header" style={{
-          fontSize: 13, fontWeight: 600, position: "relative",
-          color: done ? "#dc2626" : "rgba(220,38,38,0.65)",
-        }}>
-          {done ? "Выключается..." : progress > 0 ? "Держите..." : "Выключить плату"}
-        </span>
-      </button>
-      {!done && (
-        <div className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.3)", textAlign: "center", marginTop: 5 }}>
-          Удерживайте 3 секунды
-        </div>
-      )}
+
+        {/* Круглая кнопка */}
+        <button
+          onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
+          onTouchStart={(e) => { e.preventDefault(); startHold(); }}
+          onTouchEnd={cancelHold} onTouchCancel={cancelHold}
+          disabled={done}
+          style={{
+            position: "absolute",
+            top: STROKE + 2, left: STROKE + 2,
+            right: STROKE + 2, bottom: STROKE + 2,
+            borderRadius: "50%",
+            border: `1.5px solid ${done ? "rgba(148,163,184,0.3)" : "rgba(197,26,74,0.25)"}`,
+            background: bgColor,
+            cursor: done ? "default" : "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            WebkitTapHighlightColor: "transparent",
+            userSelect: "none",
+          }}
+        >
+          <RaspberryIcon color={color} size={26} />
+        </button>
+      </div>
+
+      <span className="input-header" style={{ fontSize: 11, color: done ? "#94a3b8" : "rgba(0,0,0,0.35)", textAlign: "center" }}>
+        {done ? "Выключается..." : progress > 0 ? "Держите..." : "Удерживайте для выключения"}
+      </span>
     </div>
   );
 }
