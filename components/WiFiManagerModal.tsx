@@ -1709,7 +1709,7 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
 
 // ── Diagnostic Panel ───────────────────────────────────────────────────────────
 type DiagStatus = "pending" | "ok" | "warn" | "error";
-interface DiagItem { id: string; label: string; detail: string; status: DiagStatus; }
+interface DiagItem { id: string; label: string; detail: string; status: DiagStatus; advice?: string; }
 
 function buildDiagChecks(
   sysData: SysData | null,
@@ -1720,7 +1720,12 @@ function buildDiagChecks(
 ): DiagItem[] {
   const checks: DiagItem[] = [];
 
-  checks.push({ id: "board", label: "Плата доступна", detail: "Нет связи с платой", status: sysData ? "ok" : "error" });
+  checks.push({
+    id: "board", label: "Плата доступна",
+    detail: sysData ? "Связь установлена" : "Нет ответа от сервера",
+    status: sysData ? "ok" : "error",
+    advice: sysData ? undefined : "Убедитесь что плата включена и подключена к сети",
+  });
 
   if (sysData) {
     const temp = sysData.temp;
@@ -1728,6 +1733,9 @@ function buildDiagChecks(
       id: "temp", label: "Температура CPU",
       detail: `${temp}°C${temp >= 80 ? " — критично" : temp >= 65 ? " — повышена" : " — норма"}`,
       status: temp >= 80 ? "error" : temp >= 65 ? "warn" : "ok",
+      advice: temp >= 80
+        ? "Немедленно улучшите охлаждение или снизьте нагрузку"
+        : temp >= 65 ? "Проверьте вентиляцию корпуса и вентилятор" : undefined,
     });
 
     const cpu = sysData.cpuPercent;
@@ -1735,6 +1743,7 @@ function buildDiagChecks(
       id: "cpu", label: "Нагрузка CPU",
       detail: `${cpu}%${cpu >= 90 ? " — перегружен" : cpu >= 70 ? " — высокая" : " — норма"}`,
       status: cpu >= 90 ? "error" : cpu >= 70 ? "warn" : "ok",
+      advice: cpu >= 70 ? "Проверьте фоновые процессы или перезапустите сервис" : undefined,
     });
 
     const ramPct = sysData.ramTotal > 0 ? Math.round(sysData.ramUsed / sysData.ramTotal * 100) : 0;
@@ -1742,28 +1751,38 @@ function buildDiagChecks(
       id: "ram", label: "Оперативная память",
       detail: `${sysData.ramUsed} / ${sysData.ramTotal} МБ (${ramPct}%)`,
       status: ramPct >= 85 ? "error" : ramPct >= 70 ? "warn" : "ok",
+      advice: ramPct >= 70 ? "Перезапустите сервис: sudo systemctl restart music-frontend" : undefined,
     });
 
     checks.push({
       id: "fan", label: "Вентилятор",
-      detail: sysData.fanRpm > 0 ? `${sysData.fanRpm.toLocaleString()} RPM` : temp > 60 ? "Выкл — перегрев?" : "Выкл — норма",
+      detail: sysData.fanRpm > 0 ? `${sysData.fanRpm.toLocaleString()} RPM` : temp > 60 ? "Выкл при высокой температуре" : "Выкл — в норме",
       status: sysData.fanRpm > 0 ? "ok" : temp > 60 ? "warn" : "ok",
+      advice: sysData.fanRpm === 0 && temp > 60 ? "Проверьте подключение вентилятора к плате" : undefined,
     });
 
     if (sysData.voltageCore !== undefined) {
       const v = sysData.voltageCore;
+      // Нормальный диапазон RPi 4/5: 0.65–1.15V в зависимости от нагрузки
+      const low = v < 0.65, high = v > 1.15;
       checks.push({
         id: "volt", label: "Напряжение питания",
-        detail: `${v.toFixed(3)} V${v < 0.9 || v > 1.25 ? " — вне нормы" : " — норма"}`,
-        status: v < 0.9 || v > 1.25 ? "warn" : "ok",
+        detail: `${v.toFixed(3)} V${low || high ? " — вне нормы" : " — норма"}`,
+        status: low || high ? "warn" : "ok",
+        advice: low
+          ? "Проверьте блок питания (рекомендуется 5V / 5A)"
+          : high ? "Возможен нестабильный блок питания" : undefined,
       });
     }
 
     const throttleNow = (sysData.throttleFlags ?? 0) & 0xD;
     checks.push({
       id: "throttle", label: "Тротлинг",
-      detail: throttleNow ? "Активен — перегрев или питание" : "Нет",
+      detail: throttleNow ? "Активен" : "Не активен",
       status: throttleNow ? "error" : "ok",
+      advice: throttleNow
+        ? ((sysData.throttleFlags ?? 0) & 0x1 ? "Недостаточное питание — замените блок питания (5V/5A)" : "Перегрев — улучшите вентиляцию")
+        : undefined,
     });
   }
 
@@ -1771,18 +1790,21 @@ function buildDiagChecks(
     id: "wifi", label: "Wi-Fi подключение",
     detail: status?.connected ? (status.ssid ?? "Подключён") : "Не подключён",
     status: status?.connected ? "ok" : "error",
+    advice: status?.connected ? undefined : "Откройте раздел Сеть и подключитесь к Wi-Fi",
   });
 
   checks.push({
     id: "internet", label: "Интернет",
-    detail: noInternet ? "Нет интернета" : status?.connected ? "Доступен" : "—",
+    detail: noInternet ? "Нет доступа" : status?.connected ? "Доступен" : "—",
     status: noInternet ? "warn" : status?.connected ? "ok" : "warn",
+    advice: noInternet ? "Проверьте роутер или смените Wi-Fi сеть" : undefined,
   });
 
   checks.push({
     id: "sync", label: "Синхронизация БД",
     detail: lastSyncedAt > 0 ? fmtAgo(lastSyncedAt) : "Нет данных",
     status: lastSyncedAt === 0 ? "warn" : syncFresh ? "ok" : "warn",
+    advice: !syncFresh && lastSyncedAt > 0 ? "Нажмите «Синхронизировать» в разделе Прошивка" : undefined,
   });
 
   return checks;
@@ -1876,23 +1898,34 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
                   ) : null}
                 </div>
 
-                {/* Текст */}
+                {/* Текст + совет */}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.7)" }}>
-                    {check.label}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                    <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.7)" }}>
+                      {check.label}
+                    </span>
+                    {/* Детали справа */}
+                    {visible && (
+                      <span className="input-header" style={{
+                        fontSize: 11, flexShrink: 0,
+                        color: check.status === "ok" ? "rgba(0,0,0,0.35)" :
+                          check.status === "warn" ? "#92400e" : "#dc2626",
+                      }}>
+                        {check.detail}
+                      </span>
+                    )}
+                  </div>
+                  {/* Совет под строкой */}
+                  {visible && check.advice && check.status !== "ok" && (
+                    <div className="input-header" style={{
+                      fontSize: 10, marginTop: 2,
+                      color: check.status === "warn" ? "#b45309" : "#b91c1c",
+                      opacity: 0.8,
+                    }}>
+                      → {check.advice}
+                    </div>
+                  )}
                 </div>
-
-                {/* Детали */}
-                {visible && (
-                  <span className="input-header" style={{
-                    fontSize: 11, color: check.status === "ok" ? "rgba(0,0,0,0.35)" :
-                      check.status === "warn" ? "#92400e" : "#dc2626",
-                    textAlign: "right", flexShrink: 0, maxWidth: 120,
-                  }}>
-                    {check.detail}
-                  </span>
-                )}
               </div>
             );
           })}
