@@ -23,10 +23,10 @@ export const SearchTableCell = ({
       return (
         <Link href={`/song/${song._id}`} className="text-foreground">
           <div className="flex flex-col">
-            <p className="text-bold text-sm capitalize text-left">
+            <p className="text-bold text-sm text-left">
               {song.name}
             </p>
-            <p className="text-bold text-sm capitalize text-default-400 text-left">
+            <p className="text-bold text-sm text-default-400 text-left">
               {getCategoryDisplay(song.category, "full")}
             </p>
           </div>
@@ -36,7 +36,7 @@ export const SearchTableCell = ({
       return (
         <Link href={`/song/${song._id}`} className="text-foreground">
           <div className="flex flex-col items-center justify-center">
-            <p className="text-bold text-sm capitalize text-center">
+            <p className="text-bold text-sm text-center">
               {song.author || "-"}
             </p>
           </div>

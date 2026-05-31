@@ -276,7 +276,7 @@ export default function StackPage() {
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                     <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
-                      <p className="text-bold text-sm capitalize input-header">
+                      <p className="text-bold text-sm input-header">
                         {index + 1}. {song.name}
                         {song.author && (
                           <>
@@ -368,7 +368,7 @@ export default function StackPage() {
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                       <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
-                        <p className="text-bold text-sm capitalize input-header">
+                        <p className="text-bold text-sm input-header">
                           {index + 1}. {song.name}
                           {song.author && (
                             <>

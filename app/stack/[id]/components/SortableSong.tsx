@@ -57,11 +57,11 @@ export const SortableSong: React.FC<SortableSongProps> = ({
               }}
             >
         <div className="flex flex-col overflow-hidden w-full">
-          <p className="text-bold text-sm capitalize text-left input-header truncate">
+          <p className="text-bold text-sm text-left input-header truncate">
             <span className="mr-2 text-default-400">{index + 1}.</span>
             {song.name}
           </p>
-          <p className="text-left text-bold text-sm capitalize input-header justify-center text-default-500 truncate w-full">
+          <p className="text-left text-bold text-sm input-header justify-center text-default-500 truncate w-full">
             {song.author}
           </p>
         </div>

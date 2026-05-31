@@ -751,10 +751,10 @@ export const SideBarStack = ({
                                   className="p-3 flex-row items-center justify-between gap-4"
                                 >
                                   <div className="flex flex-col overflow-hidden">
-                                    <p className="text-bold text-sm capitalize text-left input-header">
+                                    <p className="text-bold text-sm text-left input-header">
                                       {song.name}
                                     </p>
-                                    <p className="text-bold text-sm capitalize input-header justify-center text-default-500">
+                                    <p className="text-bold text-sm input-header justify-center text-default-500">
                                       {song.author}
                                     </p>
                                   </div>

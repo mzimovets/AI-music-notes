@@ -26,10 +26,10 @@ export const useTableCell = () => {
           return (
             <Link href={`/song/${song._id}`}>
               <div className="flex flex-col">
-                <p className="text-bold text-sm capitalize text-left input-header">
+                <p className="text-bold text-sm text-left input-header">
                   {song.name}
                 </p>
-                {/* <p className="text-bold text-sm capitalize text-default-400"></p> */}
+                {/* <p className="text-bold text-sm text-default-400"></p> */}
               </div>
             </Link>
           );
@@ -37,7 +37,7 @@ export const useTableCell = () => {
           return (
             <Link href={`/song/${song._id}`}>
               <div className="flex flex-col">
-                <p className="text-bold text-sm capitalize input-header justify-center">
+                <p className="text-bold text-sm input-header justify-center">
                   {song.author ? song.author : "-"}
                 </p>
               </div>

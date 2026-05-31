@@ -55,11 +55,11 @@ const SortableSong = ({ song, onRemove, index }) => {
         className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${isDragging ? "shadow-xl opacity-50" : "shadow-sm"}`}
       >
         <div className="flex flex-col overflow-hidden">
-          <p className="text-bold text-sm capitalize text-left input-header truncate">
+          <p className="text-bold text-sm text-left input-header truncate">
             <span className="mr-2 text-default-400">{index + 1}.</span>
             {song.name}
           </p>
-          <p className="text-bold text-sm capitalize input-header justify-center text-default-500 truncate">
+          <p className="text-bold text-sm input-header justify-center text-default-500 truncate">
             {song.author}
           </p>
         </div>
@@ -191,10 +191,10 @@ export const Sidebar = () => {
                   className="p-3 flex-row items-center justify-between gap-4"
                 >
                   <div className="flex flex-col overflow-hidden">
-                    <p className="text-bold text-sm capitalize text-left input-header">
+                    <p className="text-bold text-sm text-left input-header">
                       {song.name}
                     </p>
-                    <p className="text-bold text-sm capitalize input-header justify-center text-default-500">
+                    <p className="text-bold text-sm input-header justify-center text-default-500">
                       {song.author}
                     </p>
                   </div>
