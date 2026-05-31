@@ -1708,106 +1708,179 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
 }
 
 // ── Diagnostic Panel ───────────────────────────────────────────────────────────
+// ── Diagnostic types ───────────────────────────────────────────────────────────
 type DiagStatus = "pending" | "ok" | "warn" | "error";
 interface DiagItem { id: string; label: string; detail: string; status: DiagStatus; advice?: string; }
+interface DiagGroup { id: string; label: string; icon: string; items: DiagItem[]; }
+type FlatEntry = { type: "group"; gi: number } | { type: "item"; gi: number; ii: number };
 
-function buildDiagChecks(
+function buildDiagGroups(
   sysData: SysData | null,
   status: WifiStatus | null,
   noInternet: boolean,
   syncFresh: boolean,
   lastSyncedAt: number,
-): DiagItem[] {
-  const checks: DiagItem[] = [];
+): DiagGroup[] {
+  const flags = sysData?.throttleFlags ?? 0;
+  const throttlePower   = flags & 0x1;   // undervoltage now
+  const throttleThermal = flags & 0xC;   // thermal throttle now
+  const na: DiagItem = { id: "na", label: "Нет данных", detail: "Плата недоступна", status: "error" };
 
-  checks.push({
-    id: "board", label: "Плата доступна",
-    detail: sysData ? "Связь установлена" : "Нет ответа от сервера",
-    status: sysData ? "ok" : "error",
-    advice: sysData ? undefined : "Убедитесь что плата включена и подключена к сети",
-  });
+  return [
+    // ── Плата ──────────────────────────────────────────────────────────────────
+    {
+      id: "board", label: "Плата", icon: "🖥",
+      items: [
+        {
+          id: "board-avail", label: "Доступность",
+          detail: sysData ? "Сервер отвечает" : "Нет ответа",
+          status: sysData ? "ok" : "error",
+          advice: !sysData ? "Убедитесь что плата включена и подключена к сети" : undefined,
+        },
+        {
+          id: "board-uptime", label: "Время работы",
+          detail: sysData?.uptime ?? "—",
+          status: "ok",
+        },
+      ],
+    },
 
-  if (sysData) {
-    const temp = sysData.temp;
-    checks.push({
-      id: "temp", label: "Температура CPU",
-      detail: `${temp}°C${temp >= 80 ? " — критично" : temp >= 65 ? " — повышена" : " — норма"}`,
-      status: temp >= 80 ? "error" : temp >= 65 ? "warn" : "ok",
-      advice: temp >= 80
-        ? "Немедленно улучшите охлаждение или снизьте нагрузку"
-        : temp >= 65 ? "Проверьте вентиляцию корпуса и вентилятор" : undefined,
-    });
+    // ── Температура и охлаждение ───────────────────────────────────────────────
+    {
+      id: "thermal", label: "Температура и охлаждение", icon: "🌡",
+      items: sysData ? [
+        {
+          id: "temp", label: "Температура CPU",
+          detail: `${sysData.temp}°C`,
+          status: sysData.temp >= 80 ? "error" : sysData.temp >= 65 ? "warn" : "ok",
+          advice: sysData.temp >= 80 ? "Немедленно улучшите охлаждение" : sysData.temp >= 65 ? "Проверьте вентиляцию корпуса" : undefined,
+        },
+        {
+          id: "fan", label: "Вентилятор",
+          detail: sysData.fanRpm > 0 ? `${sysData.fanRpm.toLocaleString()} RPM` : sysData.temp > 60 ? "Выкл при высокой темп." : "Выкл — норма",
+          status: sysData.fanRpm > 0 ? "ok" : sysData.temp > 60 ? "warn" : "ok",
+          advice: sysData.fanRpm === 0 && sysData.temp > 60 ? "Проверьте подключение вентилятора к плате" : undefined,
+        },
+        {
+          id: "throttle-t", label: "Тепловой тротлинг",
+          detail: throttleThermal ? "Активен" : "Нет",
+          status: throttleThermal ? "error" : "ok",
+          advice: throttleThermal ? "Перегрев — улучшите охлаждение и вентиляцию корпуса" : undefined,
+        },
+      ] : [na],
+    },
 
-    const cpu = sysData.cpuPercent;
-    checks.push({
-      id: "cpu", label: "Нагрузка CPU",
-      detail: `${cpu}%${cpu >= 90 ? " — перегружен" : cpu >= 70 ? " — высокая" : " — норма"}`,
-      status: cpu >= 90 ? "error" : cpu >= 70 ? "warn" : "ok",
-      advice: cpu >= 70 ? "Проверьте фоновые процессы или перезапустите сервис" : undefined,
-    });
+    // ── Питание ────────────────────────────────────────────────────────────────
+    {
+      id: "power", label: "Питание", icon: "⚡",
+      items: sysData ? [
+        ...(sysData.voltageCore !== undefined ? [{
+          id: "volt-core", label: "Напряжение ядра",
+          detail: `${sysData.voltageCore.toFixed(3)} V`,
+          status: (sysData.voltageCore < 0.65 || sysData.voltageCore > 1.15) ? "warn" as DiagStatus : "ok" as DiagStatus,
+          advice: sysData.voltageCore < 0.65 ? "Проверьте блок питания (рекомендуется 5V / 5A)" : undefined,
+        }] : []),
+        ...(sysData.voltageSdram !== undefined ? [{
+          id: "volt-sdram", label: "Напряжение SDRAM",
+          detail: `${sysData.voltageSdram.toFixed(3)} V`,
+          status: "ok" as DiagStatus,
+        }] : []),
+        {
+          id: "throttle-p", label: "Тротлинг питания",
+          detail: throttlePower ? "Активен — пониженное напряжение" : "Нет",
+          status: throttlePower ? "error" as DiagStatus : "ok" as DiagStatus,
+          advice: throttlePower ? "Замените блок питания на официальный 5V / 5A" : undefined,
+        },
+      ] : [na],
+    },
 
-    const ramPct = sysData.ramTotal > 0 ? Math.round(sysData.ramUsed / sysData.ramTotal * 100) : 0;
-    checks.push({
-      id: "ram", label: "Оперативная память",
-      detail: `${sysData.ramUsed} / ${sysData.ramTotal} МБ (${ramPct}%)`,
-      status: ramPct >= 85 ? "error" : ramPct >= 70 ? "warn" : "ok",
-      advice: ramPct >= 70 ? "Перезапустите сервис: sudo systemctl restart music-frontend" : undefined,
-    });
+    // ── Ресурсы ───────────────────────────────────────────────────────────────
+    {
+      id: "resources", label: "Ресурсы", icon: "💾",
+      items: sysData ? [
+        {
+          id: "cpu", label: "Нагрузка CPU",
+          detail: `${sysData.cpuPercent}%`,
+          status: sysData.cpuPercent >= 90 ? "error" : sysData.cpuPercent >= 70 ? "warn" : "ok",
+          advice: sysData.cpuPercent >= 70 ? "Перезапустите сервис или проверьте фоновые процессы" : undefined,
+        },
+        ...(sysData.clockArmMhz ? [{
+          id: "cpu-freq", label: "Частота CPU",
+          detail: `${sysData.clockArmMhz} МГц`,
+          status: "ok" as DiagStatus,
+        }] : []),
+        {
+          id: "ram", label: "Оперативная память",
+          detail: `${sysData.ramUsed} / ${sysData.ramTotal} МБ`,
+          status: (() => { const p = sysData.ramTotal > 0 ? sysData.ramUsed / sysData.ramTotal : 0; return p >= 0.85 ? "error" as DiagStatus : p >= 0.70 ? "warn" as DiagStatus : "ok" as DiagStatus; })(),
+          advice: (() => { const p = sysData.ramTotal > 0 ? sysData.ramUsed / sysData.ramTotal : 0; return p >= 0.70 ? "sudo systemctl restart music-frontend" : undefined; })(),
+        },
+      ] : [na],
+    },
 
-    checks.push({
-      id: "fan", label: "Вентилятор",
-      detail: sysData.fanRpm > 0 ? `${sysData.fanRpm.toLocaleString()} RPM` : temp > 60 ? "Выкл при высокой температуре" : "Выкл — в норме",
-      status: sysData.fanRpm > 0 ? "ok" : temp > 60 ? "warn" : "ok",
-      advice: sysData.fanRpm === 0 && temp > 60 ? "Проверьте подключение вентилятора к плате" : undefined,
-    });
+    // ── Локальная сеть ────────────────────────────────────────────────────────
+    {
+      id: "network", label: "Локальная сеть", icon: "📡",
+      items: [
+        {
+          id: "wifi-conn", label: "Wi-Fi подключение",
+          detail: status?.connected ? (status.ssid ?? "Подключён") : "Не подключён",
+          status: status?.connected ? "ok" : "error",
+          advice: !status?.connected ? "Откройте раздел Сеть и подключитесь к Wi-Fi" : undefined,
+        },
+        ...(sysData && status?.connected ? [
+          {
+            id: "wifi-signal", label: "Уровень сигнала",
+            detail: `${sysData.wlan1Signal} дБм`,
+            status: sysData.wlan1Signal >= -65 ? "ok" as DiagStatus : sysData.wlan1Signal >= -80 ? "warn" as DiagStatus : "error" as DiagStatus,
+            advice: sysData.wlan1Signal < -65 ? "Переместите плату ближе к роутеру" : undefined,
+          },
+          ...(sysData.wlan1LinkMbps ? [{
+            id: "wifi-speed", label: "Скорость Wi-Fi",
+            detail: `${sysData.wlan1LinkMbps} Мбит/с`,
+            status: sysData.wlan1LinkMbps >= 50 ? "ok" as DiagStatus : "warn" as DiagStatus,
+            advice: sysData.wlan1LinkMbps < 50 ? "Слабый сигнал или большая дистанция от роутера" : undefined,
+          }] : []),
+        ] : []),
+        {
+          id: "ap", label: "Точка доступа",
+          detail: status?.apActive ? `Активна · ${status.apDevices ?? 0} устр.` : "Выключена",
+          status: "ok",
+        },
+      ],
+    },
 
-    if (sysData.voltageCore !== undefined) {
-      const v = sysData.voltageCore;
-      // Нормальный диапазон RPi 4/5: 0.65–1.15V в зависимости от нагрузки
-      const low = v < 0.65, high = v > 1.15;
-      checks.push({
-        id: "volt", label: "Напряжение питания",
-        detail: `${v.toFixed(3)} V${low || high ? " — вне нормы" : " — норма"}`,
-        status: low || high ? "warn" : "ok",
-        advice: low
-          ? "Проверьте блок питания (рекомендуется 5V / 5A)"
-          : high ? "Возможен нестабильный блок питания" : undefined,
-      });
-    }
+    // ── Интернет ──────────────────────────────────────────────────────────────
+    {
+      id: "internet", label: "Интернет", icon: "🌐",
+      items: [
+        {
+          id: "inet-avail", label: "Доступность",
+          detail: noInternet ? "Нет доступа" : status?.connected ? "Доступен" : "—",
+          status: noInternet ? "warn" : status?.connected ? "ok" : "warn",
+          advice: noInternet ? "Проверьте роутер или смените Wi-Fi сеть" : undefined,
+        },
+        ...(sysData && !noInternet && status?.connected ? [{
+          id: "inet-io", label: "Трафик",
+          detail: `↓ ${fmtBps(sysData.wlan1RxBps)} · ↑ ${fmtBps(sysData.wlan1TxBps)}`,
+          status: "ok" as DiagStatus,
+        }] : []),
+      ],
+    },
 
-    const throttleNow = (sysData.throttleFlags ?? 0) & 0xD;
-    checks.push({
-      id: "throttle", label: "Тротлинг",
-      detail: throttleNow ? "Активен" : "Не активен",
-      status: throttleNow ? "error" : "ok",
-      advice: throttleNow
-        ? ((sysData.throttleFlags ?? 0) & 0x1 ? "Недостаточное питание — замените блок питания (5V/5A)" : "Перегрев — улучшите вентиляцию")
-        : undefined,
-    });
-  }
-
-  checks.push({
-    id: "wifi", label: "Wi-Fi подключение",
-    detail: status?.connected ? (status.ssid ?? "Подключён") : "Не подключён",
-    status: status?.connected ? "ok" : "error",
-    advice: status?.connected ? undefined : "Откройте раздел Сеть и подключитесь к Wi-Fi",
-  });
-
-  checks.push({
-    id: "internet", label: "Интернет",
-    detail: noInternet ? "Нет доступа" : status?.connected ? "Доступен" : "—",
-    status: noInternet ? "warn" : status?.connected ? "ok" : "warn",
-    advice: noInternet ? "Проверьте роутер или смените Wi-Fi сеть" : undefined,
-  });
-
-  checks.push({
-    id: "sync", label: "Синхронизация БД",
-    detail: lastSyncedAt > 0 ? fmtAgo(lastSyncedAt) : "Нет данных",
-    status: lastSyncedAt === 0 ? "warn" : syncFresh ? "ok" : "warn",
-    advice: !syncFresh && lastSyncedAt > 0 ? "Нажмите «Синхронизировать» в разделе Прошивка" : undefined,
-  });
-
-  return checks;
+    // ── База данных ───────────────────────────────────────────────────────────
+    {
+      id: "data", label: "База данных", icon: "🗄",
+      items: [
+        {
+          id: "sync-fresh", label: "Синхронизация",
+          detail: lastSyncedAt > 0 ? fmtAgo(lastSyncedAt) : "Нет данных",
+          status: lastSyncedAt === 0 ? "warn" : syncFresh ? "ok" : "warn",
+          advice: !syncFresh && lastSyncedAt > 0 ? "Нажмите Синхронизировать в разделе Прошивка" : undefined,
+        },
+      ],
+    },
+  ];
 }
 
 function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt }: {
@@ -1818,148 +1891,208 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
   lastSyncedAt: number;
 }) {
   const [phase, setPhase] = useState<"idle" | "running" | "done">("idle");
-  const [revealed, setRevealed] = useState(0);
-  const checks = buildDiagChecks(sysData, status, noInternet, syncFresh, lastSyncedAt);
+  const [revealedFlat, setRevealedFlat] = useState(0);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const groups = buildDiagGroups(sysData, status, noInternet, syncFresh, lastSyncedAt);
+
+  // Flat sequence: group header → items → next group header → ...
+  const flat: FlatEntry[] = [];
+  groups.forEach((g, gi) => {
+    flat.push({ type: "group", gi });
+    g.items.forEach((_, ii) => flat.push({ type: "item", gi, ii }));
+  });
 
   useEffect(() => {
     if (phase !== "running") return;
-    if (revealed >= checks.length) { setPhase("done"); return; }
-    const t = setTimeout(() => setRevealed(r => r + 1), 350);
+    if (revealedFlat >= flat.length) { setPhase("done"); return; }
+    const entry = flat[revealedFlat];
+    const delay = entry.type === "group" ? 80 : 220;
+    const t = setTimeout(() => setRevealedFlat(r => r + 1), delay);
     return () => clearTimeout(t);
-  }, [phase, revealed, checks.length]);
+  }, [phase, revealedFlat, flat.length]);
 
-  const run = () => { setPhase("running"); setRevealed(0); };
-
-  const errCount = checks.slice(0, revealed).filter(c => c.status === "error").length;
-  const warnCount = checks.slice(0, revealed).filter(c => c.status === "warn").length;
-
-  const statusColor: Record<DiagStatus, string> = {
-    pending: "rgba(0,0,0,0.15)", ok: "#4ade80", warn: "#fbbf24", error: "#f87171",
+  const run = () => {
+    setPhase("running");
+    setRevealedFlat(0);
+    setTimeout(() => panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 60);
   };
-  const statusIcon: Record<DiagStatus, string> = {
-    pending: "○", ok: "✓", warn: "!", error: "✕",
+
+  // Which groups/items are visible
+  const revealedGroups = new Set<number>();
+  const revealedItems = new Map<number, Set<number>>();
+  for (let i = 0; i < revealedFlat; i++) {
+    const e = flat[i];
+    if (e.type === "group") { revealedGroups.add(e.gi); }
+    else { if (!revealedItems.has(e.gi)) revealedItems.set(e.gi, new Set()); revealedItems.get(e.gi)!.add(e.ii); }
+  }
+  const activeEntry = phase === "running" && revealedFlat < flat.length ? flat[revealedFlat] : null;
+
+  // Counts for summary (только уже revealed items)
+  const allRevealedItems = groups.flatMap((g, gi) => g.items.filter((_, ii) => revealedItems.get(gi)?.has(ii)));
+  const errCount = allRevealedItems.filter(c => c.status === "error").length;
+  const warnCount = allRevealedItems.filter(c => c.status === "warn").length;
+
+  // Group summary status
+  const gStatus = (gi: number): DiagStatus => {
+    const revealed = revealedItems.get(gi);
+    if (!revealed || revealed.size === 0) return "pending";
+    const items = groups[gi].items.filter((_, ii) => revealed.has(ii));
+    if (items.some(i => i.status === "error")) return "error";
+    if (items.some(i => i.status === "warn")) return "warn";
+    return "ok";
   };
+
+  const SC: Record<DiagStatus, string> = { pending: "rgba(0,0,0,0.15)", ok: "#4ade80", warn: "#fbbf24", error: "#f87171" };
+  const SI: Record<DiagStatus, string> = { pending: "○", ok: "✓", warn: "!", error: "✕" };
+
+  const totalItems = flat.filter(e => e.type === "item").length;
 
   return (
-    <div style={{ ...card, gap: 0 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: phase === "idle" ? 0 : 12 }}>
+    <div ref={panelRef} style={{ ...card, gap: 0 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: phase === "idle" ? 0 : 10 }}>
         <SectionLabel style={{ marginBottom: 0 }}>Диагностика системы</SectionLabel>
         {(phase === "idle" || phase === "done") && (
-          <button
-            onClick={run}
-            style={{
-              background: "rgba(189,150,115,0.12)", border: "1px solid rgba(189,150,115,0.25)",
-              borderRadius: 8, padding: "4px 12px", cursor: "pointer",
-              fontSize: 11, fontWeight: 600, color: "#7D5E42",
-              fontFamily: "Roboto Slab, serif",
-            }}
-          >
+          <button onClick={run} style={{
+            background: "rgba(189,150,115,0.12)", border: "1px solid rgba(189,150,115,0.25)",
+            borderRadius: 8, padding: "4px 12px", cursor: "pointer",
+            fontSize: 11, fontWeight: 600, color: "#7D5E42", fontFamily: "Roboto Slab, serif",
+          }}>
             {phase === "done" ? "Повторить" : "Запустить"}
           </button>
         )}
         {phase === "running" && (
           <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.3)" }}>
-            {revealed}/{checks.length}
+            {allRevealedItems.length}/{totalItems}
           </span>
         )}
       </div>
 
       {(phase === "running" || phase === "done") && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {checks.map((check, i) => {
-            const visible = i < revealed;
-            const active = i === revealed && phase === "running";
-            return (
-              <div
-                key={check.id}
-                style={{
-                  display: "flex", alignItems: "center", gap: 10,
-                  padding: "7px 4px",
-                  borderBottom: i < checks.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none",
-                  opacity: visible ? 1 : active ? 0.5 : 0,
-                  transform: visible ? "none" : active ? "translateX(4px)" : "translateX(8px)",
-                  transition: "opacity 0.25s ease, transform 0.25s ease",
-                }}
-              >
-                {/* Иконка статуса */}
-                <div style={{
-                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  background: visible ? `${statusColor[check.status]}22` : "rgba(0,0,0,0.05)",
-                  border: `1.5px solid ${visible ? statusColor[check.status] : "rgba(0,0,0,0.1)"}`,
-                  transition: "background 0.3s, border-color 0.3s",
-                }}>
-                  {active ? (
-                    <span style={{ fontSize: 9, color: "rgba(0,0,0,0.3)", animation: "pulse 1s infinite" }}>…</span>
-                  ) : visible ? (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[check.status], lineHeight: 1 }}>
-                      {statusIcon[check.status]}
-                    </span>
-                  ) : null}
-                </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          {groups.map((group, gi) => {
+            const gVisible = revealedGroups.has(gi);
+            const gActive = activeEntry?.type === "group" && activeEntry.gi === gi;
+            const gs = gStatus(gi);
+            const allGroupRevealed = revealedItems.get(gi)?.size === group.items.length;
 
-                {/* Текст + совет */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.7)" }}>
-                      {check.label}
-                    </span>
-                    {/* Детали справа */}
-                    {visible && (
-                      <span className="input-header" style={{
-                        fontSize: 11, flexShrink: 0,
-                        color: check.status === "ok" ? "rgba(0,0,0,0.35)" :
-                          check.status === "warn" ? "#92400e" : "#dc2626",
-                      }}>
-                        {check.detail}
-                      </span>
-                    )}
-                  </div>
-                  {/* Совет под строкой */}
-                  {visible && check.advice && check.status !== "ok" && (
-                    <div className="input-header" style={{
-                      fontSize: 10, marginTop: 2,
-                      color: check.status === "warn" ? "#b45309" : "#b91c1c",
-                      opacity: 0.8,
-                    }}>
-                      → {check.advice}
-                    </div>
+            return (
+              <div key={group.id} style={{ marginBottom: 4 }}>
+                {/* Group header */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: 7, padding: "5px 4px 3px",
+                  opacity: gVisible ? 1 : gActive ? 0.4 : 0,
+                  transition: "opacity 0.15s ease",
+                }}>
+                  <span style={{ fontSize: 13 }}>{group.icon}</span>
+                  <span className="input-header" style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.5)", textTransform: "uppercase", letterSpacing: 0.4, flex: 1 }}>
+                    {group.label}
+                  </span>
+                  {/* Group status dot — показываем когда все пункты группы revealed */}
+                  {gVisible && allGroupRevealed && gs !== "pending" && (
+                    <div style={{
+                      width: 7, height: 7, borderRadius: "50%",
+                      background: SC[gs], flexShrink: 0,
+                      boxShadow: `0 0 4px ${SC[gs]}88`,
+                    }} />
                   )}
                 </div>
+
+                {/* Items */}
+                {group.items.map((item, ii) => {
+                  const iVisible = revealedItems.get(gi)?.has(ii) ?? false;
+                  const iActive = activeEntry?.type === "item" && activeEntry.gi === gi && activeEntry.ii === ii;
+                  return (
+                    <div key={item.id} style={{
+                      display: "flex", alignItems: "flex-start", gap: 8,
+                      padding: "4px 4px 4px 22px",
+                      opacity: iVisible ? 1 : iActive ? 0.35 : 0,
+                      transform: iVisible ? "none" : "translateX(6px)",
+                      transition: "opacity 0.2s ease, transform 0.2s ease",
+                    }}>
+                      {/* Status circle */}
+                      <div style={{
+                        width: 16, height: 16, borderRadius: "50%", flexShrink: 0, marginTop: 1,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        background: iVisible ? `${SC[item.status]}20` : "rgba(0,0,0,0.04)",
+                        border: `1.5px solid ${iVisible ? SC[item.status] : "rgba(0,0,0,0.08)"}`,
+                        transition: "all 0.25s",
+                      }}>
+                        {iActive
+                          ? <span style={{ fontSize: 7, color: "rgba(0,0,0,0.25)", animation: "pulse 1s infinite" }}>…</span>
+                          : iVisible
+                            ? <span style={{ fontSize: 8, fontWeight: 700, color: SC[item.status], lineHeight: 1 }}>{SI[item.status]}</span>
+                            : null}
+                      </div>
+
+                      {/* Label + detail + advice */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 6 }}>
+                          <span className="input-header" style={{ fontSize: 12, fontWeight: 500, color: "rgba(0,0,0,0.65)" }}>
+                            {item.label}
+                          </span>
+                          {iVisible && (
+                            <span className="input-header" style={{
+                              fontSize: 11, flexShrink: 0,
+                              color: item.status === "ok" ? "rgba(0,0,0,0.3)" : item.status === "warn" ? "#92400e" : "#dc2626",
+                            }}>
+                              {item.detail}
+                            </span>
+                          )}
+                        </div>
+                        {iVisible && item.advice && item.status !== "ok" && (
+                          <div className="input-header" style={{ fontSize: 10, marginTop: 1, color: item.status === "warn" ? "#b45309" : "#b91c1c", opacity: 0.75 }}>
+                            → {item.advice}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
 
           {/* Итог */}
           {phase === "done" && (
-            <div style={{
-              marginTop: 10,
-              padding: "10px 12px", borderRadius: 10,
-              display: "flex", alignItems: "center", gap: 10,
-              background: errCount > 0
-                ? "rgba(248,113,113,0.08)" : warnCount > 0
-                  ? "rgba(251,191,36,0.08)" : "rgba(74,222,128,0.08)",
-              border: `1px solid ${errCount > 0 ? "rgba(248,113,113,0.25)" : warnCount > 0 ? "rgba(251,191,36,0.25)" : "rgba(74,222,128,0.25)"}`,
-            }}>
-              <span style={{ fontSize: 16 }}>
-                {errCount > 0 ? "🔴" : warnCount > 0 ? "🟡" : "🟢"}
-              </span>
-              <div>
-                <div className="input-header" style={{
-                  fontSize: 12, fontWeight: 700,
-                  color: errCount > 0 ? "#dc2626" : warnCount > 0 ? "#92400e" : "#166534",
-                }}>
-                  {errCount > 0 ? "Обнаружены проблемы" : warnCount > 0 ? "Есть предупреждения" : "Система в норме"}
-                </div>
-                {(errCount > 0 || warnCount > 0) && (
-                  <div className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", marginTop: 1 }}>
-                    {errCount > 0 && `${errCount} ошибк${errCount === 1 ? "а" : "и"}`}
-                    {errCount > 0 && warnCount > 0 && " · "}
-                    {warnCount > 0 && `${warnCount} предупреждени${warnCount === 1 ? "е" : "я"}`}
+            <>
+              <div style={{
+                marginTop: 8, padding: "10px 12px", borderRadius: 10,
+                display: "flex", alignItems: "center", gap: 10,
+                background: errCount > 0 ? "rgba(248,113,113,0.08)" : warnCount > 0 ? "rgba(251,191,36,0.08)" : "rgba(74,222,128,0.08)",
+                border: `1px solid ${errCount > 0 ? "rgba(248,113,113,0.25)" : warnCount > 0 ? "rgba(251,191,36,0.25)" : "rgba(74,222,128,0.25)"}`,
+              }}>
+                <span style={{ fontSize: 16 }}>{errCount > 0 ? "🔴" : warnCount > 0 ? "🟡" : "🟢"}</span>
+                <div>
+                  <div className="input-header" style={{ fontSize: 12, fontWeight: 700, color: errCount > 0 ? "#dc2626" : warnCount > 0 ? "#92400e" : "#166534" }}>
+                    {errCount > 0 ? "Обнаружены проблемы" : warnCount > 0 ? "Есть предупреждения" : "Система в норме"}
                   </div>
-                )}
+                  {(errCount > 0 || warnCount > 0) && (
+                    <div className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", marginTop: 1 }}>
+                      {errCount > 0 && `${errCount} ошибк${errCount === 1 ? "а" : "и"}`}
+                      {errCount > 0 && warnCount > 0 && " · "}
+                      {warnCount > 0 && `${warnCount} предупреждени${warnCount === 1 ? "е" : "я"}`}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+
+              {/* Закрыть */}
+              <div style={{ display: "flex", justifyContent: "center", marginTop: 10 }}>
+                <button
+                  onClick={() => setPhase("idle")}
+                  style={{
+                    background: "rgba(0,0,0,0.04)", border: "1px solid rgba(0,0,0,0.1)",
+                    borderRadius: 8, padding: "6px 20px", cursor: "pointer",
+                    fontSize: 12, fontWeight: 500, color: "rgba(0,0,0,0.4)",
+                    fontFamily: "Roboto Slab, serif",
+                  }}
+                >
+                  Закрыть диагностику
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}
