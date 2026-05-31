@@ -57,6 +57,7 @@ export default function Home() {
   const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
+  const [hasBoardDanger, setHasBoardDanger] = useState(false);
   const isOnBoardNetwork = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
   const [boardOffline, setBoardOffline] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
@@ -210,6 +211,7 @@ export default function Home() {
           isOpen={isWifiManagerOpen}
           onClose={() => setIsWifiManagerOpen(false)}
           onBoardOfflineChange={setBoardOffline}
+          onDangerChange={setHasBoardDanger}
         />
         {/* Мобильный попоовер — одна кнопка раскрывает все три */}
         <div className="md:hidden fixed bottom-6 left-6 z-50">
@@ -390,6 +392,17 @@ export default function Home() {
                   </g>
                 </g>
               </svg>
+              {hasBoardDanger && !boardOffline && (
+                <span style={{
+                  position: "absolute", top: 2, left: 2,
+                  width: 10, height: 10, borderRadius: "50%",
+                  background: "#ef4444",
+                  border: "2px solid white",
+                  boxShadow: "0 0 6px rgba(239,68,68,0.8)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 7, fontWeight: 900, color: "white", lineHeight: 1,
+                }}>!</span>
+              )}
               {hasFirmwareUpdate && !boardOffline && (
                 <span style={{
                   position: "absolute", top: 2, right: 2,

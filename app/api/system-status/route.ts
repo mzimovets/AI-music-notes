@@ -35,6 +35,39 @@ declare global {
   var _netPrev: { ts: number; w0rx: number; w0tx: number; w1rx: number; w1tx: number } | undefined;
 }
 
+// ── Диск: проверяем примонтирован ли NVMe, занятое место, ошибки ──────────────
+async function getDiskInfo() {
+  // Примонтирован ли /dev/nvme0n1p1
+  const mounts = await run("cat /proc/mounts");
+  const diskMounted = mounts.includes("nvme0n1p1");
+
+  // Занятое место: df выдаёт строку вида "nvme0n1p1 488386560 67108864 ..."
+  // df -B1 /dev/nvme0n1p1 | tail -1 | awk '{print $2, $3}'  → total used (байты)
+  let diskTotalGb = 0, diskUsedGb = 0, diskUsedPct = 0;
+  if (diskMounted) {
+    const dfOut = await run("df -B1 /dev/nvme0n1p1 2>/dev/null | tail -1");
+    const dfParts = dfOut.trim().split(/\s+/);
+    // Формат: Filesystem 1B-blocks Used Available Use% Mountpoint
+    if (dfParts.length >= 5) {
+      diskTotalGb = +(parseInt(dfParts[1]) / 1e9).toFixed(1);
+      diskUsedGb  = +(parseInt(dfParts[2]) / 1e9).toFixed(1);
+      diskUsedPct = parseInt(dfParts[4]) || 0; // уже проценты "10%"
+    }
+  }
+
+  // Ошибки диска: ищем EXT4-fs error или buffer I/O error в dmesg за последние 24ч
+  // dmesg -T --since "24 hours ago" может не работать везде, используем grep
+  const dmesgErrors = await run("dmesg 2>/dev/null | grep -c -E 'EXT4-fs error|I/O error on device nvme|buffer I/O error on dev nvme' || echo 0");
+  const diskErrors = parseInt(dmesgErrors) > 0;
+
+  // Внезапное выключение: ядро пишет "EXT4-fs (nvme0n1p1): recovery complete" при journal recovery
+  // Это значит при предыдущей загрузке диск не был размонтирован штатно
+  const journalRecovery = await run("dmesg 2>/dev/null | grep -c 'EXT4-fs.*nvme0n1p1.*recovery' || echo 0");
+  const diskUncleanShutdown = parseInt(journalRecovery) > 0;
+
+  return { diskMounted, diskTotalGb, diskUsedGb, diskUsedPct, diskErrors, diskUncleanShutdown };
+}
+
 export async function GET() {
   if (process.platform !== "linux") {
     if (!globalThis._mockSys) globalThis._mockSys = { fan: 2400, cpu: 22 };
@@ -63,7 +96,7 @@ export async function GET() {
     });
   }
 
-  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr, voltStr, voltSdramStr, clockSysfsStr, clockVcgStr, governorStr] = await Promise.all([
+  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr, voltStr, voltSdramStr, clockSysfsStr, clockVcgStr, governorStr, diskInfo] = await Promise.all([
     run("cat /sys/class/thermal/thermal_zone0/temp"),
     run("cat /sys/class/hwmon/hwmon*/fan1_input 2>/dev/null | head -1"),
     run("cat /proc/loadavg"),
@@ -81,6 +114,7 @@ export async function GET() {
     // vcgencmd как запасной вариант, возвращает Гц
     run("vcgencmd measure_clock arm 2>/dev/null || echo frequency(48)=0"),
     run("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo unknown"),
+    getDiskInfo(),
   ]);
 
   const temp = +((parseInt(tempStr) / 1000) || 0).toFixed(1);
@@ -136,5 +170,6 @@ export async function GET() {
     wlan1Signal, throttled, throttleFlags, wlan1LinkMbps,
     wlan0RxBps, wlan0TxBps, wlan1RxBps, wlan1TxBps,
     voltageCore, voltageSdram, clockArmMhz, cpuGovernor,
+    ...diskInfo,
   });
 }

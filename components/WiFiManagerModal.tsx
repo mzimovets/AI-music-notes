@@ -6,7 +6,13 @@ import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from 
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
-interface Props { isOpen: boolean; onClose: () => void; onBoardOfflineChange?: (offline: boolean) => void; }
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+  onBoardOfflineChange?: (offline: boolean) => void;
+  /** Вызывается когда меняется наличие опасной ситуации прямо сейчас (undervoltage / thermal throttle) */
+  onDangerChange?: (danger: boolean) => void;
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface WifiStatus {
@@ -26,6 +32,13 @@ interface SysData {
   voltageCore?: number; voltageSdram?: number;
   clockArmMhz?: number; cpuGovernor?: string;
   throttleFlags?: number;
+  // Диск
+  diskMounted?: boolean;
+  diskTotalGb?: number;
+  diskUsedGb?: number;
+  diskUsedPct?: number;
+  diskErrors?: boolean;
+  diskUncleanShutdown?: boolean;
 }
 interface SyncLogEntry { ts: number; level: "info" | "warn" | "error"; line: string; }
 interface SyncResult { ok: boolean; error?: string; duration: number; logs: SyncLogEntry[]; startedAt: number; }
@@ -165,7 +178,7 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Props) {
+export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDangerChange }: Props) {
   const { isLocal } = useLocalServer();
   const [tab, setTab] = useState<Tab>("system");
 
@@ -253,7 +266,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
       const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         sysFailCount.current = 0;
-        setSysData(await res.json());
+        const data = await res.json();
+        setSysData(data);
+        // Опасная ситуация прямо сейчас: undervoltage или тепловой тротлинг
+        const flags = data.throttleFlags ?? 0;
+        const danger = !!(flags & 0x1) || !!(flags & 0xC);
+        onDangerChange?.(danger);
       } else {
         sysFailCount.current++;
       }
@@ -262,7 +280,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
       // 2 подряд ошибки (~6с) → считаем плату недоступной
       if (sysFailCount.current >= 2) setBoardOffline(true);
     }
-  }, [isLocal, setBoardOffline]);
+  }, [isLocal, setBoardOffline, onDangerChange]);
 
   // Нормальный поллинг — только когда плата онлайн
   useEffect(() => {
@@ -1076,11 +1094,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                               </div>
                             )}
 
-                            {(undervoltagNow || undervoltageEver) && (
+                            {undervoltagNow && (
                               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
                                 <span style={{ fontSize: 14 }}>⚡</span>
                                 <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>
-                                  {undervoltagNow ? "Пониженное напряжение — плохой блок питания" : "Было пониженное напряжение"}
+                                  Пониженное напряжение — проверьте блок питания
                                 </span>
                               </div>
                             )}
@@ -1129,11 +1147,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                               </span>
                             </div>
 
-                            {(thermalNow || thermalEver) && (
+                            {thermalNow && (
                               <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
                                 <span style={{ fontSize: 14 }}>🌡️</span>
                                 <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>
-                                  {thermalNow ? "Тепловой тротлинг" : "Был тепловой тротлинг"}
+                                  Тепловой тротлинг — плата перегрелась
                                 </span>
                               </div>
                             )}
@@ -1732,8 +1750,10 @@ function buildDiagGroups(
   lastSyncedAt: number,
 ): DiagGroup[] {
   const flags = sysData?.throttleFlags ?? 0;
-  const throttlePower   = flags & 0x1;   // undervoltage now
-  const throttleThermal = flags & 0xC;   // thermal throttle now
+  const throttlePowerNow    = !!(flags & 0x1);      // пониженное напряжение прямо сейчас
+  const throttleThermalNow  = !!(flags & 0xC);      // тепловой тротлинг прямо сейчас
+  const throttlePowerEver   = !!(flags & 0x10000);  // пониженное напряжение было с последней перезагрузки
+  const throttleThermalEver = !!(flags & 0xC0000);  // тепловой тротлинг был с последней перезагрузки
   const na: DiagItem = { id: "na", label: "Нет данных", detail: "Плата недоступна", status: "error" };
 
   return [
@@ -1773,9 +1793,10 @@ function buildDiagGroups(
         },
         {
           id: "throttle-t", label: "Тепловой тротлинг",
-          detail: throttleThermal ? "Активен" : "Нет",
-          status: throttleThermal ? "error" : "ok",
-          advice: throttleThermal ? "Перегрев — улучшите охлаждение и вентиляцию корпуса" : undefined,
+          detail: throttleThermalNow ? "Активен сейчас" : throttleThermalEver ? "Был с последней загрузки" : "Нет",
+          status: throttleThermalNow ? "error" as DiagStatus : throttleThermalEver ? "warn" as DiagStatus : "ok" as DiagStatus,
+          advice: throttleThermalNow ? "Перегрев — улучшите охлаждение и вентиляцию корпуса"
+                : throttleThermalEver ? "Была кратковременная перегрузка — исчезнет после перезагрузки платы" : undefined,
         },
       ] : [na],
     },
@@ -1797,9 +1818,10 @@ function buildDiagGroups(
         }] : []),
         {
           id: "throttle-p", label: "Тротлинг питания",
-          detail: throttlePower ? "Активен — пониженное напряжение" : "Нет",
-          status: throttlePower ? "error" as DiagStatus : "ok" as DiagStatus,
-          advice: throttlePower ? "Замените блок питания на официальный 5V / 5A" : undefined,
+          detail: throttlePowerNow ? "Активен — пониженное напряжение" : throttlePowerEver ? "Было пониженное напряжение" : "Нет",
+          status: throttlePowerNow ? "error" as DiagStatus : throttlePowerEver ? "warn" as DiagStatus : "ok" as DiagStatus,
+          advice: throttlePowerNow ? "Замените блок питания на официальный 5V / 5A"
+                : throttlePowerEver ? "Была кратковременная просадка питания — исчезнет после перезагрузки платы" : undefined,
         },
       ] : [na],
     },
@@ -1889,6 +1911,42 @@ function buildDiagGroups(
           advice: !syncFresh && lastSyncedAt > 0 ? "Нажмите Синхронизировать в разделе Прошивка" : undefined,
         },
       ],
+    },
+
+    // ── Диск ─────────────────────────────────────────────────────────────────
+    {
+      id: "disk", label: "Диск (NVMe SSD)", icon: "💽",
+      items: sysData ? [
+        {
+          // Примонтирован ли накопитель — без него ничего не работает
+          id: "disk-mounted", label: "Накопитель",
+          detail: sysData.diskMounted ? "Примонтирован · /mnt/ssd" : "Не примонтирован",
+          status: sysData.diskMounted ? "ok" as DiagStatus : "error" as DiagStatus,
+          advice: !sysData.diskMounted ? "Выполните: sudo mount /dev/nvme0n1p1 /mnt/ssd" : undefined,
+        },
+        ...(sysData.diskMounted && sysData.diskTotalGb !== undefined ? [{
+          // Занятое место — предупреждаем при 85%, критично при 95%
+          id: "disk-space", label: "Занято место",
+          detail: `${sysData.diskUsedGb} ГБ из ${sysData.diskTotalGb} ГБ (${sysData.diskUsedPct}%)`,
+          status: (sysData.diskUsedPct ?? 0) >= 95 ? "error" as DiagStatus
+                : (sysData.diskUsedPct ?? 0) >= 85 ? "warn" as DiagStatus : "ok" as DiagStatus,
+          advice: (sysData.diskUsedPct ?? 0) >= 85 ? "Освободите место: удалите старые логи или временные файлы" : undefined,
+        }] : []),
+        {
+          // Ошибки чтения/записи — плохой признак, могут сигнализировать о деградации
+          id: "disk-errors", label: "Ошибки диска",
+          detail: sysData.diskErrors ? "Обнаружены (см. dmesg)" : "Нет",
+          status: sysData.diskErrors ? "error" as DiagStatus : "ok" as DiagStatus,
+          advice: sysData.diskErrors ? "Есть аппаратные ошибки — проверьте подключение NVMe и S.M.A.R.T.: sudo smartctl -a /dev/nvme0" : undefined,
+        },
+        {
+          // Внезапное выключение — ядро восстановило журнал ext4 при последней загрузке
+          id: "disk-unclean", label: "Внезапное выключение",
+          detail: sysData.diskUncleanShutdown ? "Обнаружено при загрузке" : "Нет",
+          status: sysData.diskUncleanShutdown ? "warn" as DiagStatus : "ok" as DiagStatus,
+          advice: sysData.diskUncleanShutdown ? "При прошлом включении ext4 восстановил журнал — данные целы, но лучше избегать резких отключений питания" : undefined,
+        },
+      ] : [na],
     },
   ];
 }
