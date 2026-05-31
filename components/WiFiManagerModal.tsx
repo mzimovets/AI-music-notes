@@ -45,16 +45,36 @@ interface SyncHistoryEntry {
 }
 type Tab = "system" | "power" | "network" | "firmware";
 
-// ── Fan SVG ────────────────────────────────────────────────────────────────────
+// ── Fan SVG — плавное вращение через RAF (без рестарта при смене RPM) ──────────
 function FanIcon({ rpm }: { rpm: number }) {
-  const duration = rpm > 100 ? `${Math.max(0.08, 6000 / rpm).toFixed(2)}s` : undefined;
+  const svgRef = useRef<SVGSVGElement>(null);
+  const rpmRef = useRef(rpm);
+  const angleRef = useRef(0);
+  const lastTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number>(0);
+
+  useEffect(() => { rpmRef.current = rpm; }, [rpm]);
+
+  useEffect(() => {
+    const animate = (time: number) => {
+      if (lastTimeRef.current !== null) {
+        const dt = time - lastTimeRef.current;
+        const r = rpmRef.current;
+        const degsPerMs = r > 50 ? (360 * r / 60) / 1000 : 0;
+        if (degsPerMs > 0) {
+          angleRef.current = (angleRef.current + degsPerMs * dt) % 360;
+          if (svgRef.current) svgRef.current.style.transform = `rotate(${angleRef.current}deg)`;
+        }
+      }
+      lastTimeRef.current = time;
+      rafRef.current = requestAnimationFrame(animate);
+    };
+    rafRef.current = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, []);
+
   return (
-    <svg
-      viewBox="0 0 24 24" width="36" height="36"
-      className={duration ? "animate-spin" : ""}
-      style={duration ? { animationDuration: duration } : undefined}
-      xmlns="http://www.w3.org/2000/svg"
-    >
+    <svg ref={svgRef} viewBox="0 0 24 24" width="36" height="36" xmlns="http://www.w3.org/2000/svg">
       <rect width="24" height="24" fill="none"/>
       <path fill="#BD9673" d="M12,11a1,1,0,1,0,1,1,1,1,0,0,0-1-1m.5-9C17,2,17.1,5.57,14.73,6.75a3.36,3.36,0,0,0-1.62,2.47,3.17,3.17,0,0,1,1.23.91C18,8.13,22,8.92,22,12.5c0,4.5-3.58,4.6-4.75,2.23a3.44,3.44,0,0,0-2.5-1.62,3.24,3.24,0,0,1-.91,1.23c2,3.69,1.2,7.66-2.38,7.66C7,22,6.89,18.42,9.26,17.24a3.46,3.46,0,0,0,1.62-2.45,3,3,0,0,1-1.25-.92C5.94,15.85,2,15.07,2,11.5,2,7,5.54,6.89,6.72,9.26A3.39,3.39,0,0,0,9.2,10.87a2.91,2.91,0,0,1,.92-1.22C8.13,6,8.92,2,12.48,2Z"/>
     </svg>
@@ -238,7 +258,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
       } catch {}
     };
     check(); // сразу проверяем при переходе в offline-режим
-    retryTimer.current = setInterval(check, 15_000);
+    retryTimer.current = setInterval(check, 5_000);
     return () => { if (retryTimer.current) clearInterval(retryTimer.current); };
   }, [boardOffline, setBoardOffline]);
 
@@ -260,7 +280,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   useEffect(() => {
     if (!isOpen) { if (statusTimer.current) clearInterval(statusTimer.current); return; }
     fetchStatus();
-    statusTimer.current = setInterval(fetchStatus, 15_000);
+    statusTimer.current = setInterval(fetchStatus, 5_000);
     return () => { if (statusTimer.current) clearInterval(statusTimer.current); };
   }, [isOpen, fetchStatus]);
 
@@ -279,7 +299,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   useEffect(() => {
     if (!isOpen) { if (checkTimer.current) clearInterval(checkTimer.current); return; }
     checkUpdate();
-    checkTimer.current = setInterval(checkUpdate, 30 * 60_000);
+    checkTimer.current = setInterval(checkUpdate, 3 * 60_000);
     return () => { if (checkTimer.current) clearInterval(checkTimer.current); };
   }, [isOpen, checkUpdate]);
 
@@ -297,7 +317,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   useEffect(() => {
     if (!isOpen) { if (syncPollTimer.current) clearInterval(syncPollTimer.current); return; }
     fetchSyncStatus();
-    syncPollTimer.current = setInterval(fetchSyncStatus, 5 * 60_000);
+    syncPollTimer.current = setInterval(fetchSyncStatus, 60_000);
     return () => { if (syncPollTimer.current) clearInterval(syncPollTimer.current); };
   }, [isOpen, fetchSyncStatus]);
 
@@ -339,7 +359,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   useEffect(() => {
     if (tab !== "firmware") return;
     const now = Date.now();
-    if (now - lastFirmwareCheckRef.current > 5 * 60_000) {
+    if (now - lastFirmwareCheckRef.current > 2 * 60_000) {
       lastFirmwareCheckRef.current = now;
       checkUpdate();
     }
@@ -718,6 +738,17 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                       )}
                     </div>
                   </div>}
+
+                  {/* Diagnostics panel */}
+                  {!boardOffline && (
+                    <DiagnosticPanel
+                      sysData={sysData}
+                      status={status}
+                      noInternet={noInternet}
+                      syncFresh={syncFresh}
+                      lastSyncedAt={lastSyncedAt}
+                    />
+                  )}
                 </>
               )}
 
@@ -1501,9 +1532,18 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
   const [progress, setProgress] = useState(0);
   const [holding, setHolding] = useState(false);
   const [done, setDone] = useState(false);
+  const [hintVisible, setHintVisible] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const HOLD_MS = 3000;
+
+  // Хинт показывается 3с, затем пропадает; снова появляется если пользователь нажал и отпустил
+  useEffect(() => {
+    if (holding || done || offline) return;
+    setHintVisible(true);
+    const t = setTimeout(() => setHintVisible(false), 3000);
+    return () => clearTimeout(t);
+  }, [holding, done, offline]);
 
   // Кольцо снаружи кнопки: контейнер OUTER, кнопка BTN (по центру)
   const OUTER = 116;
@@ -1619,9 +1659,241 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
         </svg>
       </div>
 
-      <span className="input-header" style={{ fontSize: 12, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.4)", textAlign: "center" }}>
+      <span className="input-header" style={{
+        fontSize: 12, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.4)", textAlign: "center",
+        opacity: (isOff || holding || hintVisible) ? 1 : 0,
+        transition: "opacity 0.6s ease",
+        pointerEvents: "none",
+      }}>
         {offline ? "Плата выключена" : done ? "Выключается..." : holding ? "Держите..." : "Удерживайте для выключения"}
       </span>
+    </div>
+  );
+}
+
+// ── Diagnostic Panel ───────────────────────────────────────────────────────────
+type DiagStatus = "pending" | "ok" | "warn" | "error";
+interface DiagItem { id: string; label: string; detail: string; status: DiagStatus; }
+
+function buildDiagChecks(
+  sysData: SysData | null,
+  status: WifiStatus | null,
+  noInternet: boolean,
+  syncFresh: boolean,
+  lastSyncedAt: number,
+): DiagItem[] {
+  const checks: DiagItem[] = [];
+
+  checks.push({ id: "board", label: "Плата доступна", detail: "Нет связи с платой", status: sysData ? "ok" : "error" });
+
+  if (sysData) {
+    const temp = sysData.temp;
+    checks.push({
+      id: "temp", label: "Температура CPU",
+      detail: `${temp}°C${temp >= 80 ? " — критично" : temp >= 65 ? " — повышена" : " — норма"}`,
+      status: temp >= 80 ? "error" : temp >= 65 ? "warn" : "ok",
+    });
+
+    const cpu = sysData.cpuPercent;
+    checks.push({
+      id: "cpu", label: "Нагрузка CPU",
+      detail: `${cpu}%${cpu >= 90 ? " — перегружен" : cpu >= 70 ? " — высокая" : " — норма"}`,
+      status: cpu >= 90 ? "error" : cpu >= 70 ? "warn" : "ok",
+    });
+
+    const ramPct = sysData.ramTotal > 0 ? Math.round(sysData.ramUsed / sysData.ramTotal * 100) : 0;
+    checks.push({
+      id: "ram", label: "Оперативная память",
+      detail: `${sysData.ramUsed} / ${sysData.ramTotal} МБ (${ramPct}%)`,
+      status: ramPct >= 85 ? "error" : ramPct >= 70 ? "warn" : "ok",
+    });
+
+    checks.push({
+      id: "fan", label: "Вентилятор",
+      detail: sysData.fanRpm > 0 ? `${sysData.fanRpm.toLocaleString()} RPM` : temp > 60 ? "Выкл — перегрев?" : "Выкл — норма",
+      status: sysData.fanRpm > 0 ? "ok" : temp > 60 ? "warn" : "ok",
+    });
+
+    if (sysData.voltageCore !== undefined) {
+      const v = sysData.voltageCore;
+      checks.push({
+        id: "volt", label: "Напряжение питания",
+        detail: `${v.toFixed(3)} V${v < 0.9 || v > 1.25 ? " — вне нормы" : " — норма"}`,
+        status: v < 0.9 || v > 1.25 ? "warn" : "ok",
+      });
+    }
+
+    const throttleNow = (sysData.throttleFlags ?? 0) & 0xD;
+    checks.push({
+      id: "throttle", label: "Тротлинг",
+      detail: throttleNow ? "Активен — перегрев или питание" : "Нет",
+      status: throttleNow ? "error" : "ok",
+    });
+  }
+
+  checks.push({
+    id: "wifi", label: "Wi-Fi подключение",
+    detail: status?.connected ? (status.ssid ?? "Подключён") : "Не подключён",
+    status: status?.connected ? "ok" : "error",
+  });
+
+  checks.push({
+    id: "internet", label: "Интернет",
+    detail: noInternet ? "Нет интернета" : status?.connected ? "Доступен" : "—",
+    status: noInternet ? "warn" : status?.connected ? "ok" : "warn",
+  });
+
+  checks.push({
+    id: "sync", label: "Синхронизация БД",
+    detail: lastSyncedAt > 0 ? fmtAgo(lastSyncedAt) : "Нет данных",
+    status: lastSyncedAt === 0 ? "warn" : syncFresh ? "ok" : "warn",
+  });
+
+  return checks;
+}
+
+function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt }: {
+  sysData: SysData | null;
+  status: WifiStatus | null;
+  noInternet: boolean;
+  syncFresh: boolean;
+  lastSyncedAt: number;
+}) {
+  const [phase, setPhase] = useState<"idle" | "running" | "done">("idle");
+  const [revealed, setRevealed] = useState(0);
+  const checks = buildDiagChecks(sysData, status, noInternet, syncFresh, lastSyncedAt);
+
+  useEffect(() => {
+    if (phase !== "running") return;
+    if (revealed >= checks.length) { setPhase("done"); return; }
+    const t = setTimeout(() => setRevealed(r => r + 1), 350);
+    return () => clearTimeout(t);
+  }, [phase, revealed, checks.length]);
+
+  const run = () => { setPhase("running"); setRevealed(0); };
+
+  const errCount = checks.slice(0, revealed).filter(c => c.status === "error").length;
+  const warnCount = checks.slice(0, revealed).filter(c => c.status === "warn").length;
+
+  const statusColor: Record<DiagStatus, string> = {
+    pending: "rgba(0,0,0,0.15)", ok: "#4ade80", warn: "#fbbf24", error: "#f87171",
+  };
+  const statusIcon: Record<DiagStatus, string> = {
+    pending: "○", ok: "✓", warn: "!", error: "✕",
+  };
+
+  return (
+    <div style={{ ...card, gap: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: phase === "idle" ? 0 : 12 }}>
+        <SectionLabel style={{ marginBottom: 0 }}>Диагностика системы</SectionLabel>
+        {(phase === "idle" || phase === "done") && (
+          <button
+            onClick={run}
+            style={{
+              background: "rgba(189,150,115,0.12)", border: "1px solid rgba(189,150,115,0.25)",
+              borderRadius: 8, padding: "4px 12px", cursor: "pointer",
+              fontSize: 11, fontWeight: 600, color: "#7D5E42",
+              fontFamily: "Roboto Slab, serif",
+            }}
+          >
+            {phase === "done" ? "Повторить" : "Запустить"}
+          </button>
+        )}
+        {phase === "running" && (
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.3)" }}>
+            {revealed}/{checks.length}
+          </span>
+        )}
+      </div>
+
+      {(phase === "running" || phase === "done") && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {checks.map((check, i) => {
+            const visible = i < revealed;
+            const active = i === revealed && phase === "running";
+            return (
+              <div
+                key={check.id}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "7px 4px",
+                  borderBottom: i < checks.length - 1 ? "1px solid rgba(0,0,0,0.04)" : "none",
+                  opacity: visible ? 1 : active ? 0.5 : 0,
+                  transform: visible ? "none" : active ? "translateX(4px)" : "translateX(8px)",
+                  transition: "opacity 0.25s ease, transform 0.25s ease",
+                }}
+              >
+                {/* Иконка статуса */}
+                <div style={{
+                  width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  background: visible ? `${statusColor[check.status]}22` : "rgba(0,0,0,0.05)",
+                  border: `1.5px solid ${visible ? statusColor[check.status] : "rgba(0,0,0,0.1)"}`,
+                  transition: "background 0.3s, border-color 0.3s",
+                }}>
+                  {active ? (
+                    <span style={{ fontSize: 9, color: "rgba(0,0,0,0.3)", animation: "pulse 1s infinite" }}>…</span>
+                  ) : visible ? (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: statusColor[check.status], lineHeight: 1 }}>
+                      {statusIcon[check.status]}
+                    </span>
+                  ) : null}
+                </div>
+
+                {/* Текст */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "rgba(0,0,0,0.7)" }}>
+                    {check.label}
+                  </span>
+                </div>
+
+                {/* Детали */}
+                {visible && (
+                  <span className="input-header" style={{
+                    fontSize: 11, color: check.status === "ok" ? "rgba(0,0,0,0.35)" :
+                      check.status === "warn" ? "#92400e" : "#dc2626",
+                    textAlign: "right", flexShrink: 0, maxWidth: 120,
+                  }}>
+                    {check.detail}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Итог */}
+          {phase === "done" && (
+            <div style={{
+              marginTop: 10,
+              padding: "10px 12px", borderRadius: 10,
+              display: "flex", alignItems: "center", gap: 10,
+              background: errCount > 0
+                ? "rgba(248,113,113,0.08)" : warnCount > 0
+                  ? "rgba(251,191,36,0.08)" : "rgba(74,222,128,0.08)",
+              border: `1px solid ${errCount > 0 ? "rgba(248,113,113,0.25)" : warnCount > 0 ? "rgba(251,191,36,0.25)" : "rgba(74,222,128,0.25)"}`,
+            }}>
+              <span style={{ fontSize: 16 }}>
+                {errCount > 0 ? "🔴" : warnCount > 0 ? "🟡" : "🟢"}
+              </span>
+              <div>
+                <div className="input-header" style={{
+                  fontSize: 12, fontWeight: 700,
+                  color: errCount > 0 ? "#dc2626" : warnCount > 0 ? "#92400e" : "#166534",
+                }}>
+                  {errCount > 0 ? "Обнаружены проблемы" : warnCount > 0 ? "Есть предупреждения" : "Система в норме"}
+                </div>
+                {(errCount > 0 || warnCount > 0) && (
+                  <div className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", marginTop: 1 }}>
+                    {errCount > 0 && `${errCount} ошибк${errCount === 1 ? "а" : "и"}`}
+                    {errCount > 0 && warnCount > 0 && " · "}
+                    {warnCount > 0 && `${warnCount} предупреждени${warnCount === 1 ? "е" : "я"}`}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1640,7 +1912,7 @@ function OfflineBanner() {
         Плата выключена
       </span>
       <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.2)", marginLeft: "auto" }}>
-        Проверка каждые 15 с
+        Проверка каждые 5 с
       </span>
     </div>
   );
