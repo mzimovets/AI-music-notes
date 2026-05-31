@@ -622,7 +622,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Fan card */}
                   {!boardOffline && <div style={{ ...card, flexDirection: "row", alignItems: "center", gap: 14 }}>
