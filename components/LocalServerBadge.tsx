@@ -50,25 +50,6 @@ export function LocalServerBadge() {
     );
   }
 
-  // Основной сайт — показываем ссылку на локальный сервер
-  const localUrl = `http://${hostname || "raspberrypi-songs.local"}`;
-  return (
-    <a
-      href={localUrl}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold transition-opacity hover:opacity-80"
-      style={{
-        background: "rgba(99, 102, 241, 0.08)",
-        color: "#4338ca",
-        border: "1px solid rgba(99, 102, 241, 0.2)",
-        fontFamily: "Roboto Slab, serif",
-        textDecoration: "none",
-      }}
-      title={`Открыть приложение на локальном сервере (${localUrl})`}
-    >
-      <span style={{ fontSize: 10 }}>🔗</span>
-      <span>Открыть на плате</span>
-    </a>
-  );
+  // На основном сайте ничего не рендерим — баннер BoardBanner покажет плату когда она рядом
+  return null;
 }
