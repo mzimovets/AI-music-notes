@@ -58,6 +58,9 @@ export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
   const isOnBoardNetwork = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const [boardOffline, setBoardOffline] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
+  );
 
   // Background firmware check every 30 min
   useEffect(() => {
@@ -206,6 +209,7 @@ export default function Home() {
         <WiFiManagerModal
           isOpen={isWifiManagerOpen}
           onClose={() => setIsWifiManagerOpen(false)}
+          onBoardOfflineChange={setBoardOffline}
         />
         {/* Мобильный попоовер — одна кнопка раскрывает все три */}
         <div className="md:hidden fixed bottom-6 left-6 z-50">
@@ -346,16 +350,20 @@ export default function Home() {
               style={{ position: "relative",
                 width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: isOnBoardNetwork
-                  ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
-                  : "linear-gradient(135deg, #BD9673, #7D5E42)",
-                boxShadow: isOnBoardNetwork
-                  ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
-                  : "0 4px 14px rgba(0,0,0,0.2)",
+                background: boardOffline
+                  ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
+                  : isOnBoardNetwork
+                    ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
+                    : "linear-gradient(135deg, #BD9673, #7D5E42)",
+                boxShadow: boardOffline
+                  ? "0 4px 14px rgba(100,116,139,0.3)"
+                  : isOnBoardNetwork
+                    ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
+                    : "0 4px 14px rgba(0,0,0,0.2)",
                 transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
               }}
             >
-              <svg width="22" height="22" viewBox="0 0 32 32" fill={isOnBoardNetwork ? "rgba(255,255,255,0.95)" : "white"} xmlns="http://www.w3.org/2000/svg">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg">
                 <g>
                   <g>
                     <path d="M13.8,6.4c-1.4-1.1-2.9-1.9-4.6-2.5c1.5,0.9,3,1.7,4.2,2.9c-0.1,1.1-1.5,1.8-3.1,1.7c-0.1-0.1,0.1-0.1,0.1-0.3C10,8.1,9.5,8.2,9.2,8c0-0.1,0.2-0.1,0.1-0.2C9,7.6,8.6,7.5,8.3,7.3c0-0.1,0.2-0.1,0.3-0.2c-0.3-0.2-0.7-0.3-1-0.6c0.1-0.1,0.2,0,0.3-0.2C7.6,6.1,7.3,5.9,7.1,5.6c0.1-0.1,0.2,0,0.3-0.1C7.3,5.2,6.9,5,6.8,4.7c0.2,0,0.3,0.1,0.5-0.1C7.1,4.3,6.7,4.2,6.6,3.8c0.1-0.1,0.3,0,0.4-0.1c0-0.3-0.2-0.5-0.3-0.8c0.3-0.1,0.7,0,1-0.1c0-0.1-0.1-0.2-0.1-0.3c0.4-0.2,0.8,0,1.2,0.1c0.1-0.2-0.1-0.2,0-0.4c0.3,0,0.6,0.2,1,0.2C9.9,2.2,9.6,2.2,9.6,2c0.4,0,0.7,0.2,1,0.4c0.1-0.1,0-0.2,0.1-0.4c0.3,0.1,0.5,0.3,0.8,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.1,0.5,0.4,0.7,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.2,0.5,0.5,0.7,0.7c0.2,0,0.1-0.2,0.3-0.2c0.6,0.7,1.2,1.5,1.1,2.5C14.7,5.9,14.3,6.2,13.8,6.4L13.8,6.4z"/>

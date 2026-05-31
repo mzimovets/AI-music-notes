@@ -4,8 +4,9 @@ import { Modal, ModalContent } from "@heroui/modal";
 import { Chip } from "@heroui/chip";
 import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useLocalServer } from "@/hooks/useLocalServer";
 
-interface Props { isOpen: boolean; onClose: () => void; }
+interface Props { isOpen: boolean; onClose: () => void; onBoardOfflineChange?: (offline: boolean) => void; }
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface WifiStatus {
@@ -143,16 +144,22 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
 }
 
 // ── Main component ─────────────────────────────────────────────────────────────
-export function WiFiManagerModal({ isOpen, onClose }: Props) {
+export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Props) {
+  const { isLocal } = useLocalServer();
   const [tab, setTab] = useState<Tab>("system");
 
   // System
   const [sysData, setSysData] = useState<SysData | null>(null);
   const sysTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const OFFLINE_KEY = "board-offline-v1";
-  const [boardOffline, setBoardOffline] = useState(() =>
+  const [boardOffline, setBoardOfflineRaw] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
   );
+  const setBoardOffline = useCallback((offline: boolean) => {
+    setBoardOfflineRaw(offline);
+    onBoardOfflineChange?.(offline);
+    if (offline) sessionStorage.setItem("board-offline-v1", "1");
+    else sessionStorage.removeItem("board-offline-v1");
+  }, [onBoardOfflineChange]);
 
   // WiFi
   const [status, setStatus] = useState<WifiStatus | null>(null);
@@ -202,18 +209,17 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     toastTimer.current = setTimeout(() => setToast(null), 3500);
   }, []);
 
-  // ── System polling ───────────────────────────────────────────────────────────
+  // ── System polling — только на локальном сервере ────────────────────────────
   const fetchSys = useCallback(async () => {
+    if (!isLocal) return;
     try {
       const res = await fetch("/api/system-status");
       if (res.ok) {
         setSysData(await res.json());
-        // Плата отвечает — снимаем флаг offline
-        sessionStorage.removeItem("board-offline-v1");
         setBoardOffline(false);
       }
     } catch {}
-  }, []);
+  }, [isLocal, setBoardOffline]);
 
   useEffect(() => {
     if (!isOpen) { if (sysTimer.current) clearInterval(sysTimer.current); return; }
@@ -226,9 +232,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     if (sysTimer.current) clearInterval(sysTimer.current);
     setSysData(null);
     setBoardOffline(true);
-    sessionStorage.setItem("board-offline-v1", "1");
     setTab("system");
-  }, []);
+  }, [setBoardOffline]);
 
   // ── WiFi status polling ──────────────────────────────────────────────────────
   const fetchStatus = useCallback(async () => {
