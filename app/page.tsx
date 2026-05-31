@@ -76,6 +76,26 @@ export default function Home() {
     return () => clearInterval(t);
   }, []);
 
+  // Фоновый опрос опасных состояний платы (undervoltage / thermal throttle прямо сейчас)
+  // Работает всегда — независимо от того открыта модалка или нет
+  useEffect(() => {
+    if (!isOnBoardNetwork) return;
+    const check = async () => {
+      if (boardOffline) { setHasBoardDanger(false); return; }
+      try {
+        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
+        if (res.ok) {
+          const d = await res.json();
+          const flags = d.throttleFlags ?? 0;
+          setHasBoardDanger(!!(flags & 0x1) || !!(flags & 0xC));
+        }
+      } catch {}
+    };
+    check();
+    const t = setInterval(check, 5_000);
+    return () => clearInterval(t);
+  }, [isOnBoardNetwork, boardOffline]);
+
   useEffect(() => {
     localStorage.setItem("showStacks", String(showStacks));
   }, [showStacks]);
@@ -211,7 +231,6 @@ export default function Home() {
           isOpen={isWifiManagerOpen}
           onClose={() => setIsWifiManagerOpen(false)}
           onBoardOfflineChange={setBoardOffline}
-          onDangerChange={setHasBoardDanger}
         />
         {/* Мобильный попоовер — одна кнопка раскрывает все три */}
         <div className="md:hidden fixed bottom-6 left-6 z-50">
