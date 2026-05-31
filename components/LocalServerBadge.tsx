@@ -32,7 +32,7 @@ export function LocalServerBadge() {
   }
 
   // Основной сайт — показываем ссылку на локальный сервер
-  const localUrl = `http://${hostname || "nevsky-songs.local"}`;
+  const localUrl = `http://${hostname || "raspberrypi-songs.local"}`;
   return (
     <a
       href={localUrl}

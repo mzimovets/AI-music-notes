@@ -23,7 +23,51 @@ import { syncRoutes } from "./routes/sync.js";
 import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
+import { execSync } from "child_process";
+import { fileURLToPath as _ftu } from "url";
 dotenv.config({ path: ".env.local" });
+
+// ── Auto-setup nginx + mDNS при первом старте на Linux ──────────────────────
+if (process.platform === "linux" && process.env.IS_LOCAL_SERVER === "true") {
+  (async () => {
+    const run = (cmd) => { try { execSync(cmd, { stdio: "ignore" }); return true; } catch { return false; } };
+    const exists = (p) => { try { fs.accessSync(p); return true; } catch { return false; } };
+
+    // 1. Avahi (mDNS) — обычно уже стоит в RPi OS
+    if (!exists("/etc/avahi/avahi-daemon.conf")) {
+      console.log("[setup] Устанавливаю avahi-daemon...");
+      run("apt-get install -y avahi-daemon");
+    }
+    run("systemctl enable avahi-daemon 2>/dev/null");
+    run("systemctl start avahi-daemon 2>/dev/null");
+
+    // 2. Nginx — проксирует порт 80 → 3000
+    const nginxSite = "/etc/nginx/sites-enabled/nevsky-songs";
+    if (!exists(nginxSite)) {
+      console.log("[setup] Настраиваю nginx (порт 80 → 3000)...");
+      const nginxInstalled = run("which nginx");
+      if (!nginxInstalled) run("apt-get install -y nginx");
+      const conf = `server {
+  listen 80;
+  server_name _;
+  location / {
+    proxy_pass http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_cache_bypass $http_upgrade;
+  }
+}`;
+      fs.writeFileSync("/etc/nginx/sites-available/nevsky-songs", conf);
+      run("ln -sf /etc/nginx/sites-available/nevsky-songs /etc/nginx/sites-enabled/nevsky-songs");
+      run("rm -f /etc/nginx/sites-enabled/default");
+      run("nginx -t && systemctl reload nginx");
+      run("systemctl enable nginx");
+      console.log("[setup] Nginx настроен. Доступ: http://raspberrypi-songs.local");
+    }
+  })().catch(() => {});
+}
 
 // --------- HID Clicker + WebSocket ---------
 // --------- HID Clicker + WebSocket ---------

@@ -9,6 +9,6 @@ export async function GET() {
   const isLocal = process.env.IS_LOCAL_SERVER === "true";
   return NextResponse.json({
     isLocal,
-    hostname: isLocal ? (process.env.LOCAL_HOSTNAME || "nevsky-songs.local") : null,
+    hostname: isLocal ? (process.env.LOCAL_HOSTNAME || "raspberrypi-songs.local") : null,
   });
 }
