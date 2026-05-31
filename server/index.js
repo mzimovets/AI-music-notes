@@ -302,6 +302,14 @@ app.get("/", (req, res) => {
   res.send("hello my dear");
 });
 
+// ── Ping / health-check ──────────────────────────────────────────────────────
+// Используется фронтендом для обнаружения локального сервера.
+// CORS * — намеренно, чтобы основной HTTPS-сайт мог сделать preflight.
+app.get("/api/ping", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.json({ ok: true, local: true, ts: Date.now() });
+});
+
 app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "Файл не загружен" });

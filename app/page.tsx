@@ -24,6 +24,7 @@ import { CacheStats } from "@/components/CacheStats";
 import { DeviceBatteryModal } from "@/components/DeviceBatteryModal";
 import { WiFiQRModal } from "@/components/WiFiQRModal";
 import { WiFiManagerModal } from "@/components/WiFiManagerModal";
+import { LocalServerBadge } from "@/components/LocalServerBadge";
 
 export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
@@ -378,6 +379,11 @@ export default function Home() {
           )}
         </div>
       </>
+
+      {/* Бейдж локального / основного сервера */}
+      <div className="flex justify-end mb-2">
+        <LocalServerBadge />
+      </div>
 
       {/* Stacks.tsx */}
       {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
