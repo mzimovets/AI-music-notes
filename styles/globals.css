@@ -114,3 +114,12 @@ img {
   -webkit-touch-callout: none;
   pointer-events: none;
 }
+
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}

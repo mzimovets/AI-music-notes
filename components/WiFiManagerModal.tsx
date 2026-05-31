@@ -174,11 +174,24 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   const [boardOffline, setBoardOfflineRaw] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
   );
+  const offlineSinceRef = useRef<number>(0);
+  const [offlineSince, setOfflineSince] = useState(0);
+  const [retryChecking, setRetryChecking] = useState(false);
+
   const setBoardOffline = useCallback((offline: boolean) => {
     setBoardOfflineRaw(offline);
     onBoardOfflineChange?.(offline);
-    if (offline) sessionStorage.setItem("board-offline-v1", "1");
-    else sessionStorage.removeItem("board-offline-v1");
+    if (offline) {
+      sessionStorage.setItem("board-offline-v1", "1");
+      const now = Date.now();
+      offlineSinceRef.current = now;
+      setOfflineSince(now);
+    } else {
+      sessionStorage.removeItem("board-offline-v1");
+      offlineSinceRef.current = 0;
+      setOfflineSince(0);
+      setRetryChecking(false);
+    }
   }, [onBoardOfflineChange]);
 
   // WiFi
@@ -258,17 +271,29 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
     return () => { if (sysTimer.current) clearInterval(sysTimer.current); };
   }, [isOpen, boardOffline, fetchSys]);
 
-  // Медленный retry — когда плата оффлайн, проверяем раз в 15с (независимо от того, открыта ли модалка)
+  // Retry — когда плата оффлайн, проверяем каждые 3с (независимо от того, открыта ли модалка)
+  const manualRetryCheck = useCallback(async () => {
+    if (!boardOffline) return;
+    setRetryChecking(true);
+    try {
+      const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
+      if (res.ok) setBoardOffline(false);
+    } catch {}
+    finally { setRetryChecking(false); }
+  }, [boardOffline, setBoardOffline]);
+
   useEffect(() => {
     if (!boardOffline) { if (retryTimer.current) clearInterval(retryTimer.current); return; }
     const check = async () => {
+      setRetryChecking(true);
       try {
-        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
-        if (res.ok) setBoardOffline(false); // плата вернулась — нормальный поллинг подхватит
+        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(2500) });
+        if (res.ok) { setBoardOffline(false); return; }
       } catch {}
+      setRetryChecking(false);
     };
-    check(); // сразу проверяем при переходе в offline-режим
-    retryTimer.current = setInterval(check, 5_000);
+    check();
+    retryTimer.current = setInterval(check, 3_000);
     return () => { if (retryTimer.current) clearInterval(retryTimer.current); };
   }, [boardOffline, setBoardOffline]);
 
@@ -594,13 +619,13 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
             <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 16px 0", flexShrink: 0 }} />
 
             {/* ── Content ─────────────────────────────────────────────────────── */}
-            <div style={{ flex: 1, overflow: "hidden", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
 
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
               {tab === "system" && (
                 <>
                   {/* Статус «Плата выключена» */}
-                  {boardOffline && <OfflineBanner />}
+                  {boardOffline && <OfflineBanner retryChecking={retryChecking} offlineSince={offlineSince} onCheck={manualRetryCheck} />}
                   {/* CPU / Temp / RAM card */}
                   {!boardOffline && <div style={card}>
                     <SectionLabel>Плата</SectionLabel>
@@ -990,7 +1015,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                     <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
                   </div>
 
-                  {boardOffline && <OfflineBanner />}
+                  {boardOffline && <OfflineBanner retryChecking={retryChecking} offlineSince={offlineSince} onCheck={manualRetryCheck} />}
 
                   {!boardOffline && (() => {
                     const voltOk = (v: number) => v >= 0.9 && v <= 1.25;
@@ -1909,7 +1934,22 @@ function DiagnosticPanel({ sysData, status, noInternet, syncFresh, lastSyncedAt 
 }
 
 // ── Offline banner ─────────────────────────────────────────────────────────────
-function OfflineBanner() {
+function OfflineBanner({ retryChecking, offlineSince, onCheck }: {
+  retryChecking: boolean;
+  offlineSince: number;
+  onCheck: () => void;
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const elapsed = offlineSince > 0 ? Math.floor((now - offlineSince) / 1000) : 0;
+  const elapsedStr = elapsed >= 60
+    ? `${Math.floor(elapsed / 60)}м ${elapsed % 60}с`
+    : `${elapsed}с`;
+
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,
@@ -1917,13 +1957,52 @@ function OfflineBanner() {
       background: "rgba(100,116,139,0.08)",
       border: "1px solid rgba(100,116,139,0.15)",
     }}>
-      <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
-      <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", fontWeight: 500 }}>
-        Плата выключена
-      </span>
-      <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.2)", marginLeft: "auto" }}>
-        Проверка каждые 5 с
-      </span>
+      {/* Пульсирующая точка */}
+      <div style={{ position: "relative", width: 10, height: 10, flexShrink: 0 }}>
+        <div style={{
+          width: 10, height: 10, borderRadius: "50%",
+          background: retryChecking ? "#fbbf24" : "#94a3b8",
+          transition: "background 0.3s",
+        }} />
+        {retryChecking && (
+          <div style={{
+            position: "absolute", inset: -3,
+            borderRadius: "50%",
+            border: "2px solid #fbbf24",
+            opacity: 0.5,
+            animation: "ping 1s ease-out infinite",
+          }} />
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", fontWeight: 500 }}>
+          {retryChecking ? "Проверяем..." : "Плата недоступна"}
+        </span>
+        {elapsed > 0 && (
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.2)", marginLeft: 6 }}>
+            {elapsedStr}
+          </span>
+        )}
+      </div>
+
+      <button
+        onClick={onCheck}
+        disabled={retryChecking}
+        style={{
+          background: retryChecking ? "rgba(0,0,0,0.04)" : "rgba(189,150,115,0.12)",
+          border: "1px solid rgba(189,150,115,0.25)",
+          borderRadius: 8, padding: "4px 10px",
+          cursor: retryChecking ? "default" : "pointer",
+          fontSize: 11, fontWeight: 600,
+          color: retryChecking ? "rgba(0,0,0,0.2)" : "#7D5E42",
+          fontFamily: "Roboto Slab, serif",
+          flexShrink: 0,
+          transition: "all 0.2s",
+        }}
+      >
+        {retryChecking ? "..." : "Проверить"}
+      </button>
     </div>
   );
 }
