@@ -13,6 +13,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const INTERNET_URL = process.env.SYNC_MASTER_URL;
 const SYNC_API_KEY = process.env.SYNC_API_KEY;
 const OUTBOX_FILE = path.join(__dirname, "push-outbox.json");
+const HISTORY_FILE = path.join(__dirname, "sync-history.json");
+const HISTORY_MAX = 10;
+
+function logPushToHistory(doc) {
+  let history = [];
+  try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8")); } catch {}
+  const entry = {
+    timestamp: Date.now(),
+    direction: "local→site",
+    added: doc.deletedAt ? [] : (history.find(e => e.added?.some(c => c._id === doc._id)) ? [] : [{ title: doc.title || doc.name || doc._id, type: doc.docType }]),
+    updated: doc.deletedAt ? [] : [{ title: doc.title || doc.name || doc._id, type: doc.docType }],
+    deleted: doc.deletedAt ? [{ title: doc.title || doc.name || doc._id, type: doc.docType }] : [],
+    duration: 0,
+  };
+  // Упрощаем: всегда пишем как "обновлено" если не удалено
+  if (!doc.deletedAt) { entry.updated = [{ title: doc.title || doc.name || doc._id, type: doc.docType }]; entry.added = []; }
+  history.unshift(entry);
+  if (history.length > HISTORY_MAX) history.splice(HISTORY_MAX);
+  try { fs.writeFileSync(HISTORY_FILE, JSON.stringify(history), "utf8"); } catch {}
+}
 
 // ---------------------------------------------------------------------
 // Push-функции
@@ -136,6 +156,7 @@ export async function pushLocalChangeToRemote(doc) {
     if (doc.docType === "song") await pushSongToRemote(doc);
     else if (doc.docType === "stack") await pushStackToRemote(doc);
     removeFromOutbox(doc._id);
+    logPushToHistory(doc);
   } catch (e) {
     console.warn("[sync/push] Нет связи с мастером, добавляю в очередь:", e.message);
     addToOutbox(doc);

@@ -1075,10 +1075,10 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     )}
 
                     {/* История изменений */}
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 8, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
                       <button onClick={() => setHistoryOpen((v) => !v)} style={{
                         width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                        background: "none", border: "none", cursor: "pointer", padding: "4px 0",
+                        background: "none", border: "none", cursor: "pointer", padding: "4px 0", flexShrink: 0,
                       }}>
                         <span className="input-header" style={{ fontSize: 12, fontWeight: 700, color: "rgba(0,0,0,0.45)" }}>
                           Журнал изменений
@@ -1130,13 +1130,18 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                       {entry.duration > 0 && (
                                         <span className="input-header" style={{ fontSize: 10, color: "rgba(0,0,0,0.28)" }}>· {(entry.duration / 1000).toFixed(1)}с</span>
                                       )}
-                                      <span className="input-header" style={{
-                                        fontSize: 10, color: "rgba(0,0,0,0.3)",
-                                        background: "rgba(0,0,0,0.05)", borderRadius: 5,
-                                        padding: "1px 5px", letterSpacing: 0.2,
-                                      }}>
-                                        {(entry as any).direction === "local→site" ? "Плата → Сайт" : "Сайт → Плата"}
-                                      </span>
+                                      {(() => {
+                                        const isLocalToSite = (entry as any).direction === "local→site";
+                                        return (
+                                          <span className="input-header" style={{ fontSize: 10, borderRadius: 5, padding: "1px 5px", letterSpacing: 0.2, display: "inline-flex", alignItems: "center", gap: 3,
+                                            background: isLocalToSite ? "rgba(190,18,60,0.08)" : "rgba(37,99,235,0.08)",
+                                          }}>
+                                            <span style={{ color: isLocalToSite ? "#be123c" : "#1d4ed8", fontWeight: 700 }}>{isLocalToSite ? "Плата" : "Сайт"}</span>
+                                            <span style={{ color: "rgba(0,0,0,0.3)" }}>→</span>
+                                            <span style={{ color: isLocalToSite ? "#1d4ed8" : "#be123c", fontWeight: 700 }}>{isLocalToSite ? "Сайт" : "Плата"}</span>
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     <div style={{ display: "flex", gap: 4 }}>
                                       {entry.added.length > 0 && (
