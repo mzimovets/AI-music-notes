@@ -1,9 +1,21 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
 
-// Express API на плате, доступный через HTTPS после setup-https.sh
-const BOARD_API_URL = "https://raspberrypi-songs.local:4443";
-const PING_URL = `${BOARD_API_URL}/api/ping`;
+// Express API на плате, доступный через HTTPS после setup-https.sh.
+// На localhost (разработка) используем локальный Express напрямую.
+function getBoardApiUrl(): string {
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:4000";
+  }
+  return "https://raspberrypi-songs.local:4443";
+}
+
+// Вычисляется лениво — только в браузере
+let _boardApiUrl: string | null = null;
+function boardApiUrl(): string {
+  if (!_boardApiUrl) _boardApiUrl = getBoardApiUrl();
+  return _boardApiUrl;
+}
 const PING_INTERVAL_MS = 30_000; // каждые 30 секунд
 
 // sessionStorage: не показывать баннер если пользователь нажал «Не сейчас»
@@ -28,7 +40,7 @@ export function useBoardDetect(): BoardDetectResult {
 
   const ping = useCallback(async () => {
     try {
-      const res = await fetch(PING_URL, {
+      const res = await fetch(`${boardApiUrl()}/api/ping`, {
         signal: AbortSignal.timeout(3000),
         cache: "no-store",
         mode: "cors",
@@ -53,5 +65,5 @@ export function useBoardDetect(): BoardDetectResult {
     setDismissed(true);
   }, []);
 
-  return { boardAvailable, dismissed, dismiss, boardApiUrl: BOARD_API_URL };
+  return { boardAvailable, dismissed, dismiss, boardApiUrl: boardApiUrl() };
 }
