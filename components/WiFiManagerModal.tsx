@@ -210,23 +210,36 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
   }, []);
 
   // ── System polling — только на локальном сервере ────────────────────────────
+  const retryTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const fetchSys = useCallback(async () => {
     if (!isLocal) return;
     try {
       const res = await fetch("/api/system-status");
-      if (res.ok) {
-        setSysData(await res.json());
-        setBoardOffline(false);
-      }
+      if (res.ok) setSysData(await res.json());
     } catch {}
-  }, [isLocal, setBoardOffline]);
+  }, [isLocal]);
 
+  // Нормальный поллинг — только когда плата онлайн
   useEffect(() => {
-    if (!isOpen) { if (sysTimer.current) clearInterval(sysTimer.current); return; }
+    if (!isOpen || boardOffline) { if (sysTimer.current) clearInterval(sysTimer.current); return; }
     fetchSys();
     sysTimer.current = setInterval(fetchSys, 3_000);
     return () => { if (sysTimer.current) clearInterval(sysTimer.current); };
-  }, [isOpen, fetchSys]);
+  }, [isOpen, boardOffline, fetchSys]);
+
+  // Медленный retry — когда плата оффлайн, проверяем раз в 15с
+  useEffect(() => {
+    if (!isOpen || !boardOffline) { if (retryTimer.current) clearInterval(retryTimer.current); return; }
+    const check = async () => {
+      try {
+        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
+        if (res.ok) setBoardOffline(false); // плата вернулась — нормальный поллинг подхватит
+      } catch {}
+    };
+    retryTimer.current = setInterval(check, 15_000);
+    return () => { if (retryTimer.current) clearInterval(retryTimer.current); };
+  }, [isOpen, boardOffline, setBoardOffline]);
 
   const handleBoardOffline = useCallback(() => {
     if (sysTimer.current) clearInterval(sysTimer.current);
@@ -555,18 +568,8 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
               {tab === "system" && (
                 <>
-                  {/* Оверлей «Плата выключена» */}
-                  {boardOffline && (
-                    <div style={{
-                      ...card, alignItems: "center", justifyContent: "center",
-                      padding: "28px 16px", gap: 10, opacity: 0.7,
-                    }}>
-                      <span style={{ fontSize: 32 }}>📴</span>
-                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
-                        Плата выключена
-                      </span>
-                    </div>
-                  )}
+                  {/* Статус «Плата выключена» */}
+                  {boardOffline && <OfflineBanner />}
                   {/* CPU / Temp / RAM card */}
                   {!boardOffline && <div style={card}>
                     <SectionLabel>Плата</SectionLabel>
@@ -945,12 +948,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
                     <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
                   </div>
 
-                  {boardOffline && (
-                    <div style={{ ...card, alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 28 }}>📴</span>
-                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>Плата выключена</span>
-                    </div>
-                  )}
+                  {boardOffline && <OfflineBanner />}
 
                   {!boardOffline && (() => {
                     const voltOk = (v: number) => v >= 0.9 && v <= 1.25;
@@ -1622,6 +1620,26 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
 
       <span className="input-header" style={{ fontSize: 12, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.4)", textAlign: "center" }}>
         {offline ? "Плата выключена" : done ? "Выключается..." : holding ? "Держите..." : "Удерживайте для выключения"}
+      </span>
+    </div>
+  );
+}
+
+// ── Offline banner ─────────────────────────────────────────────────────────────
+function OfflineBanner() {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      padding: "10px 14px", borderRadius: 12,
+      background: "rgba(100,116,139,0.08)",
+      border: "1px solid rgba(100,116,139,0.15)",
+    }}>
+      <div style={{ width: 7, height: 7, borderRadius: "50%", background: "#94a3b8", flexShrink: 0 }} />
+      <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", fontWeight: 500 }}>
+        Плата выключена
+      </span>
+      <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.2)", marginLeft: "auto" }}>
+        Проверка каждые 15 с
       </span>
     </div>
   );
