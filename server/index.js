@@ -272,7 +272,7 @@ app.use(bodyParser.json());
 const PORT = process.env.PORT || 4000;
 const httpServer = createServer(app);
 
-const io = new SocketIOServer(httpServer, {
+export const io = new SocketIOServer(httpServer, {
   cors: {
     origin: true,
     methods: ["GET", "POST"],

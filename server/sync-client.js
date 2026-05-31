@@ -5,7 +5,7 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { database } from "./index.js";
+import { database, io } from "./index.js";
 import { metricsDb } from "./metrics-db.js";
 import dotenv from "dotenv";
 dotenv.config({ path: ".env.local" });
@@ -355,6 +355,18 @@ export async function syncFromInternet() {
       deleted: changeDeleted,
       duration: Date.now() - syncStartTs,
     });
+
+    // Уведомляем все подключённые браузеры: нужно обновить SW-кеш
+    try {
+      io.emit("db-synced", {
+        added: changeAdded.length,
+        updated: changeUpdated.length,
+        deleted: changeDeleted.length,
+      });
+      console.log(`[sync] Socket db-synced отправлен клиентам`);
+    } catch (e) {
+      console.warn("[sync] Не удалось отправить db-synced:", e.message);
+    }
   }
 
   // ----- Метрика №3: Bandwidth Efficiency -----

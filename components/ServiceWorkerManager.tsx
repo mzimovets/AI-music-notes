@@ -6,6 +6,7 @@ import { addToast } from "@heroui/react";
 import { processOfflineQueue } from "@/lib/offline-sync";
 import { getQueue } from "@/lib/offline-queue";
 import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
+import { socket } from "@/lib/socket";
 
 const ALL_CATEGORIES = [
   "spiritual_chants",
@@ -30,6 +31,20 @@ const CATEGORY_IMAGES = [
 ];
 
 const CACHE_STATE_KEY = "sw-cached-state-v3";
+
+/** Проверяем доступность бэкенда напрямую (не navigator.onLine —
+ *  тот возвращает false на мобильных даже при подключении к RPi-хотспоту) */
+async function canReachBackend(): Promise<boolean> {
+  try {
+    const res = await fetch(`${getBackendBaseUrl()}/api/ping`, {
+      signal: AbortSignal.timeout(3000),
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
 
 interface Progress {
   current: number;
@@ -280,9 +295,9 @@ export function ServiceWorkerManager() {
           timeout: 4000,
           classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
         });
-        // Обновляем SW-кэш после синхронизации
-        window.dispatchEvent(new CustomEvent("sw-sync-needed"));
       }
+      // В любом случае обновляем кеш при восстановлении сети
+      setTimeout(() => runSync(), 2000);
       if (failed > 0) {
         addToast({
           title: <span className="font-bold">Не удалось синхронизировать</span>,
@@ -294,6 +309,19 @@ export function ServiceWorkerManager() {
 
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
+  }, []);
+
+  // Сервер сообщает что сделал sync с мастером → обновляем SW-кеш
+  useEffect(() => {
+    const handler = (data: { added: number; updated: number; deleted: number }) => {
+      const total = data.added + data.updated + data.deleted;
+      if (total === 0) return;
+      console.log(`[SW] db-synced от сервера (+${data.added} ~${data.updated} -${data.deleted}), обновляем кеш`);
+      // Небольшая задержка чтобы сервер успел применить изменения в БД
+      setTimeout(() => runSync(), 1500);
+    };
+    socket.on("db-synced", handler);
+    return () => { socket.off("db-synced", handler); };
   }, []);
 
   // SW регистрируется всегда
@@ -321,7 +349,10 @@ export function ServiceWorkerManager() {
     if (syncing.current) return;
     if (!("serviceWorker" in navigator)) return;
     if (!("caches" in window)) return;
-    if (!navigator.onLine) return;
+    // Используем реальный пинг бэкенда — navigator.onLine не надёжен
+    // когда подключён к RPi-хотспоту без интернета (мобильные ОС = false)
+    const reachable = await canReachBackend();
+    if (!reachable) return;
 
     syncing.current = true;
     try {
