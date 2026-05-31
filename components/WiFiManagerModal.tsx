@@ -58,7 +58,8 @@ function FanIcon({ rpm }: { rpm: number }) {
   useEffect(() => {
     const animate = (time: number) => {
       if (lastTimeRef.current !== null) {
-        const dt = time - lastTimeRef.current;
+        // Зажимаем dt: если вкладка была в фоне или пропустили кадры — не прыгаем
+        const dt = Math.min(time - lastTimeRef.current, 50);
         const r = rpmRef.current;
         const degsPerMs = r > 50 ? (360 * r / 60) / 1000 : 0;
         if (degsPerMs > 0) {
