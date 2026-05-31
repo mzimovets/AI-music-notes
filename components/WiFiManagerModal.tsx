@@ -149,7 +149,10 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   // System
   const [sysData, setSysData] = useState<SysData | null>(null);
   const sysTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [boardOffline, setBoardOffline] = useState(false);
+  const OFFLINE_KEY = "board-offline-v1";
+  const [boardOffline, setBoardOffline] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
+  );
 
   // WiFi
   const [status, setStatus] = useState<WifiStatus | null>(null);
@@ -203,7 +206,12 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   const fetchSys = useCallback(async () => {
     try {
       const res = await fetch("/api/system-status");
-      if (res.ok) setSysData(await res.json());
+      if (res.ok) {
+        setSysData(await res.json());
+        // Плата отвечает — снимаем флаг offline
+        sessionStorage.removeItem("board-offline-v1");
+        setBoardOffline(false);
+      }
     } catch {}
   }, []);
 
@@ -218,7 +226,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     if (sysTimer.current) clearInterval(sysTimer.current);
     setSysData(null);
     setBoardOffline(true);
-    setTab("system"); // принудительно переключаем на системную вкладку
+    sessionStorage.setItem("board-offline-v1", "1");
+    setTab("system");
   }, []);
 
   // ── WiFi status polling ──────────────────────────────────────────────────────
