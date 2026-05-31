@@ -37,6 +37,7 @@ cat > "$CERT_DIR/server.ext" << EOF
 authorityKeyIdentifier=keyid,issuer
 basicConstraints=CA:FALSE
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
 subjectAltName = @alt_names
 
 [alt_names]
@@ -45,13 +46,14 @@ DNS.2 = localhost
 IP.1 = 127.0.0.1
 EOF
 
+# Apple/iOS/macOS требует срок действия не более 825 дней
 openssl x509 -req \
   -in "$CERT_DIR/server.csr" \
   -CA "$CERT_DIR/ca.crt" \
   -CAkey "$CERT_DIR/ca.key" \
   -CAcreateserial \
   -out "$CERT_DIR/server.crt" \
-  -days 3650 -sha256 \
+  -days 825 -sha256 \
   -extfile "$CERT_DIR/server.ext"
 
 chmod 600 "$CERT_DIR"/*.key
