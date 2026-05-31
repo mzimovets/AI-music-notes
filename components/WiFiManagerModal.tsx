@@ -146,6 +146,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
   // System
   const [sysData, setSysData] = useState<SysData | null>(null);
   const sysTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [boardOffline, setBoardOffline] = useState(false);
 
   // WiFi
   const [status, setStatus] = useState<WifiStatus | null>(null);
@@ -209,6 +210,12 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     sysTimer.current = setInterval(fetchSys, 3_000);
     return () => { if (sysTimer.current) clearInterval(sysTimer.current); };
   }, [isOpen, fetchSys]);
+
+  const handleBoardOffline = useCallback(() => {
+    if (sysTimer.current) clearInterval(sysTimer.current);
+    setSysData(null);
+    setBoardOffline(true);
+  }, []);
 
   // ── WiFi status polling ──────────────────────────────────────────────────────
   const fetchStatus = useCallback(async () => {
@@ -524,9 +531,22 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
               {tab === "system" && (
                 <>
                   {/* Shutdown */}
-                  <ShutdownButton />
+                  <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+
+                  {/* Оверлей «Плата выключена» */}
+                  {boardOffline && (
+                    <div style={{
+                      ...card, alignItems: "center", justifyContent: "center",
+                      padding: "28px 16px", gap: 10, opacity: 0.7,
+                    }}>
+                      <span style={{ fontSize: 32 }}>📴</span>
+                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
+                        Плата выключена
+                      </span>
+                    </div>
+                  )}
                   {/* CPU / Temp / RAM card */}
-                  <div style={card}>
+                  {!boardOffline && <div style={card}>
                     <SectionLabel>Плата</SectionLabel>
                     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -597,7 +617,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                   </div>
 
                   {/* Fan card */}
-                  <div style={{ ...card, flexDirection: "row", alignItems: "center", gap: 14 }}>
+                  {!boardOffline && <div style={{ ...card, flexDirection: "row", alignItems: "center", gap: 14 }}>
                     <FanIcon rpm={sysData?.fanRpm ?? 0} />
                     <div style={{ flex: 1 }}>
                       <div className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.4)", marginBottom: 2 }}>Вентилятор</div>
@@ -616,10 +636,10 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         {(sysData?.fanRpm ?? 0) > 3500 ? "Быстро" : (sysData?.fanRpm ?? 0) > 1500 ? "Средне" : (sysData?.fanRpm ?? 0) > 0 ? "Медленно" : "Стоп"}
                       </span>
                     </div>
-                  </div>
+                  </div>}
 
                   {/* Network status card */}
-                  <div style={card}>
+                  {!boardOffline && <div style={card}>
                     <SectionLabel>Сеть</SectionLabel>
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                       <NetRow label="Точка доступа" value={
@@ -671,7 +691,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </div>
                       )}
                     </div>
-                  </div>
+                  </div>}
                 </>
               )}
 
@@ -1325,10 +1345,11 @@ function RaspberryIcon({ color, size = 24 }: { color: string; size?: number }) {
   );
 }
 
-function ShutdownButton() {
+function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offline?: boolean }) {
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const HOLD_MS = 3000;
 
   const SIZE = 64;
@@ -1337,8 +1358,9 @@ function ShutdownButton() {
   const C = 2 * Math.PI * R;
   const offset = C - (progress / 100) * C;
 
-  const color = done ? "#94a3b8" : "#c51a4a";
-  const bgColor = done ? "rgba(148,163,184,0.10)" : "rgba(197,26,74,0.08)";
+  const isOff = done || offline;
+  const color = isOff ? "#94a3b8" : "#c51a4a";
+  const bgColor = isOff ? "rgba(148,163,184,0.10)" : "rgba(197,26,74,0.08)";
 
   const startHold = () => {
     if (done) return;
@@ -1350,6 +1372,18 @@ function ShutdownButton() {
         clearInterval(intervalRef.current!);
         setDone(true);
         fetch("/api/shutdown", { method: "POST" });
+        // Через 4 сек начинаем пинговать — когда перестаёт отвечать → плата выключена
+        setTimeout(() => {
+          pingRef.current = setInterval(async () => {
+            try {
+              const r = await fetch("/api/system-status", { signal: AbortSignal.timeout(2000) });
+              if (!r.ok) throw new Error();
+            } catch {
+              clearInterval(pingRef.current!);
+              onOffline?.();
+            }
+          }, 2000);
+        }, 4000);
       }
     }, 30);
   };
@@ -1379,15 +1413,15 @@ function ShutdownButton() {
           onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
           onTouchStart={(e) => { e.preventDefault(); startHold(); }}
           onTouchEnd={cancelHold} onTouchCancel={cancelHold}
-          disabled={done}
+          disabled={isOff}
           style={{
             position: "absolute",
             top: STROKE + 2, left: STROKE + 2,
             right: STROKE + 2, bottom: STROKE + 2,
             borderRadius: "50%",
-            border: `1.5px solid ${done ? "rgba(148,163,184,0.3)" : "rgba(197,26,74,0.25)"}`,
+            border: `1.5px solid ${isOff ? "rgba(148,163,184,0.3)" : "rgba(197,26,74,0.25)"}`,
             background: bgColor,
-            cursor: done ? "default" : "pointer",
+            cursor: isOff ? "default" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             WebkitTapHighlightColor: "transparent",
             userSelect: "none",
@@ -1397,8 +1431,8 @@ function ShutdownButton() {
         </button>
       </div>
 
-      <span className="input-header" style={{ fontSize: 11, color: done ? "#94a3b8" : "rgba(0,0,0,0.35)", textAlign: "center" }}>
-        {done ? "Выключается..." : progress > 0 ? "Держите..." : "Удерживайте для выключения"}
+      <span className="input-header" style={{ fontSize: 11, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.35)", textAlign: "center" }}>
+        {offline ? "Плата выключена" : done ? "Выключается..." : progress > 0 ? "Держите..." : "Удерживайте для выключения"}
       </span>
     </div>
   );
