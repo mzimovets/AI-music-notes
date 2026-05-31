@@ -277,7 +277,13 @@ export default function Home() {
                 {isRegent && (
                   <button
                     onClick={() => { setIsMenuOpen(false); setIsWifiManagerOpen(true); }}
-                    className="w-12 h-12 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                    className="w-12 h-12 rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform"
+                    style={{
+                      background: boardOffline
+                        ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
+                        : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                      transition: "background 0.3s ease",
+                    }}
                     aria-label="Wi-Fi менеджер"
                   >
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
