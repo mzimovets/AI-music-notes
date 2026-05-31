@@ -926,11 +926,11 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
               {/* ══ ПИТАНИЕ ═════════════════════════════════════════════════════ */}
               {tab === "power" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
                   <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
 
                   {boardOffline && (
-                    <div style={{ ...card, width: "100%", alignItems: "center", gap: 8 }}>
+                    <div style={{ ...card, alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 28 }}>📴</span>
                       <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>Плата выключена</span>
                     </div>
@@ -948,7 +948,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     return (
                       <>
                         {/* Напряжения */}
-                        <div style={{ ...card, width: "100%" }}>
+                        <div style={{ ...card }}>
                           <SectionLabel>Напряжение</SectionLabel>
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -961,8 +961,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                               </div>
                               <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Ядро CPU</span>
                               <ProgressBar value={sysData?.voltageCore ?? 0} max={1.4} color={voltColor(sysData?.voltageCore)} />
-                              <span className="input-header" style={{ fontSize: 13, fontWeight: 700, width: 54, textAlign: "right", color: voltTextColor(sysData?.voltageCore) }}>
-                                {sysData?.voltageCore ? `${sysData.voltageCore.toFixed(3)}В` : "—"}
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 700, width: 54, textAlign: "right", whiteSpace: "nowrap", color: voltTextColor(sysData?.voltageCore) }}>
+                                {sysData?.voltageCore ? `${sysData.voltageCore.toFixed(3)}V` : "—"}
                               </span>
                             </div>
 
@@ -978,8 +978,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                                 </div>
                                 <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>SDRAM</span>
                                 <ProgressBar value={sysData?.voltageSdram ?? 0} max={1.4} color={voltColor(sysData?.voltageSdram)} />
-                                <span className="input-header" style={{ fontSize: 13, fontWeight: 600, width: 54, textAlign: "right", color: voltTextColor(sysData?.voltageSdram) }}>
-                                  {sysData?.voltageSdram ? `${sysData.voltageSdram.toFixed(3)}В` : "—"}
+                                <span className="input-header" style={{ fontSize: 13, fontWeight: 600, width: 54, textAlign: "right", whiteSpace: "nowrap", color: voltTextColor(sysData?.voltageSdram) }}>
+                                  {sysData?.voltageSdram ? `${sysData.voltageSdram.toFixed(3)}V` : "—"}
                                 </span>
                               </div>
                             )}
@@ -996,7 +996,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                         </div>
 
                         {/* Процессор */}
-                        <div style={{ ...card, width: "100%" }}>
+                        <div style={{ ...card }}>
                           <SectionLabel>Процессор</SectionLabel>
                           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
 
@@ -1008,7 +1008,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                               </div>
                               <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Частота</span>
                               <ProgressBar value={sysData?.clockArmMhz ?? 0} max={2400} color="#BD9673" />
-                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 54, textAlign: "right" }}>
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 54, textAlign: "right", whiteSpace: "nowrap" }}>
                                 {sysData?.clockArmMhz ? `${sysData.clockArmMhz} МГц` : "—"}
                               </span>
                             </div>
@@ -1055,7 +1055,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
               {/* ══ ПРОШИВКА ════════════════════════════════════════════════════ */}
               {tab === "firmware" && (
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden", minHeight: 0 }}>
+                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", minHeight: 0 }}>
                   {/* Git update */}
                   <div style={{ ...card, flexShrink: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
