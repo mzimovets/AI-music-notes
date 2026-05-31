@@ -215,6 +215,7 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
     if (sysTimer.current) clearInterval(sysTimer.current);
     setSysData(null);
     setBoardOffline(true);
+    setTab("system"); // принудительно переключаем на системную вкладку
   }, []);
 
   // ── WiFi status polling ──────────────────────────────────────────────────────
@@ -466,9 +467,14 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 0", flexShrink: 0 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-                background: "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                background: boardOffline
+                  ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
+                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 0 0 2px rgba(232,69,122,0.2), 0 3px 12px rgba(158,18,57,0.35)",
+                boxShadow: boardOffline
+                  ? "0 0 0 2px rgba(100,116,139,0.2), 0 3px 12px rgba(100,116,139,0.25)"
+                  : "0 0 0 2px rgba(232,69,122,0.2), 0 3px 12px rgba(158,18,57,0.35)",
+                transition: "background 0.4s ease, box-shadow 0.4s ease",
               }}>
                 <svg width="19" height="19" viewBox="0 0 32 32" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg">
                   <g><g>
@@ -507,13 +513,15 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
               {(["system", "network", "firmware"] as Tab[]).map((t) => {
                 const labels: Record<Tab, string> = { system: "Система", network: "Сеть", firmware: "Прошивка" };
                 const active = tab === t;
+                const disabled = boardOffline && t !== "system";
                 return (
-                  <button key={t} onClick={() => setTab(t)} className="input-header" style={{
+                  <button key={t} onClick={() => !disabled && setTab(t)} className="input-header" style={{
                     flex: 1, padding: "7px 4px", borderRadius: 10, border: "none",
                     background: active ? "rgba(125,94,66,0.14)" : "transparent",
-                    color: active ? "#7D5E42" : "rgba(0,0,0,0.38)",
+                    color: disabled ? "rgba(0,0,0,0.18)" : active ? "#7D5E42" : "rgba(0,0,0,0.38)",
                     fontSize: 13, fontWeight: active ? 700 : 500,
-                    cursor: "pointer", transition: "all 0.15s",
+                    cursor: disabled ? "not-allowed" : "pointer",
+                    transition: "all 0.15s",
                   }}>
                     {labels[t]}
                   </button>
