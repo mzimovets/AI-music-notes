@@ -670,6 +670,8 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                       )}
                     </div>
                   </div>
+                  {/* Shutdown button */}
+                  <ShutdownButton />
                 </>
               )}
 
@@ -1307,6 +1309,76 @@ function ScanNetItem({ net, status, connectingTo, selectedSsid, password, connec
           }}>
             Подключиться
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Shutdown Button ────────────────────────────────────────────────────────────
+function ShutdownButton() {
+  const [progress, setProgress] = useState(0); // 0..100
+  const [done, setDone] = useState(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const HOLD_MS = 3000;
+
+  const startHold = () => {
+    if (done) return;
+    const startedAt = Date.now();
+    intervalRef.current = setInterval(() => {
+      const p = Math.min(100, ((Date.now() - startedAt) / HOLD_MS) * 100);
+      setProgress(p);
+      if (p >= 100) {
+        clearInterval(intervalRef.current!);
+        setDone(true);
+        fetch("/api/shutdown", { method: "POST" });
+      }
+    }, 30);
+  };
+
+  const cancelHold = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (!done) setProgress(0);
+  };
+
+  return (
+    <div style={{ marginTop: 4 }}>
+      <button
+        onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
+        onTouchStart={startHold} onTouchEnd={cancelHold} onTouchCancel={cancelHold}
+        disabled={done}
+        style={{
+          position: "relative", overflow: "hidden",
+          width: "100%", padding: "11px 0", borderRadius: 12,
+          border: done ? "1px solid rgba(248,113,113,0.4)" : "1px solid rgba(248,113,113,0.25)",
+          background: done ? "rgba(248,113,113,0.12)" : "rgba(255,255,255,0.55)",
+          cursor: done ? "default" : "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+        }}
+      >
+        {/* Progress fill */}
+        <div style={{
+          position: "absolute", inset: 0, left: 0, top: 0, bottom: 0,
+          width: `${progress}%`,
+          background: "rgba(248,113,113,0.15)",
+          transition: progress === 0 ? "width 0.15s ease" : "none",
+          pointerEvents: "none",
+        }} />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke={done ? "#dc2626" : "rgba(220,38,38,0.6)"} strokeWidth="2.2" strokeLinecap="round">
+          <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64"/>
+          <line x1="12" y1="2" x2="12" y2="12"/>
+        </svg>
+        <span className="input-header" style={{
+          fontSize: 13, fontWeight: 600, position: "relative",
+          color: done ? "#dc2626" : "rgba(220,38,38,0.65)",
+        }}>
+          {done ? "Выключается..." : progress > 0 ? "Держите..." : "Выключить плату"}
+        </span>
+      </button>
+      {!done && (
+        <div className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.3)", textAlign: "center", marginTop: 5 }}>
+          Удерживайте 3 секунды
         </div>
       )}
     </div>
