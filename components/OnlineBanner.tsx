@@ -45,10 +45,7 @@ export function OnlineBanner() {
   if (sessionStatus !== "authenticated") return null;
   if (!hasInternet) return null;
 
-  const username = (session?.user as any)?.username ?? (session?.user?.name ?? "");
-  const siteUrl = username
-    ? `${MAIN_SITE}/api/auth/local-signin?username=${encodeURIComponent(username)}&redirect=/`
-    : MAIN_SITE;
+  const siteUrl = MAIN_SITE;
 
   return (
     <div
