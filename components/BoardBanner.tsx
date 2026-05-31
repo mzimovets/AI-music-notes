@@ -21,7 +21,9 @@ export function BoardBanner() {
   // Плавное появление
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    if (boardAvailable && !dismissed && !isLocal && sessionStatus === "authenticated") {
+    const devMode = typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("board") === "1";
+    if ((devMode || boardAvailable) && !dismissed && !isLocal && sessionStatus === "authenticated") {
       const t = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(t);
     } else {
@@ -29,10 +31,14 @@ export function BoardBanner() {
     }
   }, [boardAvailable, dismissed, isLocal, sessionStatus]);
 
+  // dev-режим: ?board=1 в URL принудительно показывает баннер
+  const devMode = typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("board") === "1";
+
   // Не рендерим на плате, пока грузится, или если не авторизован
   if (localLoading || isLocal) return null;
   if (sessionStatus !== "authenticated") return null;
-  if (!boardAvailable || dismissed) return null;
+  if (!devMode && (!boardAvailable || dismissed)) return null;
 
   // Передаём роль пользователя в URL — плата автоматически залогинит
   const username = (session?.user as any)?.username ?? (session?.user?.name ?? "");
