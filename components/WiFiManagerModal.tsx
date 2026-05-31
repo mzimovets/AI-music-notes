@@ -39,7 +39,7 @@ interface SyncHistoryEntry {
   deleted: { title: string; type: string }[];
   duration: number;
 }
-type Tab = "system" | "network" | "firmware";
+type Tab = "system" | "power" | "network" | "firmware";
 
 // ── Fan SVG ────────────────────────────────────────────────────────────────────
 function FanIcon({ rpm }: { rpm: number }) {
@@ -510,16 +510,16 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
             {/* ── Tabs ────────────────────────────────────────────────────────── */}
             <div style={{ display: "flex", gap: 4, padding: "10px 16px 0", flexShrink: 0 }}>
-              {(["system", "network", "firmware"] as Tab[]).map((t) => {
-                const labels: Record<Tab, string> = { system: "Система", network: "Сеть", firmware: "Прошивка" };
+              {(["system", "power", "network", "firmware"] as Tab[]).map((t) => {
+                const labels: Record<Tab, string> = { system: "Система", power: "Питание", network: "Сеть", firmware: "Прошивка" };
                 const active = tab === t;
-                const disabled = boardOffline && t !== "system";
+                const disabled = boardOffline && t !== "system" && t !== "power";
                 return (
                   <button key={t} onClick={() => !disabled && setTab(t)} className="input-header" style={{
-                    flex: 1, padding: "7px 4px", borderRadius: 10, border: "none",
+                    flex: 1, padding: "7px 2px", borderRadius: 10, border: "none",
                     background: active ? "rgba(125,94,66,0.14)" : "transparent",
                     color: disabled ? "rgba(0,0,0,0.18)" : active ? "#7D5E42" : "rgba(0,0,0,0.38)",
-                    fontSize: 13, fontWeight: active ? 700 : 500,
+                    fontSize: 12, fontWeight: active ? 700 : 500,
                     cursor: disabled ? "not-allowed" : "pointer",
                     transition: "all 0.15s",
                   }}>
@@ -538,9 +538,6 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
               {tab === "system" && (
                 <>
-                  {/* Shutdown */}
-                  <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
-
                   {/* Оверлей «Плата выключена» */}
                   {boardOffline && (
                     <div style={{
@@ -922,6 +919,40 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
                     </div>
                   )}
                 </>
+              )}
+
+              {/* ══ ПИТАНИЕ ═════════════════════════════════════════════════════ */}
+              {tab === "power" && (
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "24px 16px" }}>
+                  <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+                  {boardOffline && (
+                    <div style={{ ...card, width: "100%", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 28 }}>📴</span>
+                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
+                        Плата выключена
+                      </span>
+                    </div>
+                  )}
+                  {!boardOffline && sysData && (
+                    <div style={{ ...card, width: "100%" }}>
+                      <SectionLabel>Состояние питания</SectionLabel>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                        <NetRow label="Аптайм" value={sysData.uptime} />
+                        <NetRow
+                          label="Температура"
+                          value={`${sysData.temp}°C`}
+                          dot={sysData.temp > 75 ? "gray" : "green"}
+                        />
+                        {sysData.throttled && (
+                          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
+                            <span style={{ fontSize: 14 }}>⚠️</span>
+                            <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>Тротлинг — проверьте питание</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* ══ ПРОШИВКА ════════════════════════════════════════════════════ */}
@@ -1355,32 +1386,32 @@ function RaspberryIcon({ color, size = 24 }: { color: string; size?: number }) {
 
 function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offline?: boolean }) {
   const [progress, setProgress] = useState(0);
+  const [holding, setHolding] = useState(false);
   const [done, setDone] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const HOLD_MS = 3000;
 
-  const SIZE = 64;
-  const STROKE = 4;
+  const SIZE = 96;
+  const STROKE = 5;
   const R = (SIZE - STROKE) / 2;
   const C = 2 * Math.PI * R;
   const offset = C - (progress / 100) * C;
 
   const isOff = done || offline;
-  const color = isOff ? "#94a3b8" : "#c51a4a";
-  const bgColor = isOff ? "rgba(148,163,184,0.10)" : "rgba(197,26,74,0.08)";
 
   const startHold = () => {
-    if (done) return;
+    if (isOff) return;
+    setHolding(true);
     const startedAt = Date.now();
     intervalRef.current = setInterval(() => {
       const p = Math.min(100, ((Date.now() - startedAt) / HOLD_MS) * 100);
       setProgress(p);
       if (p >= 100) {
         clearInterval(intervalRef.current!);
+        setHolding(false);
         setDone(true);
         fetch("/api/shutdown", { method: "POST" });
-        // Через 4 сек начинаем пинговать — когда перестаёт отвечать → плата выключена
         setTimeout(() => {
           pingRef.current = setInterval(async () => {
             try {
@@ -1398,49 +1429,80 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
 
   const cancelHold = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    setHolding(false);
     if (!done) setProgress(0);
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, padding: "8px 0 4px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
       <div style={{ position: "relative", width: SIZE, height: SIZE }}>
-        {/* Кольцо прогресса */}
-        <svg width={SIZE} height={SIZE} style={{ position: "absolute", top: 0, left: 0, transform: "rotate(-90deg)" }}>
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="rgba(0,0,0,0.07)" strokeWidth={STROKE} />
+        {/* Кольцо прогресса — только при удержании */}
+        <svg
+          width={SIZE} height={SIZE}
+          style={{
+            position: "absolute", top: 0, left: 0,
+            transform: "rotate(-90deg)",
+            opacity: holding ? 1 : 0,
+            transition: "opacity 0.2s ease",
+          }}
+        >
+          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={STROKE} />
           <circle
             cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none"
-            stroke={color} strokeWidth={STROKE}
+            stroke="rgba(255,255,255,0.9)"
+            strokeWidth={STROKE}
             strokeDasharray={C} strokeDashoffset={offset}
             strokeLinecap="round"
-            style={{ transition: progress === 0 ? "stroke-dashoffset 0.2s ease" : "none" }}
           />
         </svg>
 
-        {/* Круглая кнопка */}
+        {/* Кнопка — точь-в-точь угловая иконка, только больше */}
         <button
           onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
           onTouchStart={(e) => { e.preventDefault(); startHold(); }}
           onTouchEnd={cancelHold} onTouchCancel={cancelHold}
           disabled={isOff}
           style={{
-            position: "absolute",
-            top: STROKE + 2, left: STROKE + 2,
-            right: STROKE + 2, bottom: STROKE + 2,
-            borderRadius: "50%",
-            border: `1.5px solid ${isOff ? "rgba(148,163,184,0.3)" : "rgba(197,26,74,0.25)"}`,
-            background: bgColor,
+            position: "absolute", inset: 0,
+            borderRadius: "50%", border: "none",
+            background: isOff
+              ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
+              : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+            boxShadow: isOff
+              ? "0 0 0 3px rgba(100,116,139,0.2), 0 4px 16px rgba(100,116,139,0.3)"
+              : "0 0 0 3px rgba(232,69,122,0.25), 0 4px 20px rgba(158,18,57,0.45)",
             cursor: isOff ? "default" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             WebkitTapHighlightColor: "transparent",
             userSelect: "none",
+            transition: "background 0.4s ease, box-shadow 0.4s ease",
+            transform: holding ? "scale(0.95)" : "scale(1)",
           }}
         >
-          <RaspberryIcon color={color} size={26} />
+          {/* Тот же SVG что в угловой иконке */}
+          <svg width="44" height="44" viewBox="0 0 32 32" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg">
+            <g><g>
+              <path d="M13.8,6.4c-1.4-1.1-2.9-1.9-4.6-2.5c1.5,0.9,3,1.7,4.2,2.9c-0.1,1.1-1.5,1.8-3.1,1.7c-0.1-0.1,0.1-0.1,0.1-0.3C10,8.1,9.5,8.2,9.2,8c0-0.1,0.2-0.1,0.1-0.2C9,7.6,8.6,7.5,8.3,7.3c0-0.1,0.2-0.1,0.3-0.2c-0.3-0.2-0.7-0.3-1-0.6c0.1-0.1,0.2,0,0.3-0.2C7.6,6.1,7.3,5.9,7.1,5.6c0.1-0.1,0.2,0,0.3-0.1C7.3,5.2,6.9,5,6.8,4.7c0.2,0,0.3,0.1,0.5-0.1C7.1,4.3,6.7,4.2,6.6,3.8c0.1-0.1,0.3,0,0.4-0.1c0-0.3-0.2-0.5-0.3-0.8c0.3-0.1,0.7,0,1-0.1c0-0.1-0.1-0.2-0.1-0.3c0.4-0.2,0.8,0,1.2,0.1c0.1-0.2-0.1-0.2,0-0.4c0.3,0,0.6,0.2,1,0.2C9.9,2.2,9.6,2.2,9.6,2c0.4,0,0.7,0.2,1,0.4c0.1-0.1,0-0.2,0.1-0.4c0.3,0.1,0.5,0.3,0.8,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.1,0.5,0.4,0.7,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.2,0.5,0.5,0.7,0.7c0.2,0,0.1-0.2,0.3-0.2c0.6,0.7,1.2,1.5,1.1,2.5C14.7,5.9,14.3,6.2,13.8,6.4L13.8,6.4z"/>
+              <path d="M23.5,7.1c0.1,0.1,0.2,0.1,0.3,0.1c-0.3,0.3-0.7,0.3-1.1,0.5c0,0.1,0.1,0.1,0.1,0.2c-0.3,0.2-0.8,0.1-1.1,0.2c-0.1,0.1,0.1,0.2,0,0.3c-0.4,0.1-0.8,0-1.3-0.1c-0.9-0.2-1.6-0.6-1.9-1.5c1.2-1.3,2.7-2.1,4.2-2.9c-1.7,0.6-3.2,1.4-4.6,2.4c-0.6-0.2-0.9-0.7-0.9-1.3c0-0.7,0.6-1.8,1.2-2.3l0.2,0.3c0.3-0.2,0.5-0.6,0.8-0.7c0.1,0.1,0,0.3,0.2,0.3c0.2-0.1,0.4-0.4,0.7-0.5c0.1,0.1,0,0.2,0.2,0.3C20.8,2.4,21,2.1,21.4,2c0,0.1-0.1,0.2,0,0.4C21.7,2.2,22,2,22.4,2c0,0.1-0.2,0.2-0.1,0.4c0.3,0,0.6-0.2,1-0.2c0,0.1-0.1,0.2,0,0.4c0.4-0.1,0.8-0.2,1.2-0.1c0,0.1-0.1,0.2-0.1,0.3c0.3,0.1,0.7,0,1,0.1C25.3,3.2,25,3.4,25,3.7c0.1,0.1,0.3,0,0.4,0.1c-0.1,0.4-0.5,0.5-0.6,0.8c0.1,0.2,0.3,0,0.4,0.1c-0.1,0.3-0.5,0.5-0.7,0.8c0.1,0.2,0.2,0.1,0.3,0.1c-0.2,0.3-0.5,0.4-0.7,0.7c0.1,0.1,0.2,0.1,0.3,0.2C24.2,6.8,23.8,6.9,23.5,7.1L23.5,7.1z"/>
+            </g><g>
+              <path d="M15.4,16c0,1.8-1.4,3.6-3.2,4c-1.8,0.4-3.4-0.9-3.5-2.7c-0.1-1.8,1.2-3.6,2.9-4C13.7,12.7,15.4,14,15.4,16z"/>
+              <path d="M23.4,16.9c0,2.1-1.8,3.4-3.8,2.8c-1.8-0.6-3.1-2.5-2.8-4.4c0.3-1.8,2.1-2.9,3.9-2.2C22.3,13.7,23.4,15.3,23.4,16.9L23.4,16.9z"/>
+              <path d="M16.1,19.4c1,0,2,0.4,2.7,1.2c1.2,1.3,1.1,3.2-0.2,4.3c-1.3,1.1-3.4,1.2-4.7,0.1c-1-0.8-1.4-1.8-1.2-3.1c0.3-1.3,1.2-2,2.4-2.4C15.4,19.5,15.7,19.4,16.1,19.4L16.1,19.4z"/>
+              <path d="M19.8,25.3c0.1-1,0.5-2,1.3-2.9c0.5-0.5,1-1,1.5-1.4c0.3-0.2,0.6-0.3,0.9-0.4c0.6-0.1,1.1,0.1,1.3,0.7c0.4,1,0.5,2,0,3c-0.6,1.4-1.7,2.3-3.2,2.6c-0.1,0-0.3,0-0.5,0C20.2,27,19.8,26.6,19.8,25.3z"/>
+              <path d="M6.9,22.7c0,0,0-0.2,0-0.3c0.1-1.1,0.7-1.5,1.8-1.2c1.7,0.5,3.3,2.5,3.4,4.3c0,1.1-0.5,1.6-1.6,1.4c-1.5-0.2-2.5-1-3.1-2.3C7,24,6.9,23.4,6.9,22.7L6.9,22.7z"/>
+              <path d="M16.2,12.8c-0.8,0-1.6-0.1-2.3-0.5c-1.3-0.7-1.3-1.6-0.2-2.4c1.5-1.1,3.5-1,4.9,0.2c0.1,0.1,0.2,0.2,0.3,0.3c0.5,0.6,0.4,1.2-0.2,1.7c-0.5,0.4-1.1,0.5-1.7,0.6C16.7,12.8,16.4,12.8,16.2,12.8L16.2,12.8z"/>
+              <path d="M16,30c-1.2,0-2.2-0.5-3.1-1.4c-0.4-0.4-0.4-0.8,0.1-1.1c0.7-0.4,1.4-0.6,2.2-0.7c1-0.1,2-0.1,3,0.2c0.2,0.1,0.5,0.2,0.7,0.3c0.6,0.3,0.7,0.6,0.2,1.2c0,0,0,0-0.1,0.1C18.3,29.5,17.3,30,16,30z"/>
+              <path d="M7.8,16.8c0,1.1-0.2,2.1-0.6,3.1c-0.1,0.3-0.2,0.5-0.4,0.7C6.5,21,6.3,21,6,20.7c-1.4-1.4-1.2-4.1,0.5-5.3c0.6-0.5,1-0.4,1.2,0.4C7.7,16.1,7.8,16.5,7.8,16.8L7.8,16.8z"/>
+              <path d="M26.9,18.3c0,0.8-0.3,1.7-0.9,2.4c-0.3,0.3-0.5,0.3-0.8,0c-0.3-0.4-0.5-0.9-0.6-1.4c-0.3-1-0.4-2.1-0.3-3.2c0-0.2,0.1-0.5,0.2-0.7c0.2-0.4,0.4-0.5,0.8-0.2C26.3,15.8,26.9,16.9,26.9,18.3z"/>
+              <path d="M7.5,13.9c-0.1-1.3,0.3-2.5,1.4-3.3c1.1-0.8,2.3-1,3.6-0.8c0,0.3-0.2,0.5-0.3,0.7c-0.7,0.9-1.6,1.6-2.4,2.3c-0.5,0.4-1,0.7-1.5,1C7.9,13.9,7.7,14.1,7.5,13.9z"/>
+              <path d="M24.6,14c-0.2,0.1-0.5,0-0.7-0.2c-0.7-0.4-1.4-0.9-2-1.4c-0.7-0.6-1.3-1.2-1.9-1.8c-0.1-0.2-0.3-0.4-0.3-0.6c0.6-0.3,2.6-0.2,3.6,0.7C24.3,11.5,24.9,13.1,24.6,14z"/>
+            </g></g>
+          </svg>
         </button>
       </div>
 
-      <span className="input-header" style={{ fontSize: 11, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.35)", textAlign: "center" }}>
-        {offline ? "Плата выключена" : done ? "Выключается..." : progress > 0 ? "Держите..." : "Удерживайте для выключения"}
+      <span className="input-header" style={{ fontSize: 12, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.4)", textAlign: "center" }}>
+        {offline ? "Плата выключена" : done ? "Выключается..." : holding ? "Держите..." : "Удерживайте для выключения"}
       </span>
     </div>
   );
