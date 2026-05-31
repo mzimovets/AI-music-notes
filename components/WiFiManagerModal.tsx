@@ -231,14 +231,24 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
 
   // ── System polling — только на локальном сервере ────────────────────────────
   const retryTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const sysFailCount = useRef(0);
 
   const fetchSys = useCallback(async () => {
     if (!isLocal) return;
     try {
-      const res = await fetch("/api/system-status");
-      if (res.ok) setSysData(await res.json());
-    } catch {}
-  }, [isLocal]);
+      const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(4000) });
+      if (res.ok) {
+        sysFailCount.current = 0;
+        setSysData(await res.json());
+      } else {
+        sysFailCount.current++;
+      }
+    } catch {
+      sysFailCount.current++;
+      // 2 подряд ошибки (~6с) → считаем плату недоступной
+      if (sysFailCount.current >= 2) setBoardOffline(true);
+    }
+  }, [isLocal, setBoardOffline]);
 
   // Нормальный поллинг — только когда плата онлайн
   useEffect(() => {
