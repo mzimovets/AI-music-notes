@@ -4,16 +4,12 @@ import { useSession } from "next-auth/react";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
 const MAIN_SITE = "https://songs.nevsky-sobor.ru";
-const DISMISSED_KEY = "online-banner-dismissed-v1";
 const CHECK_INTERVAL_MS = 30_000;
 
 export function OnlineBanner() {
   const { isLocal, loading } = useLocalServer();
   const { data: session, status: sessionStatus } = useSession();
   const [hasInternet, setHasInternet] = useState(false);
-  const [dismissed, setDismissed] = useState(() =>
-    typeof window !== "undefined" && sessionStorage.getItem(DISMISSED_KEY) === "1"
-  );
   const [visible, setVisible] = useState(false);
 
   // Проверяем интернет через wifi-manager (поле noInternet)
@@ -37,22 +33,17 @@ export function OnlineBanner() {
 
   // Плавное появление
   useEffect(() => {
-    if (isLocal && hasInternet && !dismissed && sessionStatus === "authenticated") {
+    if (isLocal && hasInternet && sessionStatus === "authenticated") {
       const t = setTimeout(() => setVisible(true), 400);
       return () => clearTimeout(t);
     } else {
       setVisible(false);
     }
-  }, [isLocal, hasInternet, dismissed, sessionStatus]);
-
-  const dismiss = () => {
-    sessionStorage.setItem(DISMISSED_KEY, "1");
-    setDismissed(true);
-  };
+  }, [isLocal, hasInternet, sessionStatus]);
 
   if (loading || !isLocal) return null;
   if (sessionStatus !== "authenticated") return null;
-  if (!hasInternet || dismissed) return null;
+  if (!hasInternet) return null;
 
   const username = (session?.user as any)?.username ?? (session?.user?.name ?? "");
   const siteUrl = username
@@ -69,8 +60,6 @@ export function OnlineBanner() {
         padding: "0 16px",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
-        gap: 12,
         height: visible ? 44 : 0,
         overflow: "hidden",
         transition: "height 0.3s ease",
@@ -102,17 +91,6 @@ export function OnlineBanner() {
         </span>
       </button>
 
-      <button
-        onClick={(e) => { e.stopPropagation(); dismiss(); }}
-        aria-label="Скрыть"
-        style={{
-          background: "none", border: "none", cursor: "pointer",
-          color: "#1d4ed8", opacity: 0.5, fontSize: 18,
-          lineHeight: 1, padding: "4px 2px", flexShrink: 0,
-        }}
-      >
-        ✕
-      </button>
     </div>
   );
 }
