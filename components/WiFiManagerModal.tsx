@@ -22,6 +22,7 @@ interface SysData {
   wlan1LinkMbps?: number;
   wlan0RxBps: number; wlan0TxBps: number;
   wlan1RxBps: number; wlan1TxBps: number;
+  voltageCore?: number; clockArmMhz?: number;
 }
 interface SyncLogEntry { ts: number; level: "info" | "warn" | "error"; line: string; }
 interface SyncResult { ok: boolean; error?: string; duration: number; logs: SyncLogEntry[]; startedAt: number; }
@@ -923,27 +924,72 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
               {/* ══ ПИТАНИЕ ═════════════════════════════════════════════════════ */}
               {tab === "power" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "24px 16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, padding: "20px 16px" }}>
                   <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+
                   {boardOffline && (
                     <div style={{ ...card, width: "100%", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 28 }}>📴</span>
-                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>
-                        Плата выключена
-                      </span>
+                      <span className="input-header" style={{ fontSize: 14, fontWeight: 600, color: "rgba(0,0,0,0.4)" }}>Плата выключена</span>
                     </div>
                   )}
-                  {!boardOffline && sysData && (
+
+                  {!boardOffline && (
                     <div style={{ ...card, width: "100%" }}>
-                      <SectionLabel>Состояние питания</SectionLabel>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                        <NetRow label="Аптайм" value={sysData.uptime} />
-                        <NetRow
-                          label="Температура"
-                          value={`${sysData.temp}°C`}
-                          dot={sysData.temp > 75 ? "gray" : "green"}
-                        />
-                        {sysData.throttled && (
+                      <SectionLabel>Питание</SectionLabel>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+
+                        {/* Напряжение ядра */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+                              stroke={!sysData?.voltageCore ? "rgba(0,0,0,0.3)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80"}
+                              strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="13 2 13 9 19 9 11 22 11 15 5 15 13 2"/>
+                            </svg>
+                          </div>
+                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Напряжение</span>
+                          <ProgressBar
+                            value={sysData ? Math.max(0, sysData.voltageCore ?? 0) : 0}
+                            max={1.4}
+                            color={!sysData?.voltageCore ? "rgba(0,0,0,0.2)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80"}
+                          />
+                          <span className="input-header" style={{ fontSize: 13, fontWeight: 700, width: 50, textAlign: "right",
+                            color: !sysData?.voltageCore ? "rgba(0,0,0,0.3)" : sysData.voltageCore < 0.9 || sysData.voltageCore > 1.25 ? "#f87171" : "#4ade80" }}>
+                            {sysData?.voltageCore ? `${sysData.voltageCore.toFixed(2)}В` : "—"}
+                          </span>
+                        </div>
+
+                        {/* Частота ARM */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#BD9673" strokeWidth="2" strokeLinecap="round">
+                              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                            </svg>
+                          </div>
+                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Частота</span>
+                          <ProgressBar value={sysData?.clockArmMhz ?? 0} max={2400} color="#BD9673" />
+                          <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#7D5E42", width: 50, textAlign: "right" }}>
+                            {sysData?.clockArmMhz ? `${sysData.clockArmMhz}` : "—"}
+                            {sysData?.clockArmMhz ? <span style={{ fontSize: 10, fontWeight: 400 }}> МГц</span> : null}
+                          </span>
+                        </div>
+
+                        {/* Аптайм */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2" strokeLinecap="round">
+                              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                          </div>
+                          <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Работает</span>
+                          <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
+                            {sysData?.uptime ?? "—"}
+                          </span>
+                        </div>
+
+                        {/* Тротлинг */}
+                        {sysData?.throttled && (
                           <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", borderRadius: 8, background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)" }}>
                             <span style={{ fontSize: 14 }}>⚠️</span>
                             <span className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>Тротлинг — проверьте питание</span>
@@ -1392,9 +1438,12 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const HOLD_MS = 3000;
 
-  const SIZE = 96;
-  const STROKE = 5;
-  const R = (SIZE - STROKE) / 2;
+  // Кольцо снаружи кнопки: контейнер OUTER, кнопка BTN (по центру)
+  const OUTER = 116;
+  const BTN = 96;
+  const STROKE = 7;
+  const INSET = (OUTER - BTN) / 2; // 10px
+  const R = (OUTER - STROKE) / 2;   // 54.5
   const C = 2 * Math.PI * R;
   const offset = C - (progress / 100) * C;
 
@@ -1435,51 +1484,32 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-      <div style={{ position: "relative", width: SIZE, height: SIZE }}>
-        {/* Кольцо прогресса — только при удержании */}
-        <svg
-          width={SIZE} height={SIZE}
-          style={{
-            position: "absolute", top: 0, left: 0,
-            transform: "rotate(-90deg)",
-            opacity: holding ? 1 : 0,
-            transition: "opacity 0.2s ease",
-          }}
-        >
-          <circle cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth={STROKE} />
-          <circle
-            cx={SIZE / 2} cy={SIZE / 2} r={R} fill="none"
-            stroke="rgba(255,255,255,0.9)"
-            strokeWidth={STROKE}
-            strokeDasharray={C} strokeDashoffset={offset}
-            strokeLinecap="round"
-          />
-        </svg>
-
-        {/* Кнопка — точь-в-точь угловая иконка, только больше */}
+      <div style={{ position: "relative", width: OUTER, height: OUTER }}>
+        {/* Кнопка внутри */}
         <button
           onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold}
           onTouchStart={(e) => { e.preventDefault(); startHold(); }}
           onTouchEnd={cancelHold} onTouchCancel={cancelHold}
           disabled={isOff}
           style={{
-            position: "absolute", inset: 0,
+            position: "absolute",
+            top: INSET, left: INSET,
+            width: BTN, height: BTN,
             borderRadius: "50%", border: "none",
             background: isOff
               ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
               : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
             boxShadow: isOff
-              ? "0 0 0 3px rgba(100,116,139,0.2), 0 4px 16px rgba(100,116,139,0.3)"
-              : "0 0 0 3px rgba(232,69,122,0.25), 0 4px 20px rgba(158,18,57,0.45)",
+              ? "0 4px 16px rgba(100,116,139,0.3)"
+              : "0 4px 20px rgba(158,18,57,0.45)",
             cursor: isOff ? "default" : "pointer",
             display: "flex", alignItems: "center", justifyContent: "center",
             WebkitTapHighlightColor: "transparent",
             userSelect: "none",
-            transition: "background 0.4s ease, box-shadow 0.4s ease",
+            transition: "background 0.4s ease, box-shadow 0.4s ease, transform 0.1s ease",
             transform: holding ? "scale(0.95)" : "scale(1)",
           }}
         >
-          {/* Тот же SVG что в угловой иконке */}
           <svg width="44" height="44" viewBox="0 0 32 32" fill="rgba(255,255,255,0.95)" xmlns="http://www.w3.org/2000/svg">
             <g><g>
               <path d="M13.8,6.4c-1.4-1.1-2.9-1.9-4.6-2.5c1.5,0.9,3,1.7,4.2,2.9c-0.1,1.1-1.5,1.8-3.1,1.7c-0.1-0.1,0.1-0.1,0.1-0.3C10,8.1,9.5,8.2,9.2,8c0-0.1,0.2-0.1,0.1-0.2C9,7.6,8.6,7.5,8.3,7.3c0-0.1,0.2-0.1,0.3-0.2c-0.3-0.2-0.7-0.3-1-0.6c0.1-0.1,0.2,0,0.3-0.2C7.6,6.1,7.3,5.9,7.1,5.6c0.1-0.1,0.2,0,0.3-0.1C7.3,5.2,6.9,5,6.8,4.7c0.2,0,0.3,0.1,0.5-0.1C7.1,4.3,6.7,4.2,6.6,3.8c0.1-0.1,0.3,0,0.4-0.1c0-0.3-0.2-0.5-0.3-0.8c0.3-0.1,0.7,0,1-0.1c0-0.1-0.1-0.2-0.1-0.3c0.4-0.2,0.8,0,1.2,0.1c0.1-0.2-0.1-0.2,0-0.4c0.3,0,0.6,0.2,1,0.2C9.9,2.2,9.6,2.2,9.6,2c0.4,0,0.7,0.2,1,0.4c0.1-0.1,0-0.2,0.1-0.4c0.3,0.1,0.5,0.3,0.8,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.1,0.5,0.4,0.7,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.2,0.5,0.5,0.7,0.7c0.2,0,0.1-0.2,0.3-0.2c0.6,0.7,1.2,1.5,1.1,2.5C14.7,5.9,14.3,6.2,13.8,6.4L13.8,6.4z"/>
@@ -1499,6 +1529,27 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
             </g></g>
           </svg>
         </button>
+
+        {/* Кольцо прогресса поверх и снаружи кнопки */}
+        <svg
+          width={OUTER} height={OUTER}
+          style={{
+            position: "absolute", top: 0, left: 0,
+            transform: "rotate(-90deg)",
+            pointerEvents: "none",
+            opacity: holding ? 1 : 0,
+            transition: "opacity 0.15s ease",
+          }}
+        >
+          <circle cx={OUTER / 2} cy={OUTER / 2} r={R} fill="none" stroke="rgba(158,18,57,0.18)" strokeWidth={STROKE} />
+          <circle
+            cx={OUTER / 2} cy={OUTER / 2} r={R} fill="none"
+            stroke="#9e1239"
+            strokeWidth={STROKE}
+            strokeDasharray={C} strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
+        </svg>
       </div>
 
       <span className="input-header" style={{ fontSize: 12, color: isOff ? "#94a3b8" : "rgba(0,0,0,0.4)", textAlign: "center" }}>

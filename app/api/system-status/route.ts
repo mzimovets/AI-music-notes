@@ -55,10 +55,12 @@ export async function GET() {
       wlan0TxBps: Math.round(60_000 + Math.random() * 180_000),
       wlan1RxBps: Math.round(100_000 + Math.random() * 400_000),
       wlan1TxBps: Math.round(5_000 + Math.random() * 40_000),
+      voltageCore: +(1.08 + Math.sin(Date.now() / 20_000) * 0.05).toFixed(3),
+      clockArmMhz: Math.round(1800 + Math.random() * 600),
     });
   }
 
-  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr] = await Promise.all([
+  const [tempStr, fanStr, loadStr, memStr, uptimeStr, signalStr, throttledStr, ncpuStr, netStr, linkStr, voltStr, clockStr] = await Promise.all([
     run("cat /sys/class/thermal/thermal_zone0/temp"),
     run("cat /sys/class/hwmon/hwmon*/fan1_input 2>/dev/null | head -1"),
     run("cat /proc/loadavg"),
@@ -69,6 +71,8 @@ export async function GET() {
     run("nproc"),
     run("cat /proc/net/dev"),
     run("iw dev wlan1 link 2>/dev/null | grep 'tx bitrate'"),
+    run("vcgencmd measure_volts core 2>/dev/null || echo volt=0V"),
+    run("vcgencmd measure_clock arm 2>/dev/null || echo frequency(48)=0"),
   ]);
 
   const temp = +((parseInt(tempStr) / 1000) || 0).toFixed(1);
@@ -102,9 +106,15 @@ export async function GET() {
   }
   globalThis._netPrev = { ts: now, w0rx: w0.rx, w0tx: w0.tx, w1rx: w1.rx, w1tx: w1.tx };
 
+  const voltMatch = voltStr.match(/volt=([\d.]+)V/);
+  const voltageCore = voltMatch ? +parseFloat(voltMatch[1]).toFixed(3) : 0;
+  const clockMatch = clockStr.match(/frequency\(\d+\)=(\d+)/);
+  const clockArmMhz = clockMatch ? Math.round(parseInt(clockMatch[1]) / 1_000_000) : 0;
+
   return NextResponse.json({
     temp, fanRpm, cpuPercent, ramUsed, ramTotal: memTotal, uptime,
     wlan1Signal, throttled, wlan1LinkMbps,
     wlan0RxBps, wlan0TxBps, wlan1RxBps, wlan1TxBps,
+    voltageCore, clockArmMhz,
   });
 }
