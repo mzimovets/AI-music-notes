@@ -24,9 +24,12 @@ export async function GET() {
 
   if (existsSync(LOG_FILE)) {
     const { mtimeMs } = require("fs").statSync(LOG_FILE);
-    // 3 мин — если лог не обновлялся дольше, считаем процесс завершённым/упавшим
-    const stale = Date.now() - mtimeMs > 3 * 60_000;
     const log = readFileSync(LOG_FILE, "utf8");
+
+    // Во время сборки Next.js на RPi паузы могут быть 10–15 мин — даём больше времени
+    const isBuilding = log.includes("BUILDING") && !log.includes("DONE");
+    const staleMs = isBuilding ? 20 * 60_000 : 3 * 60_000;
+    const stale = Date.now() - mtimeMs > staleMs;
 
     // Явные признаки ошибки git pull (нет интернета, нет доступа и т.д.)
     const hasPullError =
