@@ -13,6 +13,7 @@ import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
 import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
 import { BoardBanner } from "@/components/BoardBanner";
+import { OnlineBanner } from "@/components/OnlineBanner";
 
 export default function RootLayout({
   children,
@@ -62,6 +63,7 @@ export default function RootLayout({
               <AllSongsLibraryContextProvider>
                 <NavbarWrapper />
                 <BoardBanner />
+                <OnlineBanner />
                 <MainWrapper>{children}</MainWrapper>
               </AllSongsLibraryContextProvider>
             </div>
