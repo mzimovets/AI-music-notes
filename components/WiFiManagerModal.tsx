@@ -228,18 +228,19 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange }: Prop
     return () => { if (sysTimer.current) clearInterval(sysTimer.current); };
   }, [isOpen, boardOffline, fetchSys]);
 
-  // Медленный retry — когда плата оффлайн, проверяем раз в 15с
+  // Медленный retry — когда плата оффлайн, проверяем раз в 15с (независимо от того, открыта ли модалка)
   useEffect(() => {
-    if (!isOpen || !boardOffline) { if (retryTimer.current) clearInterval(retryTimer.current); return; }
+    if (!boardOffline) { if (retryTimer.current) clearInterval(retryTimer.current); return; }
     const check = async () => {
       try {
         const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
         if (res.ok) setBoardOffline(false); // плата вернулась — нормальный поллинг подхватит
       } catch {}
     };
+    check(); // сразу проверяем при переходе в offline-режим
     retryTimer.current = setInterval(check, 15_000);
     return () => { if (retryTimer.current) clearInterval(retryTimer.current); };
-  }, [isOpen, boardOffline, setBoardOffline]);
+  }, [boardOffline, setBoardOffline]);
 
   const handleBoardOffline = useCallback(() => {
     if (sysTimer.current) clearInterval(sysTimer.current);
