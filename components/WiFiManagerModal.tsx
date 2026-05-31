@@ -926,8 +926,10 @@ export function WiFiManagerModal({ isOpen, onClose }: Props) {
 
               {/* ══ ПИТАНИЕ ═════════════════════════════════════════════════════ */}
               {tab === "power" && (
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-                  <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div style={{ display: "flex", justifyContent: "center" }}>
+                    <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+                  </div>
 
                   {boardOffline && (
                     <div style={{ ...card, alignItems: "center", gap: 8 }}>
