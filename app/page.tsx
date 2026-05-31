@@ -79,10 +79,13 @@ export default function Home() {
   useEffect(() => {
     const backUrl = getBackendBaseUrl();
 
+    const SONGS_OFFLINE_KEY = "offline-songs-v1";
+    const STACKS_OFFLINE_KEY = "offline-stacks-v1";
+
     const fetchAllSongs = async () => {
       setIsLoading(true);
       try {
-        const response = await fetch(`${backUrl}/songs`);
+        const response = await fetch(`${backUrl}/songs`, { signal: AbortSignal.timeout(5000) });
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
@@ -101,10 +104,15 @@ export default function Home() {
             .sort((a, b) => a.name.localeCompare(b.name, "ru"));
 
           setAllSongs(songs);
-          // setFilteredSongs(songs);
+          // Сохраняем для офлайн-режима
+          try { localStorage.setItem(SONGS_OFFLINE_KEY, JSON.stringify(songs)); } catch {}
         }
-      } catch (error) {
-        console.error("Ошибка при загрузке песен:", error);
+      } catch {
+        // Офлайн — загружаем из кеша
+        try {
+          const cached = localStorage.getItem(SONGS_OFFLINE_KEY);
+          if (cached) setAllSongs(JSON.parse(cached));
+        } catch {}
       } finally {
         setIsLoading(false);
       }
@@ -112,17 +120,19 @@ export default function Home() {
 
     const fetchAllStacks = async () => {
       try {
-        const response = await fetch(`${backUrl}/stacks`);
+        const response = await fetch(`${backUrl}/stacks`, { signal: AbortSignal.timeout(5000) });
         const data = await response.json();
 
         if (data.status === "ok" && data.docs) {
-          console.log("stacks", data.docs);
           setStacks(data.docs);
+          try { localStorage.setItem(STACKS_OFFLINE_KEY, JSON.stringify(data.docs)); } catch {}
         }
-      } catch (error) {
-        console.error("Ошибка при загрузке stacks:", error);
-      } finally {
-        // setIsLoading(false);
+      } catch {
+        // Офлайн — загружаем из кеша
+        try {
+          const cached = localStorage.getItem(STACKS_OFFLINE_KEY);
+          if (cached) setStacks(JSON.parse(cached));
+        } catch {}
       }
     };
 

@@ -73,16 +73,19 @@ const serwist = new Serwist({
     {
       matcher: ({ request }: { request: Request }) => {
         if (request.method !== "GET") return false;
-        if (request.headers.get("RSC") === "1") return false; // RSC идёт в отдельный кэш
+        // Пропускаем RSC-запросы в отдельный кэш
+        if (request.headers.get("RSC") === "1") return false;
+        if (request.headers.get("Next-Router-State-Tree")) return false;
         const path = new URL(request.url).pathname;
         return (
           path === "/" ||
-          /^\/(playlist|song|stack|stackView|songRead)\/[^/]+/.test(path)
+          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?/.test(path)
         );
       },
       handler: new NetworkFirst({
         cacheName: "pages",
-        networkTimeoutSeconds: 1,
+        // 0.5s — быстрее переходим к кешу при офлайне или медленной сети
+        networkTimeoutSeconds: 0.5,
         plugins: [
           new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 }),
           new CacheableResponsePlugin({ statuses: [200] }),
@@ -90,19 +93,23 @@ const serwist = new Serwist({
       }),
     },
     // RSC-пейлоады — клиентская навигация Next.js App Router (отдельный кэш)
+    // Next.js 15 шлёт RSC: 1 И/ИЛИ Next-Router-State-Tree заголовок
     {
       matcher: ({ request }: { request: Request }) => {
         if (request.method !== "GET") return false;
-        if (request.headers.get("RSC") !== "1") return false;
+        const isRsc =
+          request.headers.get("RSC") === "1" ||
+          !!request.headers.get("Next-Router-State-Tree");
+        if (!isRsc) return false;
         const path = new URL(request.url).pathname;
         return (
           path === "/" ||
-          /^\/(playlist|song|stack|stackView|songRead)\/[^/]+/.test(path)
+          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?/.test(path)
         );
       },
       handler: new NetworkFirst({
         cacheName: "pages-rsc-app",
-        networkTimeoutSeconds: 1,
+        networkTimeoutSeconds: 0.5,
         plugins: [
           new ExpirationPlugin({ maxEntries: 500, maxAgeSeconds: 7 * 24 * 60 * 60 }),
           new CacheableResponsePlugin({ statuses: [200] }),
