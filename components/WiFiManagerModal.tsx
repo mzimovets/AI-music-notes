@@ -209,7 +209,10 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       setConnectError(null);
       setNetworks([]);
       setScanDone(false);
-      lastScanRef.current = 0; // разрешаем авто-сканирование при следующем открытии вкладки
+      setToast(null); // убираем висящий тост "Ошибка сети"
+      if (toastTimer.current) clearTimeout(toastTimer.current);
+      // Даём плате 8 секунд на поднятие сервисов — потом авто-скан сработает сам
+      lastScanRef.current = Date.now() - 22_000; // 30s cooldown - 22s = 8s задержка
     }
   }, [onBoardOfflineChange]);
 
