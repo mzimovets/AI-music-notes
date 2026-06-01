@@ -205,6 +205,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       offlineSinceRef.current = 0;
       setOfflineSince(0);
       setRetryChecking(false);
+      // Сбрасываем устаревшие ошибки и результаты сканирования
+      setConnectError(null);
+      setNetworks([]);
+      setScanDone(false);
+      lastScanRef.current = 0; // разрешаем авто-сканирование при следующем открытии вкладки
     }
   }, [onBoardOfflineChange]);
 
