@@ -1311,17 +1311,26 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                       </div>
                     )}
 
-                    <button onClick={handleGitUpdate} disabled={updating || !updateInfo?.hasUpdate} className="input-header" style={{
-                      width: "100%", padding: "11px 0", borderRadius: 11, border: "none",
-                      background: updating ? "rgba(125,94,66,0.12)" : updateDone ? "linear-gradient(135deg,#BD9673,#7D5E42)" : updateInfo?.hasUpdate ? "linear-gradient(135deg,#BD9673,#7D5E42)" : "rgba(0,0,0,0.07)",
-                      color: updating ? "#7D5E42" : updateDone ? "white" : updateInfo?.hasUpdate ? "white" : "rgba(0,0,0,0.3)",
-                      fontSize: 14, fontWeight: 700, cursor: (updating || !updateInfo?.hasUpdate) ? "not-allowed" : "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s",
-                      boxShadow: (updateInfo?.hasUpdate || updateDone) && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
-                    }}>
-                      {updating && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
-                      {updating ? "Обновляю прошивку..." : updateDone ? "Готово! Перезагружаю..." : "Обновить прошивку"}
-                    </button>
+                    {(() => {
+                      const canUpdate = !updating && (updateInfo?.hasUpdate || updateInfo?.error);
+                      const isForced = !updating && !updateInfo?.hasUpdate && !!updateInfo?.error;
+                      return (
+                        <button onClick={handleGitUpdate} disabled={!canUpdate} className="input-header" style={{
+                          width: "100%", padding: "11px 0", borderRadius: 11, border: "none",
+                          background: updating ? "rgba(125,94,66,0.12)"
+                            : updateDone ? "linear-gradient(135deg,#BD9673,#7D5E42)"
+                            : canUpdate ? "linear-gradient(135deg,#BD9673,#7D5E42)"
+                            : "rgba(0,0,0,0.07)",
+                          color: updating ? "#7D5E42" : canUpdate ? "white" : "rgba(0,0,0,0.3)",
+                          fontSize: 14, fontWeight: 700, cursor: canUpdate ? "pointer" : "not-allowed",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s",
+                          boxShadow: canUpdate && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
+                        }}>
+                          {updating && <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>}
+                          {updating ? "Обновляю прошивку..." : updateDone ? "Готово! Перезагружаю..." : isForced ? "Обновить принудительно" : "Обновить прошивку"}
+                        </button>
+                      );
+                    })()}
                   </div>
 
                   {/* DB Sync */}
