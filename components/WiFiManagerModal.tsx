@@ -211,8 +211,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       setScanDone(false);
       setToast(null); // убираем висящий тост "Ошибка сети"
       if (toastTimer.current) clearTimeout(toastTimer.current);
-      // Даём плате 8 секунд на поднятие сервисов — потом авто-скан сработает сам
-      lastScanRef.current = Date.now() - 22_000; // 30s cooldown - 22s = 8s задержка
+      lastScanRef.current = Date.now(); // тихий retry-цикл займётся сканом
     }
   }, [onBoardOfflineChange]);
 
@@ -397,15 +396,17 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   }, [isOpen]);
 
   // ── WiFi actions ─────────────────────────────────────────────────────────────
-  const handleScan = useCallback(async () => {
+  // quiet=true — не показывает тост при ошибке, возвращает успех/неуспех
+  const handleScan = useCallback(async (quiet = false): Promise<boolean> => {
     setScanning(true); setNetworks([]); setSelectedSsid(null); setPassword(""); setConnectError(null);
     try {
       const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "scan" }) });
       const data = await res.json();
-      if (data.ok) setNetworks(data.networks ?? []);
-      else showToast(data.error ?? "Ошибка сканирования", false);
-    } catch { showToast("Ошибка сети", false); }
-    finally { setScanning(false); setScanDone(true); }
+      if (data.ok) { setNetworks(data.networks ?? []); setScanDone(true); setScanning(false); return true; }
+      if (!quiet) showToast(data.error ?? "Ошибка сканирования", false);
+    } catch { if (!quiet) showToast("Ошибка сети", false); }
+    setScanning(false); setScanDone(true);
+    return false;
   }, [showToast]);
 
   // ── Auto-scan when network tab opens (30s cooldown) ──────────────────────────
@@ -416,6 +417,29 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     lastScanRef.current = now;
     handleScan();
   }, [tab, handleScan, scanning]);
+
+  // ── После reconnect: тихий retry-скан каждые 3с пока nmcli не готов ─────────
+  const reconnectScanRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (boardOffline) {
+      if (reconnectScanRef.current) { clearInterval(reconnectScanRef.current); reconnectScanRef.current = null; }
+      return;
+    }
+    // Плата только что вернулась: запускаем тихий скан сразу, потом каждые 3с до успеха
+    if (tab !== "network") return; // ждём пока пользователь откроет вкладку
+    let attempts = 0;
+    const tryQuietScan = async () => {
+      attempts++;
+      const ok = await handleScan(true);
+      if (ok || attempts >= 10) { // максимум 10 попыток (~30с)
+        if (reconnectScanRef.current) { clearInterval(reconnectScanRef.current); reconnectScanRef.current = null; }
+        lastScanRef.current = Date.now();
+      }
+    };
+    tryQuietScan();
+    reconnectScanRef.current = setInterval(tryQuietScan, 3_000);
+    return () => { if (reconnectScanRef.current) { clearInterval(reconnectScanRef.current); reconnectScanRef.current = null; } };
+  }, [boardOffline, tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Refresh firmware + DB when firmware tab opens (5 min cooldown) ──────────
   useEffect(() => {
