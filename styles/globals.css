@@ -88,12 +88,12 @@
   font-weight: 400;
 }
 
-/* Нативные <input> и <textarea> не наследуют шрифт — задаём явно */
+/* Нативные <input> и <textarea> не наследуют шрифт от родителя */
 .input-header input,
 .input-header textarea {
-  font-family: "Roboto Slab", serif;
-  font-weight: 400;
-  font-size: 0.875rem; /* 14px = text-sm, как в Select */
+  font-family: "Roboto Slab", serif !important;
+  font-weight: 400 !important;
+  font-size: 0.875rem !important; /* 14px, как text-small в HeroUI Select */
 }
 
 .font-bold {
