@@ -281,7 +281,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                           }));
                       }}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header", input: "text-sm" }}
+                      classNames={{ label: "input-header" }}
                     />
 
                     <Select
@@ -331,7 +331,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthor(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header", input: "text-sm" }}
+                      classNames={{ label: "input-header" }}
                     />
                     <Input
                       label="Автор слов"
@@ -345,7 +345,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthorLyrics(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header", input: "text-sm" }}
+                      classNames={{ label: "input-header" }}
                     />
                     <Input
                       label="Автор аранжировки"
@@ -359,7 +359,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthorArrange(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header", input: "text-sm" }}
+                      classNames={{ label: "input-header" }}
                     />
                   </div>
 
