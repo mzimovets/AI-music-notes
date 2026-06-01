@@ -421,8 +421,27 @@ export function startSyncScheduler() {
   if (!process.env.IS_LOCAL_SERVER) return;
 
   console.log("[sync] Локальный сервер: запускаю планировщик синхронизации");
+
+  // Гарантируем что папка uploads существует
+  const uploadsDir = path.join(__dirname, "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+    console.log("[sync] Создана папка uploads");
+  }
+
   // Первый запуск — после небольшой задержки, чтобы БД успела подняться
-  setTimeout(() => {
+  setTimeout(async () => {
+    // Проверяем количество песен в локальной БД.
+    // Если их меньше 10 — скорее всего база пустая после восстановления.
+    // Сбрасываем таймстамп чтобы скачать всё с нуля.
+    const localCount = await dbCount({ type: "song" });
+    if (localCount < 10) {
+      console.log(
+        `[sync] Локальная база содержит только ${localCount} песен — сбрасываю таймстамп для полной синхронизации`
+      );
+      saveLastSyncTimestamp(0);
+    }
+
     syncFromInternet();
     setInterval(syncFromInternet, SYNC_INTERVAL_MS);
 
