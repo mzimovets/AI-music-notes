@@ -281,7 +281,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                           }));
                       }}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header" }}
+                      classNames={{ label: "input-header", input: "text-sm" }}
                     />
 
                     <Select
@@ -331,7 +331,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthor(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header" }}
+                      classNames={{ label: "input-header", input: "text-sm" }}
                     />
                     <Input
                       label="Автор слов"
@@ -345,7 +345,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthorLyrics(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header" }}
+                      classNames={{ label: "input-header", input: "text-sm" }}
                     />
                     <Input
                       label="Автор аранжировки"
@@ -359,7 +359,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }
                       onChange={(e) => setAuthorArrange(e.target.value)}
                       className="input-header mb-0"
-                      classNames={{ label: "input-header" }}
+                      classNames={{ label: "input-header", input: "text-sm" }}
                     />
                   </div>
 
@@ -531,7 +531,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
               <ModalFooter className="flex justify-center">
                 <Button
                   type="submit"
-                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42]  text-white shadow-lg input-header"
+                  className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-lg input-header text-sm"
                   isDisabled={
                     repriseRaw.some((r) => r.from === "" || r.to === "") ||
                     reprises.some((r) => r.fromPage !== 0 && r.fromPage === r.toPage)
