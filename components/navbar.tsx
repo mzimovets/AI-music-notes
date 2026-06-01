@@ -145,12 +145,12 @@ return (
                   title="Подключено к Raspberry Pi"
                   style={{
                     display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                    width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
                     background: "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
                     boxShadow: "0 0 0 2px rgba(232,69,122,0.2), 0 0 8px rgba(232,69,122,0.35)",
                   }}
                 >
-                  <RaspberryIcon size={12} />
+                  <RaspberryIcon size={15} />
                 </span>
               )}
             </div>
