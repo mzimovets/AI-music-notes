@@ -47,8 +47,6 @@ export function CacheStats({
       setStats((prev) => ({
         ...prev,
         cacheSize: totalSize,
-        songsCount,
-        stacksCount,
       }));
     } catch (e) {
       console.warn("[CacheStats] Ошибка расчёта размера кэша:", e);
