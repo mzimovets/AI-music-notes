@@ -1167,7 +1167,17 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               {tab === "firmware" && (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", minHeight: 0 }}>
                   {/* Git update */}
-                  <div style={{ ...card, flexShrink: 0 }}>
+                  <div style={{ ...card, flexShrink: 0, position: "relative" }}>
+                    {updateInfo?.hasUpdate && !boardOffline && (
+                      <span style={{
+                        position: "absolute", top: -5, right: -5,
+                        width: 11, height: 11, borderRadius: "50%",
+                        background: "#f59e0b",
+                        border: "2px solid rgba(255,255,255,0.9)",
+                        boxShadow: "0 0 6px rgba(245,158,11,0.75)",
+                        zIndex: 1,
+                      }} />
+                    )}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                       <SectionLabel style={{ margin: 0 }}>Прошивка</SectionLabel>
                       <button onClick={checkUpdate} disabled={checking || updating} style={{ background: "none", border: "none", cursor: checking ? "not-allowed" : "pointer", padding: 3, color: "rgba(0,0,0,0.3)", display: "flex" }}>
