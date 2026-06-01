@@ -1,12 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
 
-interface Stats {
-  songsCount: number;
-  stacksCount: number;
-  cacheSize: number;
-}
-
 export function CacheStats({
   songsCount,
   stacksCount,
@@ -14,23 +8,16 @@ export function CacheStats({
   songsCount: number;
   stacksCount: number;
 }) {
-  const [stats, setStats] = useState<Stats>({
-    songsCount,
-    stacksCount,
-    cacheSize: 0,
-  });
+  const [cacheSize, setCacheSize] = useState(0);
 
-  // Вычисляем размер кэша
   const calculateCacheSize = async () => {
     if (!("caches" in window)) return;
     try {
       let totalSize = 0;
       const cacheNames = await caches.keys();
-
       for (const name of cacheNames) {
         const cache = await caches.open(name);
         const keys = await cache.keys();
-
         for (const request of keys) {
           try {
             const response = await cache.match(request);
@@ -38,58 +25,25 @@ export function CacheStats({
               const blob = await response.blob();
               totalSize += blob.size;
             }
-          } catch {
-            // Игнорируем ошибки при расчёте размера отдельных элементов
-          }
+          } catch {}
         }
       }
-
-      setStats((prev) => ({
-        ...prev,
-        cacheSize: totalSize,
-      }));
+      setCacheSize(totalSize);
     } catch (e) {
       console.warn("[CacheStats] Ошибка расчёта размера кэша:", e);
     }
   };
 
   useEffect(() => {
-    // Обновляем счетчики когда меняются пропсы
-    setStats((prev) => ({
-      ...prev,
-      songsCount,
-      stacksCount,
-    }));
-    // Пересчитываем размер кэша
     calculateCacheSize();
-  }, [songsCount, stacksCount]);
-
-  useEffect(() => {
-    // Первый расчёт при монтировании
-    calculateCacheSize();
-
-    // Слушаем события изменения
-    const handleSyncNeeded = () => {
-      // Пересчитываем размер через 100мс (почти сразу)
-      setTimeout(calculateCacheSize, 100);
-    };
-
-    const handleDeleteSong = () => {
-      calculateCacheSize();
-    };
-
-    const handleDeleteStack = () => {
-      calculateCacheSize();
-    };
-
-    window.addEventListener("sw-sync-needed", handleSyncNeeded);
-    window.addEventListener("sw-delete-song", handleDeleteSong);
-    window.addEventListener("sw-delete-stack", handleDeleteStack);
-
+    const handleRecalc = () => setTimeout(calculateCacheSize, 100);
+    window.addEventListener("sw-sync-needed", handleRecalc);
+    window.addEventListener("sw-delete-song", handleRecalc);
+    window.addEventListener("sw-delete-stack", handleRecalc);
     return () => {
-      window.removeEventListener("sw-sync-needed", handleSyncNeeded);
-      window.removeEventListener("sw-delete-song", handleDeleteSong);
-      window.removeEventListener("sw-delete-stack", handleDeleteStack);
+      window.removeEventListener("sw-sync-needed", handleRecalc);
+      window.removeEventListener("sw-delete-song", handleRecalc);
+      window.removeEventListener("sw-delete-stack", handleRecalc);
     };
   }, []);
 
@@ -105,12 +59,12 @@ export function CacheStats({
     <div className="flex justify-center mt-6 text-gray-400 font-bold text-sm">
       <span>
         Стопки:{" "}
-        <span className="text-gray-500 font-medium">{stats.stacksCount}</span> •
+        <span className="text-gray-500 font-medium">{stacksCount}</span> •
         Ноты:{" "}
-        <span className="text-gray-500 font-medium">{stats.songsCount}</span> •
+        <span className="text-gray-500 font-medium">{songsCount}</span> •
         Кэш:{" "}
         <span className="text-gray-500 font-medium">
-          {formatSize(stats.cacheSize)}
+          {formatSize(cacheSize)}
         </span>
       </span>
     </div>
