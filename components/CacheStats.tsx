@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { socket } from "@/lib/socket";
 
 export function CacheStats(_props: { songsCount?: number; stacksCount?: number }) {
   const [songsCount, setSongsCount] = useState(0);
@@ -46,13 +47,22 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
       fetchCounts();
       setTimeout(calculateCacheSize, 100);
     };
+    const handleDbSynced = (data: { added: number; updated: number; deleted: number }) => {
+      if (data.added + data.updated + data.deleted > 0) {
+        setTimeout(fetchCounts, 1500);
+      }
+    };
     window.addEventListener("sw-sync-needed", handleRecalc);
     window.addEventListener("sw-delete-song", handleRecalc);
     window.addEventListener("sw-delete-stack", handleRecalc);
+    window.addEventListener("db-sync-complete", fetchCounts);
+    socket.on("db-synced", handleDbSynced);
     return () => {
       window.removeEventListener("sw-sync-needed", handleRecalc);
       window.removeEventListener("sw-delete-song", handleRecalc);
       window.removeEventListener("sw-delete-stack", handleRecalc);
+      window.removeEventListener("db-sync-complete", fetchCounts);
+      socket.off("db-synced", handleDbSynced);
     };
   }, []);
 
