@@ -4,7 +4,7 @@ import { spawn, execSync } from "child_process";
 import { readFileSync, existsSync } from "fs";
 
 const LOG_FILE = "/tmp/git-update.log";
-const REPO = "mzimovets/AI-music-notes";
+;
 const APP_DIR = "/mnt/ssd/AI-music-notes";
 
 function isLinux() {
@@ -76,34 +76,37 @@ export async function GET() {
     });
   }
 
+  // Используем git напрямую — без GitHub API, без rate limit
   try {
-    const headers: Record<string, string> = { "Accept": "application/vnd.github.v3+json" };
-    if (process.env.GITHUB_TOKEN) headers["Authorization"] = `Bearer ${process.env.GITHUB_TOKEN}`;
+    // git fetch обновляет origin/main локально (~1-2s, нужен интернет)
+    execSync(`git -C ${APP_DIR} fetch origin main --quiet`, { timeout: 15_000 });
+  } catch {
+    return NextResponse.json({
+      processStatus, updateProgress, updateStage,
+      error: "Нет соединения с репозиторием",
+    }, { status: 500 });
+  }
 
-    const [latestRes, commitsRes] = await Promise.all([
-      fetch(`https://api.github.com/repos/${REPO}/commits/main`, { headers, next: { revalidate: 0 } }),
-      fetch(`https://api.github.com/repos/${REPO}/commits?per_page=10`, { headers, next: { revalidate: 0 } }),
-    ]);
-
-    if (!latestRes.ok) {
-      return NextResponse.json({ processStatus, updateProgress, updateStage, error: "GitHub API недоступен" }, { status: 502 });
-    }
-
-    const data = await latestRes.json();
-    const remoteSha: string = data.sha ?? "";
-    const message: string = data.commit?.message ?? "";
-    const date: string = data.commit?.author?.date ?? data.commit?.committer?.date ?? "";
+  try {
     const sha = localSha();
+    const remoteSha = execSync(`git -C ${APP_DIR} rev-parse origin/main`, { encoding: "utf8" }).trim();
 
-    let recentCommits: { sha: string; message: string; date: string }[] = [];
-    if (commitsRes.ok) {
-      const commits = await commitsRes.json();
-      recentCommits = (Array.isArray(commits) ? commits : []).slice(0, 10).map((c: any) => ({
-        sha: (c.sha ?? "").slice(0, 7),
-        message: c.commit?.message ?? "",
-        date: c.commit?.author?.date ?? c.commit?.committer?.date ?? "",
-      }));
-    }
+    // Данные последнего коммита на origin/main
+    const logLine = execSync(
+      `git -C ${APP_DIR} log origin/main -1 --pretty=format:"%s|%aI"`,
+      { encoding: "utf8" }
+    ).trim();
+    const [message = "", date = ""] = logLine.split("|");
+
+    // До 10 последних коммитов на origin/main
+    const logLines = execSync(
+      `git -C ${APP_DIR} log origin/main -10 --pretty=format:"%h|%s|%aI"`,
+      { encoding: "utf8" }
+    ).trim().split("\n").filter(Boolean);
+    const recentCommits = logLines.map((line) => {
+      const [s, m, d] = line.split("|");
+      return { sha: s ?? "", message: m ?? "", date: d ?? "" };
+    });
 
     return NextResponse.json({
       processStatus, updateProgress, updateStage,
@@ -113,7 +116,7 @@ export async function GET() {
       recentCommits,
     });
   } catch {
-    return NextResponse.json({ processStatus, updateProgress, updateStage, error: "Нет соединения с GitHub" }, { status: 500 });
+    return NextResponse.json({ processStatus, updateProgress, updateStage, error: "Ошибка чтения git" }, { status: 500 });
   }
 }
 
