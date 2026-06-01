@@ -29,7 +29,7 @@ import { useLocalServer } from "@/hooks/useLocalServer";
 
 import { usePathname, useRouter } from "next/navigation";
 import { CamertonLogo } from "./camertonSvg";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import React from "react";
 import { StackIcon } from "./icons/StackIcon";
 import ExitIcon from "./icons/ExitIcon";
@@ -74,6 +74,18 @@ function RaspberryIcon({ size = 16 }: { size?: number }) {
 export const NavbarNoteLib = () => {
   const { data: session, status } = useSession();
   const { isLocal } = useLocalServer();
+  const [boardOffline, setBoardOffline] = useState(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
+  );
+
+  // Следим за изменением состояния платы через sessionStorage
+  useEffect(() => {
+    if (!isLocal) return;
+    const check = () => setBoardOffline(sessionStorage.getItem("board-offline-v1") === "1");
+    const t = setInterval(check, 3000);
+    return () => clearInterval(t);
+  }, [isLocal]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [stackName, setStackName] = useState("");
   const [isExitModalOpen, setIsExitModalOpen] = useState(false);
@@ -140,7 +152,7 @@ return (
                 Нотная библиотека
               </p>
               {/* Малиновый значок RPi — только при подключении к плате */}
-              {isLocal && (
+              {isLocal && !boardOffline && (
                 <span
                   title="Подключено к Raspberry Pi"
                   style={{
