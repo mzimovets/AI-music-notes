@@ -1,0 +1,24 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 195.161.114.13
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/AI-music-notes
+            git pull origin main
+            npm ci --production=false
+            npm run build
+            systemctl restart songs-library
+            systemctl restart songs-server
