@@ -267,6 +267,15 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const retryTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const sysFailCount = useRef(0);
 
+  // ── Когда isLocal становится false — очищаем данные платы ───────────────────
+  useEffect(() => {
+    if (!isLocal) {
+      setSysData(null);
+      setBoardOffline(false);
+      sysFailCount.current = 0;
+    }
+  }, [isLocal, setBoardOffline]);
+
   const fetchSys = useCallback(async () => {
     if (!isLocal) return;
     try {

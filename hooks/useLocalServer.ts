@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export interface LocalServerInfo {
   /** true — работаем с локальным сервером на Raspberry Pi */
@@ -10,47 +10,46 @@ export interface LocalServerInfo {
   loading: boolean;
 }
 
-const CACHE_KEY = "localServerInfo";
-const CACHE_TTL_MS = 60_000; // 1 минута
+const RECHECK_INTERVAL_MS = 30_000; // перепроверяем каждые 30 секунд
 
-function loadCache(): LocalServerInfo | null {
-  if (typeof window === "undefined") return null;
+async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
   try {
-    const raw = sessionStorage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts > CACHE_TTL_MS) return null;
-    return data;
-  } catch { return null; }
-}
-
-function saveCache(data: LocalServerInfo) {
-  if (typeof window === "undefined") return;
-  try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data, ts: Date.now() })); } catch {}
+    const r = await fetch("/api/local-server", { signal: AbortSignal.timeout(3000) });
+    const data: { isLocal: boolean; hostname: string | null } = await r.json();
+    return { isLocal: data.isLocal, hostname: data.hostname, loading: false };
+  } catch {
+    return { isLocal: false, hostname: null, loading: false };
+  }
 }
 
 export function useLocalServer(): LocalServerInfo {
-  const [state, setState] = useState<LocalServerInfo>(() => {
-    const cached = loadCache();
-    return cached ?? { isLocal: false, hostname: null, loading: true };
-  });
+  const [state, setState] = useState<LocalServerInfo>({ isLocal: false, hostname: null, loading: true });
+
+  const check = useCallback(async () => {
+    const info = await fetchLocalServerInfo();
+    setState(info);
+  }, []);
 
   useEffect(() => {
-    const cached = loadCache();
-    if (cached) { setState(cached); return; }
+    // Первая проверка сразу
+    check();
 
-    fetch("/api/local-server")
-      .then((r) => r.json())
-      .then((data: { isLocal: boolean; hostname: string | null }) => {
-        const info: LocalServerInfo = { isLocal: data.isLocal, hostname: data.hostname, loading: false };
-        setState(info);
-        saveCache(info);
-      })
-      .catch(() => {
-        const info: LocalServerInfo = { isLocal: false, hostname: null, loading: false };
-        setState(info);
-      });
-  }, []);
+    // Периодическая перепроверка — чтобы переключение сети работало автоматически
+    const interval = setInterval(check, RECHECK_INTERVAL_MS);
+
+    // При возврате на вкладку — сразу перепроверить
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+
+    // При восстановлении сети (offline→online)
+    window.addEventListener("online", check);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", check);
+    };
+  }, [check]);
 
   return state;
 }
