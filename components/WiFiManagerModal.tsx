@@ -589,6 +589,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}
       placement="center" backdrop="blur" hideCloseButton scrollBehavior="normal"
       classNames={{ base: "max-w-[480px] w-[calc(100vw-16px)]" }}
+      keepMounted
     >
       <ModalContent style={{
         background: "rgba(244,241,237,0.92)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
