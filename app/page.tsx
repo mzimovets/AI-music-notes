@@ -28,7 +28,10 @@ export default function Home() {
   const albumsPromise = new Promise((resolve) => resolve(null));
   const { allSongs, setAllSongs } = useAllSongsLibraryContextProvider();
   const { data: session } = useSession();
-  const [stacks, setStacks] = useState([]);
+  const [stacks, setStacks] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("offline-stacks-v1") || "[]"); } catch { return []; }
+  });
 
   // Кэшируем роль в localStorage — кнопка появляется сразу после перезагрузки
   const [cachedRegent, setCachedRegent] = useState(() => {
