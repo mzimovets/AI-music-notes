@@ -3,6 +3,16 @@
 
 @config "../tailwind.config.js";
 
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 @font-face {
   font-family: "Roboto Slab";
   src: url("/fonts/RobotoSlab-VariableFont_wght.ttf") format("truetype");

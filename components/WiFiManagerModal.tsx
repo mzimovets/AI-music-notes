@@ -623,7 +623,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                 width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
                 background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                  : "radial-gradient(circle at 50% 35%, #e8457a, #9e1239)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 boxShadow: (!isLocal || boardOffline)
                   ? "0 0 0 2px rgba(100,116,139,0.2), 0 3px 12px rgba(100,116,139,0.25)"
@@ -1770,7 +1770,7 @@ function ShutdownButton({ onOffline, offline, rpiBaseUrl }: { onOffline?: () => 
             borderRadius: "50%", border: "none",
             background: isOff
               ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-              : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+              : "radial-gradient(circle at 50% 35%, #e8457a, #9e1239)",
             boxShadow: isOff
               ? "0 4px 16px rgba(100,116,139,0.3)"
               : "0 4px 20px rgba(158,18,57,0.45)",

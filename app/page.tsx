@@ -227,7 +227,7 @@ export default function Home() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                  : "radial-gradient(circle at 50% 35%, #e8457a, #9e1239)",
                 boxShadow: (!isLocal || boardOffline)
                   ? "0 4px 14px rgba(100,116,139,0.3)"
                   : "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)",
@@ -272,7 +272,7 @@ export default function Home() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                  : "radial-gradient(circle at 50% 35%, #e8457a, #9e1239)",
                 boxShadow: (!isLocal || boardOffline)
                   ? "0 4px 14px rgba(100,116,139,0.3)"
                   : "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)",
