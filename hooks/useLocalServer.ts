@@ -2,28 +2,44 @@
 import { useEffect, useState, useCallback } from "react";
 
 export interface LocalServerInfo {
-  /** true — работаем с локальным сервером на Raspberry Pi */
   isLocal: boolean;
-  /** mDNS-хостнейм локального сервера, напр. "nevsky-songs.local" */
   hostname: string | null;
-  /** true пока запрос не завершился */
   loading: boolean;
+  /**
+   * Base URL for RPi-specific API calls.
+   * "" — same-origin (DNS intercepts correctly).
+   * "https://local.nevsky-sobor.ru" — direct subdomain, bypasses iCloud Private Relay.
+   */
+  rpiBaseUrl: string;
 }
 
-const RECHECK_INTERVAL_MS = 30_000; // перепроверяем каждые 30 секунд
+const RECHECK_INTERVAL_MS = 30_000;
+const RPI_LOCAL_DOMAIN = "https://local.nevsky-sobor.ru";
 
 async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
-  try {
-    const r = await fetch("/api/local-server", { signal: AbortSignal.timeout(3000) });
-    const data: { isLocal: boolean; hostname: string | null } = await r.json();
-    return { isLocal: data.isLocal, hostname: data.hostname, loading: false };
-  } catch {
-    return { isLocal: false, hostname: null, loading: false };
+  // Try both in parallel: same-origin (works if DNS intercepts) and direct local subdomain
+  const [sameOrigin, localDomain] = await Promise.allSettled([
+    fetch("/api/local-server", { signal: AbortSignal.timeout(2000) })
+      .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
+    fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(2500) })
+      .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
+  ]);
+
+  // Same-origin takes priority (DNS interception works — cleanest path)
+  if (sameOrigin.status === "fulfilled" && sameOrigin.value.isLocal) {
+    return { isLocal: true, hostname: sameOrigin.value.hostname, rpiBaseUrl: "", loading: false };
   }
+  // Fallback: direct local subdomain (bypasses iCloud Private Relay)
+  if (localDomain.status === "fulfilled" && localDomain.value.isLocal) {
+    return { isLocal: true, hostname: localDomain.value.hostname, rpiBaseUrl: RPI_LOCAL_DOMAIN, loading: false };
+  }
+  return { isLocal: false, hostname: null, rpiBaseUrl: "", loading: false };
 }
 
 export function useLocalServer(): LocalServerInfo {
-  const [state, setState] = useState<LocalServerInfo>({ isLocal: false, hostname: null, loading: true });
+  const [state, setState] = useState<LocalServerInfo>({
+    isLocal: false, hostname: null, rpiBaseUrl: "", loading: true,
+  });
 
   const check = useCallback(async () => {
     const info = await fetchLocalServerInfo();
@@ -31,19 +47,11 @@ export function useLocalServer(): LocalServerInfo {
   }, []);
 
   useEffect(() => {
-    // Первая проверка сразу
     check();
-
-    // Периодическая перепроверка — чтобы переключение сети работало автоматически
     const interval = setInterval(check, RECHECK_INTERVAL_MS);
-
-    // При возврате на вкладку — сразу перепроверить
     const onVisible = () => { if (document.visibilityState === "visible") check(); };
     document.addEventListener("visibilitychange", onVisible);
-
-    // При восстановлении сети (offline→online)
     window.addEventListener("online", check);
-
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);

@@ -7,7 +7,7 @@ const MAIN_SITE = "https://songs.nevsky-sobor.ru";
 const CHECK_INTERVAL_MS = 30_000;
 
 export function OnlineBanner() {
-  const { isLocal, loading } = useLocalServer();
+  const { isLocal, loading, rpiBaseUrl } = useLocalServer();
   const { data: session, status: sessionStatus } = useSession();
   const [hasInternet, setHasInternet] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -17,7 +17,7 @@ export function OnlineBanner() {
     if (!isLocal) return;
     const check = async () => {
       try {
-        const res = await fetch("/api/wifi-manager");
+        const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`);
         if (res.ok) {
           const data = await res.json();
           setHasInternet(data.connected && !data.noInternet);
@@ -29,7 +29,7 @@ export function OnlineBanner() {
     check();
     const timer = setInterval(check, CHECK_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [isLocal]);
+  }, [isLocal, rpiBaseUrl]);
 
   // Плавное появление
   useEffect(() => {

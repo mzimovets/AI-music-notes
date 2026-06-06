@@ -179,7 +179,7 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDangerChange }: Props) {
-  const { isLocal, loading: localServerLoading } = useLocalServer();
+  const { isLocal, loading: localServerLoading, rpiBaseUrl } = useLocalServer();
   const [tab, setTab] = useState<Tab>("system");
 
   // System
@@ -279,7 +279,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const fetchSys = useCallback(async () => {
     if (!isLocal) return;
     try {
-      const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(4000) });
+      const res = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(4000) });
       if (res.ok) {
         sysFailCount.current = 0;
         const data = await res.json();
@@ -311,7 +311,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     if (!boardOffline) return;
     setRetryChecking(true);
     try {
-      const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
+      const res = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(3000) });
       if (res.ok) setBoardOffline(false);
     } catch {}
     finally { setRetryChecking(false); }
@@ -322,7 +322,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     const check = async () => {
       setRetryChecking(true);
       try {
-        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(2500) });
+        const res = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(2500) });
         if (res.ok) { setBoardOffline(false); return; }
       } catch {}
       setRetryChecking(false);
@@ -342,7 +342,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   // ── WiFi status polling ──────────────────────────────────────────────────────
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await fetch("/api/wifi-manager");
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`);
       if (res.ok) setStatus(await res.json());
     } catch {}
   }, []);
@@ -358,7 +358,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const checkUpdate = useCallback(async () => {
     setChecking(true);
     try {
-      const res = await fetch("/api/git-update");
+      const res = await fetch(`${rpiBaseUrl}/api/git-update`);
       const data = await res.json();
       setUpdateInfo(data);
       setCommitOpen(false);
@@ -376,7 +376,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   // ── Poll sync status every 5 min ─────────────────────────────────────────────
   const fetchSyncStatus = useCallback(async () => {
     try {
-      const r = await fetch("/api/update-db");
+      const r = await fetch(`${rpiBaseUrl}/api/update-db`);
       if (!r.ok) return;
       const d = await r.json();
       if (d?.lastSyncedAt) setLastSyncedAt(d.lastSyncedAt);
@@ -409,7 +409,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const handleScan = useCallback(async (quiet = false): Promise<boolean> => {
     setScanning(true); setNetworks([]); setSelectedSsid(null); setPassword(""); setConnectError(null);
     try {
-      const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "scan" }) });
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "scan" }) });
       const data = await res.json();
       if (data.ok) { setNetworks(data.networks ?? []); setScanDone(true); setScanning(false); return true; }
       if (!quiet) showToast(data.error ?? "Ошибка сканирования", false);
@@ -464,7 +464,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const handleConnectSaved = async (networkId: string, ssid: string) => {
     setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
     try {
-      const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connectSaved", networkId }) });
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connectSaved", networkId }) });
       const data = await res.json();
       if (data.ok) {
         if (data.noInternet) setNoInternet(true);
@@ -481,7 +481,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const handleConnectNew = async (ssid: string, pwd: string) => {
     setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
     try {
-      const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", ssid, password: pwd }) });
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", ssid, password: pwd }) });
       const data = await res.json();
       if (data.ok) {
         if (data.noInternet) setNoInternet(true);
@@ -499,7 +499,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     if (!editPassword.trim()) return;
     setConnectingTo(ssid); setConnectError(null);
     try {
-      const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", ssid, password: editPassword }) });
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connect", ssid, password: editPassword }) });
       const data = await res.json();
       if (data.ok) {
         setEditingId(null); setEditPassword("");
@@ -515,7 +515,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const handleForget = async (networkId: string, ssid: string) => {
     setForgetting(networkId);
     try {
-      const res = await fetch("/api/wifi-manager", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "forget", networkId }) });
+      const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "forget", networkId }) });
       const data = await res.json();
       if (data.ok) {
         setStatus((p) => p ? { ...p, savedNetworks: (p.savedNetworks ?? []).filter((n) => n.id !== networkId) } : p);
@@ -534,7 +534,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     progressTimer.current = setInterval(() => { p = Math.min(p + Math.random() * 5 + 2, 85); setSyncProgress(p); }, 400);
     const startedAt = Date.now();
     try {
-      const res = await fetch("/api/update-db", { method: "POST" });
+      const res = await fetch(`${rpiBaseUrl}/api/update-db`, { method: "POST" });
       const data = await res.json();
       if (progressTimer.current) clearInterval(progressTimer.current);
       setSyncProgress(100);
@@ -559,11 +559,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     if (updating) return;
     setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
     try {
-      await fetch("/api/git-update", { method: "POST" });
+      await fetch(`${rpiBaseUrl}/api/git-update`, { method: "POST" });
       let failures = 0;
       const poll = setInterval(async () => {
         try {
-          const res = await fetch("/api/git-update");
+          const res = await fetch(`${rpiBaseUrl}/api/git-update`);
           if (res.ok) {
             const data = await res.json();
             if (data.updateProgress) setUpdateProgress(data.updateProgress);
@@ -1725,11 +1725,11 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
         clearInterval(intervalRef.current!);
         setHolding(false);
         setDone(true);
-        fetch("/api/shutdown", { method: "POST" });
+        fetch(`${rpiBaseUrl}/api/shutdown`, { method: "POST" });
         setTimeout(() => {
           pingRef.current = setInterval(async () => {
             try {
-              const r = await fetch("/api/system-status", { signal: AbortSignal.timeout(2000) });
+              const r = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(2000) });
               if (!r.ok) throw new Error();
             } catch {
               clearInterval(pingRef.current!);

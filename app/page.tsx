@@ -52,23 +52,24 @@ export default function Home() {
   const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
   const [hasBoardDanger, setHasBoardDanger] = useState(false);
-  const { isLocal } = useLocalServer();
+  const { isLocal, rpiBaseUrl } = useLocalServer();
   const [boardOffline, setBoardOffline] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
   );
 
   // Background firmware check every 30 min
   useEffect(() => {
+    if (!isLocal) return;
     const check = async () => {
       try {
-        const res = await fetch("/api/git-update");
+        const res = await fetch(`${rpiBaseUrl}/api/git-update`);
         if (res.ok) { const d = await res.json(); setHasFirmwareUpdate(!!d.hasUpdate); }
       } catch {}
     };
     check();
     const t = setInterval(check, 30 * 60_000);
     return () => clearInterval(t);
-  }, []);
+  }, [isLocal, rpiBaseUrl]);
 
   // Фоновый опрос опасных состояний платы (undervoltage / thermal throttle прямо сейчас)
   // Работает всегда — независимо от того открыта модалка или нет
@@ -77,7 +78,7 @@ export default function Home() {
     const check = async () => {
       if (boardOffline) { setHasBoardDanger(false); return; }
       try {
-        const res = await fetch("/api/system-status", { signal: AbortSignal.timeout(3000) });
+        const res = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(3000) });
         if (res.ok) {
           const d = await res.json();
           const flags = d.throttleFlags ?? 0;
@@ -88,7 +89,7 @@ export default function Home() {
     check();
     const t = setInterval(check, 5_000);
     return () => clearInterval(t);
-  }, [isLocal, boardOffline]);
+  }, [isLocal, rpiBaseUrl, boardOffline]);
 
   useEffect(() => {
     localStorage.setItem("showStacks", String(showStacks));
