@@ -1,4 +1,5 @@
 "use client";
+import { useEffect } from "react";
 import { SessionProvider } from "next-auth/react";
 import "@/styles/globals.css";
 import { metadata, viewport } from "./metadata";
@@ -19,6 +20,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  useEffect(() => {
+    // Отключаем авто-восстановление скролла браузером (актуально для PWA)
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <html
