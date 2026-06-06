@@ -225,16 +225,12 @@ export default function Home() {
               style={{ position: "relative",
                 width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: boardOffline
+                background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : isLocal
-                    ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
-                    : "linear-gradient(135deg, #BD9673, #7D5E42)",
-                boxShadow: boardOffline
+                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                boxShadow: (!isLocal || boardOffline)
                   ? "0 4px 14px rgba(100,116,139,0.3)"
-                  : isLocal
-                    ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
-                    : "0 4px 14px rgba(0,0,0,0.2)",
+                  : "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)",
                 transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
               }}
             >
@@ -274,16 +270,12 @@ export default function Home() {
               style={{ position: "relative",
                 width: 48, height: 48, borderRadius: "50%", border: "none", cursor: "pointer",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                background: boardOffline
+                background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : isLocal
-                    ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
-                    : "linear-gradient(135deg, #BD9673, #7D5E42)",
-                boxShadow: boardOffline
+                  : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
+                boxShadow: (!isLocal || boardOffline)
                   ? "0 4px 14px rgba(100,116,139,0.3)"
-                  : isLocal
-                    ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
-                    : "0 4px 14px rgba(0,0,0,0.2)",
+                  : "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)",
                 transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
               }}
             >

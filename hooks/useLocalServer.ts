@@ -13,15 +13,15 @@ export interface LocalServerInfo {
   rpiBaseUrl: string;
 }
 
-const RECHECK_INTERVAL_MS = 30_000;
+const RECHECK_INTERVAL_MS = 10_000;
 const RPI_LOCAL_DOMAIN = "https://local.nevsky-sobor.ru";
 
 async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
   // Try both in parallel: same-origin (works if DNS intercepts) and direct local subdomain
   const [sameOrigin, localDomain] = await Promise.allSettled([
-    fetch("/api/local-server", { signal: AbortSignal.timeout(2000) })
+    fetch("/api/local-server", { signal: AbortSignal.timeout(1500) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
-    fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(2500) })
+    fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
   ]);
 
@@ -52,10 +52,12 @@ export function useLocalServer(): LocalServerInfo {
     const onVisible = () => { if (document.visibilityState === "visible") check(); };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("online", check);
+    window.addEventListener("offline", check);
     return () => {
       clearInterval(interval);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", check);
+      window.removeEventListener("offline", check);
     };
   }, [check]);
 

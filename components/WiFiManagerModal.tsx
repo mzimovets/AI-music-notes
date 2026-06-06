@@ -614,11 +614,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 16px 0", flexShrink: 0 }}>
               <div style={{
                 width: 34, height: 34, borderRadius: "50%", flexShrink: 0,
-                background: boardOffline
+                background: (!isLocal || boardOffline)
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
                   : "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)",
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: boardOffline
+                boxShadow: (!isLocal || boardOffline)
                   ? "0 0 0 2px rgba(100,116,139,0.2), 0 3px 12px rgba(100,116,139,0.25)"
                   : "0 0 0 2px rgba(232,69,122,0.2), 0 3px 12px rgba(158,18,57,0.35)",
                 transition: "background 0.4s ease, box-shadow 0.4s ease",
