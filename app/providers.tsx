@@ -59,7 +59,10 @@ export function AllSongsLibraryContextProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [allSongs, setAllSongs] = React.useState<ServerSong[]>([]);
+  const [allSongs, setAllSongs] = React.useState<ServerSong[]>(() => {
+    if (typeof window === "undefined") return [];
+    try { return JSON.parse(localStorage.getItem("offline-songs-v1") || "[]"); } catch { return []; }
+  });
   return (
     <AllSongsLibraryContext.Provider value={{ allSongs, setAllSongs }}>
       {children}
