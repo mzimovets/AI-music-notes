@@ -21,6 +21,7 @@ import { getBackendBaseUrl } from "@/lib/client-url";
 import { socket } from "@/lib/socket";
 import { CacheStats } from "@/components/CacheStats";
 import { WiFiManagerModal } from "@/components/WiFiManagerModal";
+import { useLocalServer } from "@/hooks/useLocalServer";
 
 
 export default function Home() {
@@ -51,7 +52,7 @@ export default function Home() {
   const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
   const [hasBoardDanger, setHasBoardDanger] = useState(false);
-  const isOnBoardNetwork = typeof window !== "undefined" && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+  const { isLocal } = useLocalServer();
   const [boardOffline, setBoardOffline] = useState(() =>
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
   );
@@ -72,7 +73,7 @@ export default function Home() {
   // Фоновый опрос опасных состояний платы (undervoltage / thermal throttle прямо сейчас)
   // Работает всегда — независимо от того открыта модалка или нет
   useEffect(() => {
-    if (!isOnBoardNetwork) return;
+    if (!isLocal) return;
     const check = async () => {
       if (boardOffline) { setHasBoardDanger(false); return; }
       try {
@@ -87,7 +88,7 @@ export default function Home() {
     check();
     const t = setInterval(check, 5_000);
     return () => clearInterval(t);
-  }, [isOnBoardNetwork, boardOffline]);
+  }, [isLocal, boardOffline]);
 
   useEffect(() => {
     localStorage.setItem("showStacks", String(showStacks));
@@ -225,12 +226,12 @@ export default function Home() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: boardOffline
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : isOnBoardNetwork
+                  : isLocal
                     ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
                     : "linear-gradient(135deg, #BD9673, #7D5E42)",
                 boxShadow: boardOffline
                   ? "0 4px 14px rgba(100,116,139,0.3)"
-                  : isOnBoardNetwork
+                  : isLocal
                     ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
                     : "0 4px 14px rgba(0,0,0,0.2)",
                 transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
@@ -274,12 +275,12 @@ export default function Home() {
                 display: "flex", alignItems: "center", justifyContent: "center",
                 background: boardOffline
                   ? "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)"
-                  : isOnBoardNetwork
+                  : isLocal
                     ? "radial-gradient(circle at 40% 40%, #e8457a, #9e1239)"
                     : "linear-gradient(135deg, #BD9673, #7D5E42)",
                 boxShadow: boardOffline
                   ? "0 4px 14px rgba(100,116,139,0.3)"
-                  : isOnBoardNetwork
+                  : isLocal
                     ? "0 0 0 3px rgba(232,69,122,0.25), 0 0 18px rgba(232,69,122,0.5), 0 4px 14px rgba(0,0,0,0.25)"
                     : "0 4px 14px rgba(0,0,0,0.2)",
                 transition: "box-shadow 0.3s ease, background 0.3s ease, transform 0.15s cubic-bezier(0.4,0,0.2,1)",
