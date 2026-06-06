@@ -15,23 +15,26 @@ export interface LocalServerInfo {
 
 const RECHECK_INTERVAL_MS = 10_000;
 const RPI_LOCAL_DOMAIN = "https://local.nevsky-sobor.ru";
+const RPI_DYNAMIC_DOMAIN = "https://rpi.nevsky-sobor.ru";
 
 async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
-  // Try both in parallel: same-origin (works if DNS intercepts) and direct local subdomain
-  const [sameOrigin, localDomain] = await Promise.allSettled([
+  const [sameOrigin, localDomain, dynamicDomain] = await Promise.allSettled([
     fetch("/api/local-server", { signal: AbortSignal.timeout(1500) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
     fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
+    fetch(`${RPI_DYNAMIC_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
+      .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
   ]);
 
-  // Same-origin takes priority (DNS interception works — cleanest path)
   if (sameOrigin.status === "fulfilled" && sameOrigin.value.isLocal) {
     return { isLocal: true, hostname: sameOrigin.value.hostname, rpiBaseUrl: "", loading: false };
   }
-  // Fallback: direct local subdomain (bypasses iCloud Private Relay)
   if (localDomain.status === "fulfilled" && localDomain.value.isLocal) {
     return { isLocal: true, hostname: localDomain.value.hostname, rpiBaseUrl: RPI_LOCAL_DOMAIN, loading: false };
+  }
+  if (dynamicDomain.status === "fulfilled" && dynamicDomain.value.isLocal) {
+    return { isLocal: true, hostname: dynamicDomain.value.hostname, rpiBaseUrl: RPI_DYNAMIC_DOMAIN, loading: false };
   }
   return { isLocal: false, hostname: null, rpiBaseUrl: "", loading: false };
 }
