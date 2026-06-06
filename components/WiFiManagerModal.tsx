@@ -179,7 +179,7 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDangerChange }: Props) {
-  const { isLocal } = useLocalServer();
+  const { isLocal, loading: localServerLoading } = useLocalServer();
   const [tab, setTab] = useState<Tab>("system");
 
   // System
@@ -348,11 +348,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   }, []);
 
   useEffect(() => {
-    if (!isOpen) { if (statusTimer.current) clearInterval(statusTimer.current); return; }
+    if (!isOpen || !isLocal) { if (statusTimer.current) clearInterval(statusTimer.current); return; }
     fetchStatus();
     statusTimer.current = setInterval(fetchStatus, 5_000);
     return () => { if (statusTimer.current) clearInterval(statusTimer.current); };
-  }, [isOpen, fetchStatus]);
+  }, [isOpen, isLocal, fetchStatus]);
 
   // ── Firmware check ───────────────────────────────────────────────────────────
   const checkUpdate = useCallback(async () => {
@@ -660,7 +660,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               {(["system", "power", "network", "firmware"] as Tab[]).map((t) => {
                 const labels: Record<Tab, string> = { system: "Система", power: "Питание", network: "Сеть", firmware: "Прошивка" };
                 const active = tab === t;
-                const disabled = boardOffline && t !== "system" && t !== "power";
+                const disabled = !isLocal || (boardOffline && t !== "system" && t !== "power");
                 const hasDot = t === "firmware" && !boardOffline && updateInfo?.hasUpdate;
                 return (
                   <button key={t} onClick={() => !disabled && setTab(t)} className="input-header" style={{
@@ -692,8 +692,51 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             {/* ── Content ─────────────────────────────────────────────────────── */}
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
 
+              {/* ══ НЕ ПОДКЛЮЧЕНЫ К ПЛАТЕ ═════════════════════════════════════ */}
+              {!isLocal && !localServerLoading && (
+                <div style={{
+                  flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+                  gap: 14, padding: "40px 20px", textAlign: "center",
+                }}>
+                  <div style={{
+                    width: 56, height: 56, borderRadius: "50%",
+                    background: "radial-gradient(circle at 40% 40%, #94a3b8, #64748b)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 0 0 3px rgba(100,116,139,0.15), 0 6px 20px rgba(100,116,139,0.2)",
+                    opacity: 0.7,
+                  }}>
+                    <svg width="26" height="26" viewBox="0 0 32 32" fill="rgba(255,255,255,0.9)" xmlns="http://www.w3.org/2000/svg">
+                      <g><g>
+                        <path d="M13.8,6.4c-1.4-1.1-2.9-1.9-4.6-2.5c1.5,0.9,3,1.7,4.2,2.9c-0.1,1.1-1.5,1.8-3.1,1.7c-0.1-0.1,0.1-0.1,0.1-0.3C10,8.1,9.5,8.2,9.2,8c0-0.1,0.2-0.1,0.1-0.2C9,7.6,8.6,7.5,8.3,7.3c0-0.1,0.2-0.1,0.3-0.2c-0.3-0.2-0.7-0.3-1-0.6c0.1-0.1,0.2,0,0.3-0.2C7.6,6.1,7.3,5.9,7.1,5.6c0.1-0.1,0.2,0,0.3-0.1C7.3,5.2,6.9,5,6.8,4.7c0.2,0,0.3,0.1,0.5-0.1C7.1,4.3,6.7,4.2,6.6,3.8c0.1-0.1,0.3,0,0.4-0.1c0-0.3-0.2-0.5-0.3-0.8c0.3-0.1,0.7,0,1-0.1c0-0.1-0.1-0.2-0.1-0.3c0.4-0.2,0.8,0,1.2,0.1c0.1-0.2-0.1-0.2,0-0.4c0.3,0,0.6,0.2,1,0.2C9.9,2.2,9.6,2.2,9.6,2c0.4,0,0.7,0.2,1,0.4c0.1-0.1,0-0.2,0.1-0.4c0.3,0.1,0.5,0.3,0.8,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.1,0.5,0.4,0.7,0.5c0.2,0,0.1-0.2,0.2-0.3c0.3,0.2,0.5,0.5,0.7,0.7c0.2,0,0.1-0.2,0.3-0.2c0.6,0.7,1.2,1.5,1.1,2.5C14.7,5.9,14.3,6.2,13.8,6.4L13.8,6.4z"/>
+                        <path d="M23.5,7.1c0.1,0.1,0.2,0.1,0.3,0.1c-0.3,0.3-0.7,0.3-1.1,0.5c0,0.1,0.1,0.1,0.1,0.2c-0.3,0.2-0.8,0.1-1.1,0.2c-0.1,0.1,0.1,0.2,0,0.3c-0.4,0.1-0.8,0-1.3-0.1c-0.9-0.2-1.6-0.6-1.9-1.5c1.2-1.3,2.7-2.1,4.2-2.9c-1.7,0.6-3.2,1.4-4.6,2.4c-0.6-0.2-0.9-0.7-0.9-1.3c0-0.7,0.6-1.8,1.2-2.3l0.2,0.3c0.3-0.2,0.5-0.6,0.8-0.7c0.1,0.1,0,0.3,0.2,0.3c0.2-0.1,0.4-0.4,0.7-0.5c0.1,0.1,0,0.2,0.2,0.3C20.8,2.4,21,2.1,21.4,2c0,0.1-0.1,0.2,0,0.4C21.7,2.2,22,2,22.4,2c0,0.1-0.2,0.2-0.1,0.4c0.3,0,0.6-0.2,1-0.2c0,0.1-0.1,0.2,0,0.4c0.4-0.1,0.8-0.2,1.2-0.1c0,0.1-0.1,0.2-0.1,0.3c0.3,0.1,0.7,0,1,0.1C25.3,3.2,25,3.4,25,3.7c0.1,0.1,0.3,0,0.4,0.1c-0.1,0.4-0.5,0.5-0.6,0.8c0.1,0.2,0.3,0,0.4,0.1c-0.1,0.3-0.5,0.5-0.7,0.8c0.1,0.2,0.2,0.1,0.3,0.1c-0.2,0.3-0.5,0.4-0.7,0.7c0.1,0.1,0.2,0.1,0.3,0.2C24.2,6.8,23.8,6.9,23.5,7.1L23.5,7.1z"/>
+                      </g><g>
+                        <path d="M15.4,16c0,1.8-1.4,3.6-3.2,4c-1.8,0.4-3.4-0.9-3.5-2.7c-0.1-1.8,1.2-3.6,2.9-4C13.7,12.7,15.4,14,15.4,16z"/>
+                        <path d="M23.4,16.9c0,2.1-1.8,3.4-3.8,2.8c-1.8-0.6-3.1-2.5-2.8-4.4c0.3-1.8,2.1-2.9,3.9-2.2C22.3,13.7,23.4,15.3,23.4,16.9L23.4,16.9z"/>
+                        <path d="M16.1,19.4c1,0,2,0.4,2.7,1.2c1.2,1.3,1.1,3.2-0.2,4.3c-1.3,1.1-3.4,1.2-4.7,0.1c-1-0.8-1.4-1.8-1.2-3.1c0.3-1.3,1.2-2,2.4-2.4C15.4,19.5,15.7,19.4,16.1,19.4L16.1,19.4z"/>
+                        <path d="M19.8,25.3c0.1-1,0.5-2,1.3-2.9c0.5-0.5,1-1,1.5-1.4c0.3-0.2,0.6-0.3,0.9-0.4c0.6-0.1,1.1,0.1,1.3,0.7c0.4,1,0.5,2,0,3c-0.6,1.4-1.7,2.3-3.2,2.6c-0.1,0-0.3,0-0.5,0C20.2,27,19.8,26.6,19.8,25.3z"/>
+                        <path d="M6.9,22.7c0,0,0-0.2,0-0.3c0.1-1.1,0.7-1.5,1.8-1.2c1.7,0.5,3.3,2.5,3.4,4.3c0,1.1-0.5,1.6-1.6,1.4c-1.5-0.2-2.5-1-3.1-2.3C7,24,6.9,23.4,6.9,22.7L6.9,22.7z"/>
+                        <path d="M16.2,12.8c-0.8,0-1.6-0.1-2.3-0.5c-1.3-0.7-1.3-1.6-0.2-2.4c1.5-1.1,3.5-1,4.9,0.2c0.1,0.1,0.2,0.2,0.3,0.3c0.5,0.6,0.4,1.2-0.2,1.7c-0.5,0.4-1.1,0.5-1.7,0.6C16.7,12.8,16.4,12.8,16.2,12.8L16.2,12.8z"/>
+                        <path d="M16,30c-1.2,0-2.2-0.5-3.1-1.4c-0.4-0.4-0.4-0.8,0.1-1.1c0.7-0.4,1.4-0.6,2.2-0.7c1-0.1,2-0.1,3,0.2c0.2,0.1,0.5,0.2,0.7,0.3c0.6,0.3,0.7,0.6,0.2,1.2c0,0,0,0-0.1,0.1C18.3,29.5,17.3,30,16,30z"/>
+                        <path d="M7.8,16.8c0,1.1-0.2,2.1-0.6,3.1c-0.1,0.3-0.2,0.5-0.4,0.7C6.5,21,6.3,21,6,20.7c-1.4-1.4-1.2-4.1,0.5-5.3c0.6-0.5,1-0.4,1.2,0.4C7.7,16.1,7.8,16.5,7.8,16.8L7.8,16.8z"/>
+                        <path d="M26.9,18.3c0,0.8-0.3,1.7-0.9,2.4c-0.3,0.3-0.5,0.3-0.8,0c-0.3-0.4-0.5-0.9-0.6-1.4c-0.3-1-0.4-2.1-0.3-3.2c0-0.2,0.1-0.5,0.2-0.7c0.2-0.4,0.4-0.5,0.8-0.2C26.3,15.8,26.9,16.9,26.9,18.3z"/>
+                        <path d="M7.5,13.9c-0.1-1.3,0.3-2.5,1.4-3.3c1.1-0.8,2.3-1,3.6-0.8c0,0.3-0.2,0.5-0.3,0.7c-0.7,0.9-1.6,1.6-2.4,2.3c-0.5,0.4-1,0.7-1.5,1C7.9,13.9,7.7,14.1,7.5,13.9z"/>
+                        <path d="M24.6,14c-0.2,0.1-0.5,0-0.7-0.2c-0.7-0.4-1.4-0.9-2-1.4c-0.7-0.6-1.3-1.2-1.9-1.8c-0.1-0.2-0.3-0.4-0.3-0.6c0.6-0.3,2.6-0.2,3.6,0.7C24.3,11.5,24.9,13.1,24.6,14z"/>
+                      </g></g>
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="input-header" style={{ fontSize: 15, fontWeight: 700, color: "rgba(0,0,0,0.55)", marginBottom: 6 }}>
+                      Плата не обнаружена
+                    </div>
+                    <div className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.35)", lineHeight: 1.5 }}>
+                      Подключитесь к WiFi точке доступа платы,<br />чтобы открыть управление
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* ══ СИСТЕМА ═════════════════════════════════════════════════════ */}
-              {tab === "system" && (
+              {isLocal && tab === "system" && (
                 <>
                   {/* Статус «Плата выключена» */}
                   {boardOffline && <OfflineBanner retryChecking={retryChecking} offlineSince={offlineSince} onCheck={manualRetryCheck} />}
@@ -859,7 +902,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               )}
 
               {/* ══ СЕТЬ ═════════════════════════════════════════════════════════ */}
-              {tab === "network" && (
+              {isLocal && tab === "network" && (
                 <>
                   {/* Current connection */}
                   <div style={card}>
@@ -1080,7 +1123,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               )}
 
               {/* ══ ПИТАНИЕ ═════════════════════════════════════════════════════ */}
-              {tab === "power" && (
+              {isLocal && tab === "power" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={{ display: "flex", justifyContent: "center" }}>
                     <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
@@ -1206,7 +1249,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               )}
 
               {/* ══ ПРОШИВКА ════════════════════════════════════════════════════ */}
-              {tab === "firmware" && (
+              {isLocal && tab === "firmware" && (
                 <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", minHeight: 0 }}>
                   {/* Git update */}
                   <div style={{ ...card, flexShrink: 0, position: "relative" }}>
