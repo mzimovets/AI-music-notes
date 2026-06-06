@@ -134,9 +134,9 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
   const inputRef = useRef<HTMLInputElement>(null);
   const onFocus = () => {
     setTimeout(() => {
-      const panel = inputRef.current?.closest("[data-expand-panel]");
-      panel?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 250);
+      const panel = inputRef.current?.closest("[data-expand-panel]")?.parentElement;
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 300);
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
@@ -351,7 +351,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const fetchStatus = useCallback(async () => {
     try {
       const res = await fetch(`${rpiBaseUrlRef.current}/api/wifi-manager`);
-      if (res.ok) setStatus(await res.json());
+      if (res.ok) {
+        const data = await res.json();
+        setStatus(data);
+        setNoInternet(!!data.noInternet);
+      }
     } catch {}
   }, []);
 
