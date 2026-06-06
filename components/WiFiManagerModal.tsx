@@ -393,6 +393,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     return () => { if (syncPollTimer.current) clearInterval(syncPollTimer.current); };
   }, [isOpen, fetchSyncStatus]);
 
+  // Pre-fetch sync history when board is detected (before modal opens)
+  useEffect(() => {
+    if (isLocal) fetchSyncStatus();
+  }, [isLocal, fetchSyncStatus]);
+
   // ── Reset on close ───────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isOpen) {
@@ -1128,7 +1133,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
               {isLocal && tab === "power" && (
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   <div style={{ display: "flex", justifyContent: "center" }}>
-                    <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} />
+                    <ShutdownButton onOffline={handleBoardOffline} offline={boardOffline} rpiBaseUrl={rpiBaseUrl} />
                   </div>
 
                   {boardOffline && <OfflineBanner retryChecking={retryChecking} offlineSince={offlineSince} onCheck={manualRetryCheck} />}
@@ -1688,7 +1693,7 @@ function RaspberryIcon({ color, size = 24 }: { color: string; size?: number }) {
   );
 }
 
-function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offline?: boolean }) {
+function ShutdownButton({ onOffline, offline, rpiBaseUrl }: { onOffline?: () => void; offline?: boolean; rpiBaseUrl: string }) {
   const [progress, setProgress] = useState(0);
   const [holding, setHolding] = useState(false);
   const [done, setDone] = useState(false);
@@ -1727,11 +1732,11 @@ function ShutdownButton({ onOffline, offline }: { onOffline?: () => void; offlin
         clearInterval(intervalRef.current!);
         setHolding(false);
         setDone(true);
-        fetch(`${rpiBaseUrlRef.current}/api/shutdown`, { method: "POST" });
+        fetch(`${rpiBaseUrl}/api/shutdown`, { method: "POST" });
         setTimeout(() => {
           pingRef.current = setInterval(async () => {
             try {
-              const r = await fetch(`${rpiBaseUrlRef.current}/api/system-status`, { signal: AbortSignal.timeout(2000) });
+              const r = await fetch(`${rpiBaseUrl}/api/system-status`, { signal: AbortSignal.timeout(2000) });
               if (!r.ok) throw new Error();
             } catch {
               clearInterval(pingRef.current!);
