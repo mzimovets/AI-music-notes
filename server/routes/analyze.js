@@ -408,7 +408,7 @@ export function analyzeRoutes(app) {
    * Возвращает статистику: { done, skipped, failed }.
    */
   app.post("/api/songs/analyze-batch", (req, res) => {
-    database.find({ docType: "song" }, (err, songs) => {
+    database.find({ docType: "song", deletedAt: { $exists: false } }, (err, songs) => {
       if (err) return res.status(500).json({ status: "error", message: err.message });
 
       const todo = songs.filter((s) => !s.aiSummary);
@@ -492,7 +492,7 @@ export function analyzeRoutes(app) {
    * Возвращает сколько песен уже проанализировано.
    */
   app.get("/api/songs/analyze-status", (req, res) => {
-    database.find({ docType: "song" }, (err, songs) => {
+    database.find({ docType: "song", deletedAt: { $exists: false } }, (err, songs) => {
       if (err) return res.status(500).json({ status: "error", message: err.message });
       const analyzed = songs.filter((s) => s.aiSummary).length;
       res.json({ status: "ok", analyzed, total: songs.length });
