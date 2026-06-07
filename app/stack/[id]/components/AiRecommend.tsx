@@ -829,7 +829,7 @@ function TabRecommend({
 
   return (
     <div className="flex flex-col gap-4">
-      {isLocal && <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl ?? ""} library={library} />}
+      <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl ?? ""} library={library} />
 
       <Textarea
         label="Опишите контекст выступления"
