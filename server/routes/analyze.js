@@ -6,7 +6,7 @@ import { database } from "../index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
 
-const MODEL = "claude-opus-4-8";
+const MODEL = "claude-sonnet-4-20250514";
 
 // ─── Извлечение текста из PDF ─────────────────────────────────────────────────
 
@@ -191,16 +191,22 @@ async function analyzeWithClaude(songName, pdfText) {
   console.log(`[analyze] baseUrl=${baseUrl} | key=${apiKey ? apiKey.slice(0,16)+"…" : "НЕТ"}`);
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY не задан");
 
+  // aiprimetech.io и другие OpenAI-совместимые прокси ожидают Authorization: Bearer
+  // Оригинальный Anthropic API ожидает x-api-key
+  const isProxy = !baseUrl.includes("anthropic.com");
+  const authHeaders = isProxy
+    ? { "Authorization": `Bearer ${apiKey}` }
+    : { "x-api-key": apiKey, "anthropic-version": "2023-06-01" };
+
   // Есть ли кириллица в PDF (не просто "па, па, па...")
   const hasRealText = pdfText
     ? (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 3
     : false;
 
-  // Система: разрешаем поиск, требуем JSON в конце
+  // Система: требуем JSON в конце
   const SYSTEM = [
     "Ты — инструмент анализа хоровых произведений.",
-    "Используй WebSearch и WebFetch чтобы найти точный текст песни в интернете.",
-    "После получения текста верни ТОЛЬКО валидный JSON-объект без каких-либо пояснений.",
+    "На основе своих знаний верни ТОЛЬКО валидный JSON-объект без каких-либо пояснений.",
     "Запрещено: добавлять текст вне JSON в финальном ответе.",
   ].join(" ");
 
@@ -208,17 +214,13 @@ async function analyzeWithClaude(songName, pdfText) {
     ? `\n\nТекст из PDF нот (вспомогательный, может содержать ошибки SATB-записи):\n---\n${pdfText.slice(0, 1200)}\n---`
     : "";
 
-  const userContent = `Проанализируй хоровую песню «${songName}».
+  const userContent = `Проанализируй хоровую песню «${songName}».${pdfSection}
 
-Шаги:
-1. Найди текст этой песни в интернете: WebSearch("${songName} текст слов") или WebSearch("${songName} lyrics")
-2. Если нашёл подходящую страницу — загрузи её через WebFetch чтобы получить полный текст
-3. На основе найденного текста (или PDF как резерва) верни JSON${pdfSection}
-
-JSON-формат:
+На основе своих знаний о тексте этой песни верни JSON:
 {"mood":"настроение (3-5 слов)","description":"1-2 предложения о песне","tags":["тег1","тег2"],"lyrics":"Куплет 1:\\nстрока\\nстрока\\n\\nПрипев:\\nстрока"}
 
-Если текст не найден нигде — поле lyrics оставь пустым "".`;
+Если текст неизвестен — поле lyrics оставь пустым "".
+Верни ТОЛЬКО JSON без дополнительных пояснений.`;
 
   const messages = [{ role: "user", content: userContent }];
 
@@ -229,9 +231,7 @@ JSON-формат:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "Authorization": `Bearer ${apiKey}`,
+        ...authHeaders,
       },
       body: JSON.stringify({
         model: MODEL,
