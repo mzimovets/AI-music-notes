@@ -191,12 +191,12 @@ async function analyzeWithClaude(songName, pdfText) {
   console.log(`[analyze] baseUrl=${baseUrl} | key=${apiKey ? apiKey.slice(0,16)+"…" : "НЕТ"}`);
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY не задан");
 
-  // aiprimetech.io и другие OpenAI-совместимые прокси ожидают Authorization: Bearer
-  // Оригинальный Anthropic API ожидает x-api-key
-  const isProxy = !baseUrl.includes("anthropic.com");
-  const authHeaders = isProxy
-    ? { "Authorization": `Bearer ${apiKey}` }
-    : { "x-api-key": apiKey, "anthropic-version": "2023-06-01" };
+  // Отправляем оба заголовка — aiprimetech.io принимает x-api-key
+  const authHeaders = {
+    "x-api-key": apiKey,
+    "anthropic-version": "2023-06-01",
+    "Authorization": `Bearer ${apiKey}`,
+  };
 
   // Есть ли кириллица в PDF (не просто "па, па, па...")
   const hasRealText = pdfText
