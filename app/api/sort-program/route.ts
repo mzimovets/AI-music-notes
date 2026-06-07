@@ -38,7 +38,11 @@ async function callClaude(prompt: string): Promise<string> {
 
   const data = JSON.parse(raw);
 
-  if (data?.content?.[0]?.text) return data.content[0].text;
+  // Ищем блок с type="text" среди всех content-блоков (sonnet может возвращать thinking-блоки)
+  if (Array.isArray(data?.content)) {
+    const textBlock = data.content.find((b: any) => b.type === "text" && b.text);
+    if (textBlock) return textBlock.text;
+  }
   if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
 
   throw new Error(`Неожиданный формат ответа: ${raw.slice(0, 200)}`);

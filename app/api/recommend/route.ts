@@ -40,8 +40,11 @@ async function callClaude(prompt: string): Promise<string> {
 
   const data = JSON.parse(raw);
 
-  // Anthropic-формат: data.content[0].text
-  if (data?.content?.[0]?.text) return data.content[0].text;
+  // Anthropic-формат: ищем блок с type="text" среди всех content-блоков
+  if (Array.isArray(data?.content)) {
+    const textBlock = data.content.find((b: any) => b.type === "text" && b.text);
+    if (textBlock) return textBlock.text;
+  }
 
   // OpenAI-формат: data.choices[0].message.content
   if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
