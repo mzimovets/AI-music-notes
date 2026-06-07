@@ -829,7 +829,7 @@ function TabRecommend({
 
   return (
     <div className="flex flex-col gap-4">
-      <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl ?? ""} library={library} />
+      {isLocal && <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl ?? ""} library={library} />}
 
       <Textarea
         label="Опишите контекст выступления"
@@ -878,7 +878,7 @@ function TabRecommend({
         onPress={handleGenerate}
         isLoading={loading}
         className="w-full main-font text-white rounded-xl"
-        style={{ background: "linear-gradient(to right, #bd9673, #7d5e42)", fontSize: 16 }}
+        style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15 }}
         isDisabled={library.length === 0}
       >
         {loading ? "Подбираю…" : "Подобрать репертуар"}
@@ -1020,17 +1020,7 @@ function TabSort({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        {stackSongs.filter((s) => !s.isReserve).length > 0 && (
-          <div className="flex justify-end">
-            <button
-              onClick={fillFromStack}
-              className="text-xs text-[#7D5E42] underline underline-offset-2 hover:text-[#9e1239] transition-colors"
-            >
-              Заполнить из стопки
-            </button>
-          </div>
-        )}
+      <div className="flex flex-col gap-2">
         <Textarea
           label="Песни (каждая с новой строки)"
           placeholder=""
@@ -1040,13 +1030,22 @@ function TabSort({
           maxRows={10}
           classNames={{ label: "input-header text-xs text-default-500", input: "text-sm" }}
         />
+        {stackSongs.filter((s) => !s.isReserve).length > 0 && (
+          <button
+            onClick={fillFromStack}
+            className="main-font w-full text-white rounded-xl"
+            style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15, padding: "8px 0" }}
+          >
+            Заполнить из стопки
+          </button>
+        )}
       </div>
 
       <Button
         onPress={handleSort}
         isLoading={loading}
         className="w-full main-font text-white rounded-xl"
-        style={{ background: "linear-gradient(to right, #bd9673, #7d5e42)", fontSize: 16 }}
+        style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15 }}
       >
         {loading ? "Выстраиваю…" : "Выстроить порядок"}
       </Button>
