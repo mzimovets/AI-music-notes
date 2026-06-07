@@ -657,7 +657,7 @@ function LibraryAnalyzeButton({ rpiBaseUrl, library }: { rpiBaseUrl: string; lib
                 {journal.map((e, i) => {
                   const isLast = i === journal.length - 1;
                   const isExpanded = expandedEntry === e.name;
-                  const canExpand = e.status === "done" && (e.lyrics || e.lyricsPreview || e.error);
+                  const canExpand = e.status === "error" || (e.status === "done" && (e.lyrics || e.lyricsPreview));
 
                   const dotColor =
                     e.status === "processing" ? null :
