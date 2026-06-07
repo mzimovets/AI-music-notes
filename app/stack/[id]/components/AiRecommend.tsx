@@ -450,10 +450,9 @@ function LibraryAnalyzeButton({ rpiBaseUrl, library }: { rpiBaseUrl: string; lib
               const map = new Map(prev.map((e) => [e.name, e]));
               for (const e of journalData.entries) map.set(e.name, e);
               const next = Array.from(map.values());
-              // Если все завершены (нет processing) и прогресс совпадает — останавливаем
+              // Если все завершены (нет processing) — останавливаем (даже если есть ошибки)
               const allFinished = next.every((e) => e.status !== "processing");
-              if (allFinished && statusData.status === "ok" &&
-                  statusData.analyzed >= statusData.total && statusData.total > 0) {
+              if (allFinished) {
                 setLoading(false);
                 setResetting(false);
               }

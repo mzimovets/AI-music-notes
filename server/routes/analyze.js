@@ -203,11 +203,11 @@ async function analyzeWithClaude(songName, pdfText) {
     ? (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 3
     : false;
 
-  // Система: требуем JSON в конце
+  // Система: требуем JSON на русском языке
   const SYSTEM = [
     "Ты — инструмент анализа хоровых произведений.",
-    "На основе своих знаний верни ТОЛЬКО валидный JSON-объект без каких-либо пояснений.",
-    "Запрещено: добавлять текст вне JSON в финальном ответе.",
+    "Отвечай ТОЛЬКО на русском языке.",
+    "Верни ТОЛЬКО валидный JSON-объект — никакого другого текста.",
   ].join(" ");
 
   const pdfSection = hasRealText
@@ -216,17 +216,14 @@ async function analyzeWithClaude(songName, pdfText) {
 
   const userContent = `Проанализируй хоровую песню «${songName}».${pdfSection}
 
-На основе своих знаний о тексте этой песни верни JSON:
+Верни ТОЛЬКО JSON на русском языке (никаких пояснений до или после):
 {"mood":"настроение (3-5 слов)","description":"1-2 предложения о песне","tags":["тег1","тег2"],"lyrics":"Куплет 1:\\nстрока\\nстрока\\n\\nПрипев:\\nстрока"}
 
-Если текст неизвестен — поле lyrics оставь пустым "".
-Верни ТОЛЬКО JSON без дополнительных пояснений.`;
+Если текст песни неизвестен — lyrics оставь пустым "".`;
 
+  // До 3 попыток получить JSON
   const messages = [{ role: "user", content: userContent }];
-
-  // До 6 ходов: поиск + загрузка страницы + финальный JSON
-  let searchCount = 0;
-  for (let turn = 0; turn < 6; turn++) {
+  for (let turn = 0; turn < 3; turn++) {
     const res = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
@@ -277,45 +274,7 @@ async function analyzeWithClaude(songName, pdfText) {
       }
     }
 
-    // Выполняем инструменты (WebSearch / WebFetch)
-    const toolBlocks = blocks.filter((b) => b?.type === "tool_use");
-    if (toolBlocks.length > 0) {
-      const toolResults = await Promise.all(
-        toolBlocks.map(async (b) => {
-          let content;
-          const name = b.name || "";
-          const input = b.input || {};
-
-          if (/search/i.test(name)) {
-            const query = input.query || input.q || input.search_query || JSON.stringify(input);
-            console.log(`[analyze "${songName}"] 🔍 WebSearch: "${query}"`);
-            searchCount++;
-            // После 3 поисков без результата — говорим использовать свои знания
-            if (searchCount > 3) {
-              content = `Поиск завершён. Используй свои знания о тексте песни «${songName}» и верни JSON немедленно.`;
-            } else {
-              content = await executeWebSearch(query, songName);
-            }
-            console.log(`[analyze "${songName}"] 🔍 результат: ${content.slice(0, 200).replace(/\n/g, " ")}`);
-          } else if (/fetch|browse|visit/i.test(name)) {
-            const url = input.url || input.href || JSON.stringify(input);
-            console.log(`[analyze "${songName}"] 🌐 WebFetch: "${url}"`);
-            content = await executeWebFetch(url);
-            console.log(`[analyze "${songName}"] 🌐 результат: ${content.slice(0, 200).replace(/\n/g, " ")}`);
-          } else {
-            console.log(`[analyze "${songName}"] ⚠️ Неизвестный инструмент: ${name}`);
-            content = "Инструмент недоступен";
-          }
-
-          return { type: "tool_result", tool_use_id: b.id, content };
-        })
-      );
-      messages.push({ role: "assistant", content: data.content });
-      messages.push({ role: "user", content: toolResults });
-      continue;
-    }
-
-    // OpenAI-формат
+    // OpenAI-формат (на случай если прокси возвращает OpenAI-совместимый ответ)
     const fallback = data?.choices?.[0]?.message?.content || "";
     if (fallback) {
       const match = fallback.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim().match(/\{[\s\S]*\}/);
@@ -324,7 +283,10 @@ async function analyzeWithClaude(songName, pdfText) {
       }
     }
 
-    throw new Error(`Нет JSON в ответе (turn=${turn})`);
+    // Если JSON не найден — повторяем с более жёстким промптом
+    console.warn(`[analyze "${songName}"] нет JSON на turn=${turn}, повторяю...`);
+    messages.push({ role: "assistant", content: blocks.map(b => b.type === "text" ? { type: "text", text: b.text } : b).filter(b => b.type === "text") });
+    messages.push({ role: "user", content: `Верни ТОЛЬКО JSON без пояснений:\n{"mood":"...","description":"...","tags":[],"lyrics":""}` });
   }
 
   // Все ходы исчерпаны — возвращаем минимальный результат чтобы не зависать
