@@ -131,10 +131,10 @@ function extractLyricsBlock(pageText) {
   }
   if (curLen > bestLen) { bestStart = curStart; bestLen = curLen; }
 
-  if (bestStart === -1 || bestLen < 6) return null;
+  if (bestStart === -1 || bestLen < 8) return null;
 
   const block = allLines.slice(bestStart, bestStart + bestLen + 3).join("\n").trim();
-  if (block.length < 150) return null;
+  if (block.length < 250) return null;
   if (JUNK_KEYWORDS.some(kw => block.includes(kw))) return null;
 
   return block.slice(0, 2500);
