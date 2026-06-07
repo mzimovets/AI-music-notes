@@ -8,7 +8,7 @@ import { fileURLToPath } from "url";
 import { database, io } from "./index.js";
 import { metricsDb } from "./metrics-db.js";
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env.local", override: true });
 import {
   pushSongToRemote,
   pushFileToRemote,

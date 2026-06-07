@@ -10,6 +10,7 @@
     "clicker": "node scripts/clicker.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.102.0",
     "@chatscope/chat-ui-kit-react": "^2.1.1",
     "@chatscope/chat-ui-kit-styles": "^1.4.0",
     "@dnd-kit/core": "^6.3.1",

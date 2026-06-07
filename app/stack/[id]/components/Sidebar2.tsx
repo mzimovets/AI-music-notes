@@ -103,6 +103,7 @@ import { SidebarButton } from "@/app/stackView/[id]/components/SidebarButton";
 import { useParams } from "next/navigation";
 import { socket } from "@/lib/socket";
 import { getBackendBaseUrl } from "@/lib/client-url";
+import { AiRecommendContent } from "./AiRecommend";
 // Removed unused import: DownloadIcon
 
 export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song: any) => void; forceVisible?: boolean }) => {
@@ -222,7 +223,17 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
     }
   };
 
-  const [activeTab, setActiveTab] = useState("stack"); // "stack" or "program"
+  const [activeTab, setActiveTab] = useState("stack"); // "stack" | "program" | "ai"
+  const [hasInternet, setHasInternet] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  useEffect(() => {
+    const on = () => setHasInternet(true);
+    const off = () => setHasInternet(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
 
   // --- Авто-флаг для резервного чипа: чип снимается один раз, когда резерв пуст, но доступен для повторного включения ---
   const [reserveAutoDisabled, setReserveAutoDisabled] = useState(false);
@@ -440,6 +451,23 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                       Программа
                     </Button>
                   )}
+                  <Button
+                    className={`font-medium text-small ${
+                      activeTab === "ai"
+                        ? "text-white"
+                        : "text-default-500"
+                    }`}
+                    style={activeTab === "ai" ? {
+                      background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)",
+                      border: "1px solid #3b4fa0",
+                    } : {}}
+                    size="sm"
+                    variant="flat"
+                    isDisabled={!hasInternet}
+                    onClick={() => hasInternet && setActiveTab("ai")}
+                  >
+                    ✦ ИИ
+                  </Button>
                 </div>
                 <Button
                   isIconOnly
@@ -959,6 +987,11 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                       </div>
                     </Card>
                   </>
+                )}
+                {activeTab === "ai" && (
+                  <div className="mt-12 flex flex-col flex-1 min-h-0 pb-4">
+                    <AiRecommendContent onClose={onClose} />
+                  </div>
                 )}
               </DrawerBody>
             </>

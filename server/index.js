@@ -20,12 +20,14 @@ import { songsRoutes } from "./routes/songs.js";
 import { stacksRoutes } from "./routes/stacks.js";
 import { usersRoutes } from "./routes/users.js";
 import { syncRoutes } from "./routes/sync.js";
+import { recommendRoutes } from "./routes/recommend.js";
+import { analyzeRoutes } from "./routes/analyze.js";
 import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
 import { execSync } from "child_process";
 import { fileURLToPath as _ftu } from "url";
-dotenv.config({ path: ".env.local" });
+dotenv.config({ path: ".env.local", override: true });
 
 // ── Auto-setup nginx + mDNS при первом старте на Linux ──────────────────────
 if (process.platform === "linux" && process.env.IS_LOCAL_SERVER === "true") {
@@ -384,6 +386,8 @@ songsRoutes(app, urlencodedParser, upload);
 usersRoutes(app, urlencodedParser);
 stacksRoutes(app, urlencodedParser);
 syncRoutes(app, upload);
+recommendRoutes(app);
+analyzeRoutes(app);
 
 // Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
 startSyncScheduler();
