@@ -56,6 +56,33 @@ function htmlToText(html) {
 }
 
 /**
+ * Проверяет, похож ли текст на стихи/песню:
+ * — большинство строк кириллические и короткие (как стихи)
+ * — не похоже на меню, навигацию, список ссылок
+ */
+function looksLikeLyrics(text) {
+  const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+  if (lines.length < 4) return false;
+
+  const cyrLines = lines.filter(l => /[а-яёА-ЯЁ]{2,}/.test(l));
+  const shortCyrLines = cyrLines.filter(l => l.length >= 3 && l.length <= 70);
+  const ratio = shortCyrLines.length / lines.length;
+
+  // Минимум 60% строк должны быть короткими кириллическими
+  if (ratio < 0.6) return false;
+
+  // Средняя длина строки должна быть как у стихов (10–50 символов)
+  const avgLen = shortCyrLines.reduce((s, l) => s + l.length, 0) / shortCyrLines.length;
+  if (avgLen < 8 || avgLen > 60) return false;
+
+  // Не должно быть слишком много ссылок / спецсимволов (признак навигации)
+  const suspiciousChars = (text.match(/[|>•→©®]/g) || []).length;
+  if (suspiciousChars > lines.length * 0.3) return false;
+
+  return true;
+}
+
+/**
  * Из текста страницы вырезает блок, похожий на текст песни:
  * — много строк с кириллицей, — короткие строки (как стихи), — суммарно 80-3000 символов.
  */
@@ -89,7 +116,10 @@ function extractLyricsBlock(pageText, minLen = 80) {
     if (result.length + para.length > 2500) break;
     result += (result ? "\n\n" : "") + para.trim();
   }
-  return result.length >= minLen ? result : null;
+
+  // Финальная проверка — убеждаемся что результат похож на стихи
+  if (!result || result.length < minLen || !looksLikeLyrics(result)) return null;
+  return result;
 }
 
 // ─── Парсеры конкретных сайтов ───────────────────────────────────────────────
