@@ -12,41 +12,45 @@ function parseJsonResponse(text: string) {
   return JSON.parse(match[0]);
 }
 
-async function callClaude(prompt: string): Promise<string> {
+async function callClaude(messages: { role: string; content: string }[]): Promise<string> {
   const baseUrl = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "");
   const apiKey  = process.env.ANTHROPIC_API_KEY!;
 
-  // Пробуем Anthropic-формат (/v1/messages)
   const res = await fetch(`${baseUrl}/v1/messages`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
-      // некоторые прокси ждут Bearer
       "Authorization": `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 1200,
-      system: "Отвечай ТОЛЬКО валидным JSON. Никаких инструментов, поиска, пояснений.",
-      messages: [{ role: "user", content: prompt }],
+      max_tokens: 1024,
+      // Запрещаем extended thinking — оно добавляет 30+ сек и не нужно для этой задачи
+      thinking: { type: "disabled" },
+      system: [
+        "Ты — помощник по составлению концертных программ.",
+        "Отвечай ТОЛЬКО валидным JSON-объектом без каких-либо пояснений, markdown или других слов.",
+        "КРИТИЧНО: используй названия песен ТОЧНО так, как они написаны в библиотеке — не изменяй, не сокращай, не добавляй слова.",
+      ].join(" "),
+      messages,
     }),
   });
 
   const raw = await res.text();
   console.log("[recommend] HTTP status:", res.status);
-  console.log("[recommend] raw response:", raw.slice(0, 500));
+  console.log("[recommend] raw response:", raw.slice(0, 600));
 
   const data = JSON.parse(raw);
 
-  // Anthropic-формат: ищем блок с type="text" среди всех content-блоков
+  // Ищем блок с type="text" — sonnet может возвращать thinking-блоки перед текстом
   if (Array.isArray(data?.content)) {
     const textBlock = data.content.find((b: any) => b.type === "text" && b.text);
     if (textBlock) return textBlock.text;
   }
 
-  // OpenAI-формат: data.choices[0].message.content
+  // OpenAI-формат
   if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
 
   throw new Error(`Неожиданный формат ответа: ${raw.slice(0, 200)}`);
@@ -68,7 +72,7 @@ export async function POST(req: NextRequest) {
   const { context, durationMinutes, songs } = body as {
     context?: string;
     durationMinutes?: number;
-    songs?: { name: string; author?: string; category?: string }[];
+    songs?: { name: string; category?: string; aiSummary?: { mood?: string; description?: string; tags?: string[] } | null }[];
   };
 
   if (!songs || !Array.isArray(songs) || songs.length === 0) {
@@ -81,34 +85,51 @@ export async function POST(req: NextRequest) {
   const dur = Number(durationMinutes) || 60;
   const estimatedCount = Math.max(1, Math.round(dur / 3));
 
+  // Формируем список: имя, категория, mood + description + теги из AI-анализа
   const songList = songs
+    .slice(0, 70)
     .map((s) => {
-      let line = `- ${s.name}`;
-      if (s.category) line += ` [${s.category}]`;
-      if ((s as any).aiSummary?.mood) line += ` — ${(s as any).aiSummary.mood}`;
-      return line;
+      const parts: string[] = [`"${s.name}"`];
+      if (s.category) parts.push(`[${s.category}]`);
+      if (s.aiSummary) {
+        const { mood, description, tags } = s.aiSummary;
+        const detail: string[] = [];
+        if (mood) detail.push(mood);
+        if (description) detail.push(description);
+        if (tags?.length) detail.push(`теги: ${tags.join(", ")}`);
+        if (detail.length) parts.push(`— ${detail.join(". ")}`);
+      }
+      return parts.join(" ");
     })
     .join("\n");
 
-  const prompt = `Контекст: ${context || "концерт"}. Выбери ${estimatedCount} песен (~${dur} мин).
+  const userPrompt = `Контекст выступления: ${context || "концерт"}.
+Нужно подобрать ~${estimatedCount} произведений на ~${dur} минут.
 
-Библиотека:
+Библиотека песен (используй названия ТОЧНО как написаны):
 ${songList}
 
-Выбирай ТОЛЬКО из списка. Раздели: Разгрев / Середина / Финал.
+Правила:
+- Выбирай ТОЛЬКО из библиотеки, названия без изменений
+- Учитывай контекст: если детский праздник — только детские/весёлые; если военная тема — военные; и т.д.
+- Раздели на секции: Разгрев / Середина / Финал
 
-JSON:
-{"rationale":"2-3 предложения: логика программы для этого контекста","recommendations":[{"name":"...","author":"","section":"Разгрев","reason":"..."}]}`;
+Верни JSON:
+{"rationale":"2-3 предложения о логике программы","recommendations":[{"name":"ТОЧНОЕ название из библиотеки","section":"Разгрев","reason":"почему эта песня подходит"}]}`;
 
   try {
-    const text = await callClaude(prompt);
+    const text = await callClaude([{ role: "user", content: userPrompt }]);
     const parsed = parseJsonResponse(text);
 
     if (!Array.isArray(parsed.recommendations)) {
       throw new Error("Неверная структура ответа");
     }
 
-    return NextResponse.json({ status: "ok", recommendations: parsed.recommendations, rationale: parsed.rationale ?? "" });
+    return NextResponse.json({
+      status: "ok",
+      recommendations: parsed.recommendations,
+      rationale: parsed.rationale ?? "",
+    });
   } catch (err: any) {
     console.error("[api/recommend]", err.message);
     return NextResponse.json({ status: "error", message: err.message }, { status: 500 });

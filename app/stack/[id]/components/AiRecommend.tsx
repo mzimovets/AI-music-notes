@@ -74,14 +74,40 @@ const SECTION_ICON: Record<string, string> = {
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
 function matchSong(name: string, library: ServerSong[]): ServerSong | null {
-  const normalize = (s: string) => s.toLowerCase().replace(/[«»"']/g, "").trim();
+  // Убираем кавычки, скобки с содержимым, лишние пробелы, приводим к нижнему регистру
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/[«»"'„"]/g, "")
+      .replace(/\(.*?\)/g, "") // убираем скобки (Опустела без тебя земля)
+      .replace(/[^а-яёa-z0-9\s]/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   const target = normalize(name);
+
+  // 1. Точное совпадение после нормализации
   const exact = library.find((s) => normalize(s.name) === target);
   if (exact) return exact;
-  const partial = library.find(
-    (s) => normalize(s.name).includes(target) || target.includes(normalize(s.name))
-  );
-  return partial ?? null;
+
+  // 2. Библиотека содержит запрос или наоборот
+  const partial = library.find((s) => {
+    const n = normalize(s.name);
+    return n.includes(target) || target.includes(n);
+  });
+  if (partial) return partial;
+
+  // 3. Все слова запроса встречаются в названии
+  const words = target.split(" ").filter((w) => w.length > 2);
+  if (words.length > 0) {
+    const fuzzy = library.find((s) => {
+      const n = normalize(s.name);
+      return words.every((w) => n.includes(w));
+    });
+    if (fuzzy) return fuzzy;
+  }
+
+  return null;
 }
 
 function genInstanceId() {
