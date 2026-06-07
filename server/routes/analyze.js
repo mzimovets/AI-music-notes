@@ -6,7 +6,7 @@ import { database } from "../index.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
 
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-opus-4-8";
 
 // ─── Извлечение текста из PDF ─────────────────────────────────────────────────
 
