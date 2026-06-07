@@ -758,10 +758,12 @@ function LibraryAnalyzeButton({ rpiBaseUrl, library }: { rpiBaseUrl: string; lib
 
 function TabRecommend({
   rpiBaseUrl,
+  isLocal,
   library,
   onAccept,
 }: {
-  rpiBaseUrl: string;
+  rpiBaseUrl?: string;
+  isLocal?: boolean;
   library: ServerSong[];
   onAccept: (songs: AiSong[]) => void;
 }) {
@@ -781,7 +783,7 @@ function TabRecommend({
     setItems([]);
     setRationale("");
     try {
-      const res = await fetch(`${rpiBaseUrl}/api/recommend`, {
+      const res = await fetch(`/api/recommend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -827,7 +829,7 @@ function TabRecommend({
 
   return (
     <div className="flex flex-col gap-4">
-      <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl} library={library} />
+      {isLocal && <LibraryAnalyzeButton rpiBaseUrl={rpiBaseUrl ?? ""} library={library} />}
 
       <Textarea
         label="Опишите контекст выступления"
@@ -959,7 +961,7 @@ function TabSort({
   stackSongs,
   onAccept,
 }: {
-  rpiBaseUrl: string;
+  rpiBaseUrl?: string;
   library: ServerSong[];
   stackSongs: any[];
   onAccept: (songs: SortedSong[]) => void;
@@ -985,7 +987,7 @@ function TabSort({
     setError(null);
     setItems([]);
     try {
-      const res = await fetch(`${rpiBaseUrl}/api/sort-program`, {
+      const res = await fetch(`/api/sort-program`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ songNames, context }),
@@ -1082,7 +1084,7 @@ export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
   const setStackSongs: (songs: any[]) => void = ctx.setStackSongs;
   const stackSongs: any[] = ctx.stackSongs ?? [];
   const { allSongs } = useAllSongsLibraryContextProvider();
-  const { rpiBaseUrl } = useLocalServer();
+  const { rpiBaseUrl, isLocal } = useLocalServer();
 
   const [activeTab, setActiveTab] = useState<"recommend" | "sort">("recommend");
 
@@ -1133,7 +1135,7 @@ export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
 
       <div className="flex-1 min-h-0 overflow-y-auto">
         {activeTab === "recommend" ? (
-          <TabRecommend rpiBaseUrl={rpiBaseUrl} library={allSongs} onAccept={handleAcceptRecommend} />
+          <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
         ) : (
           <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
         )}
@@ -1152,6 +1154,16 @@ export function AiRecommend() {
   const { isLocal, rpiBaseUrl } = useLocalServer();
   const [activeTab, setActiveTab] = useState<"recommend" | "sort">("recommend");
   const [isOpen, setIsOpen] = useState(false);
+  const [hasInternet, setHasInternet] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
+  useEffect(() => {
+    const on = () => setHasInternet(true);
+    const off = () => setHasInternet(false);
+    window.addEventListener("online", on);
+    window.addEventListener("offline", off);
+    return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
+  }, []);
 
   const handleAcceptRecommend = useCallback(
     (aiSongs: AiSong[]) => {
@@ -1172,7 +1184,7 @@ export function AiRecommend() {
     [setStackSongs]
   );
 
-  if (!isLocal) return null;
+  if (!hasInternet) return null;
 
   return (
     <div className="my-4">
@@ -1222,7 +1234,7 @@ export function AiRecommend() {
             ))}
           </div>
           {activeTab === "recommend"
-            ? <TabRecommend rpiBaseUrl={rpiBaseUrl} library={allSongs} onAccept={handleAcceptRecommend} />
+            ? <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
             : <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
           }
         </div>
