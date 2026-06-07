@@ -110,7 +110,6 @@ function SortableAiCard({
   return (
     <div
       ref={setNodeRef}
-      className="touch-none"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -134,6 +133,7 @@ function SortableAiCard({
         <div
           {...attributes}
           {...listeners}
+          className="touch-none"
           style={{
             display: "flex",
             flexDirection: "column",
@@ -843,7 +843,7 @@ function TabRecommend({
         onValueChange={setContext}
         minRows={2}
         maxRows={4}
-        classNames={{ label: "input-header text-xs text-default-500" }}
+        classNames={{ label: "input-header text-xs text-default-500", input: "main-font" }}
       />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -884,13 +884,16 @@ function TabRecommend({
         isLoading={loading}
         className="w-full main-font text-white rounded-xl"
         style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15 }}
-        isDisabled={library.length === 0}
+        isDisabled={library.length === 0 || !context.trim()}
       >
         {loading ? "Подбираю…" : "Подобрать репертуар"}
       </Button>
 
       {library.length === 0 && (
         <p className="text-center text-amber-500 text-xs">Библиотека не загружена</p>
+      )}
+      {library.length > 0 && !context.trim() && (
+        <p className="text-center text-default-400 text-xs">Опишите контекст выступления</p>
       )}
       {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
@@ -1033,7 +1036,7 @@ function TabSort({
           onValueChange={setSongNamesText}
           minRows={4}
           maxRows={10}
-          classNames={{ label: "input-header text-xs text-default-500", input: "text-sm" }}
+          classNames={{ label: "input-header text-xs text-default-500", input: "main-font text-sm" }}
         />
         {stackSongs.filter((s) => !s.isReserve).length > 0 && (
           <button
@@ -1051,6 +1054,7 @@ function TabSort({
         isLoading={loading}
         className="w-full main-font text-white rounded-xl"
         style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15 }}
+        isDisabled={!songNamesText.trim()}
       >
         {loading ? "Выстраиваю…" : "Выстроить порядок"}
       </Button>
@@ -1138,11 +1142,12 @@ export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="flex-1 min-h-0 overflow-y-auto">
-        {activeTab === "recommend" ? (
+        <div style={{ display: activeTab === "recommend" ? "block" : "none" }}>
           <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
-        ) : (
+        </div>
+        <div style={{ display: activeTab === "sort" ? "block" : "none" }}>
           <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
-        )}
+        </div>
       </div>
     </div>
   );
@@ -1237,10 +1242,12 @@ export function AiRecommend() {
               </button>
             ))}
           </div>
-          {activeTab === "recommend"
-            ? <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
-            : <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
-          }
+          <div style={{ display: activeTab === "recommend" ? "block" : "none" }}>
+            <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
+          </div>
+          <div style={{ display: activeTab === "sort" ? "block" : "none" }}>
+            <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
+          </div>
         </div>
       )}
     </div>
