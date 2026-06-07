@@ -27,7 +27,9 @@ import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
 import { execSync } from "child_process";
 import { fileURLToPath as _ftu } from "url";
-dotenv.config({ path: ".env.local", override: true });
+import { dirname as _dirname, join as _join } from "path";
+const __envDir = _dirname(_ftu(import.meta.url));
+dotenv.config({ path: _join(__envDir, ".env.local"), override: true });
 
 // ── Auto-setup nginx + mDNS при первом старте на Linux ──────────────────────
 if (process.platform === "linux" && process.env.IS_LOCAL_SERVER === "true") {

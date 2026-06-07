@@ -242,6 +242,10 @@ JSON-формат:
     });
 
     const raw = await res.text();
+    if (!res.ok) {
+      console.error(`[analyze "${songName}"] HTTP ${res.status}: ${raw.slice(0, 300)}`);
+      throw new Error(`API HTTP ${res.status}: ${raw.slice(0, 150)}`);
+    }
     const data = JSON.parse(raw);
     const blocks = data?.content || [];
 
