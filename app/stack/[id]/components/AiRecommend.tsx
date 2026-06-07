@@ -787,6 +787,20 @@ function LibraryAnalyzeButton({ rpiBaseUrl, library }: { rpiBaseUrl: string; lib
   );
 }
 
+const LS_KEY = "ai-recommend-state";
+
+function loadSavedState() {
+  if (typeof window === "undefined") return null;
+  try { return JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { return null; }
+}
+
+function saveState(context: string, duration: number, items: AiSong[], rationale: string) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ context, duration, items, rationale }));
+  } catch {}
+}
+
 function TabRecommend({
   rpiBaseUrl,
   isLocal,
@@ -798,13 +812,26 @@ function TabRecommend({
   library: ServerSong[];
   onAccept: (songs: AiSong[]) => void;
 }) {
-  const [context, setContext] = useState("");
-  const [duration, setDuration] = useState(60);
+  const saved = loadSavedState();
+  const [context, setContext] = useState<string>(saved?.context ?? "");
+  const [duration, setDuration] = useState<number>(saved?.duration ?? 60);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<AiSong[]>([]);
-  const [rationale, setRationale] = useState<string>("");
+  const [items, setItems] = useState<AiSong[]>(() => {
+    if (!saved?.items?.length) return [];
+    // Восстанавливаем matched из библиотеки (объекты не сериализуются полностью)
+    return (saved.items as AiSong[]).map((s) => ({
+      ...s,
+      matched: matchSong(s.name, library),
+    }));
+  });
+  const [rationale, setRationale] = useState<string>(saved?.rationale ?? "");
   const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
+
+  // Сохраняем состояние при каждом изменении
+  useEffect(() => {
+    saveState(context, duration, items, rationale);
+  }, [context, duration, items, rationale]);
 
   const estimatedCount = Math.max(1, Math.round(duration / 3));
 
