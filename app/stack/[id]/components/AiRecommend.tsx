@@ -483,7 +483,13 @@ function LibraryAnalyzeButton({ rpiBaseUrl, library }: { rpiBaseUrl: string; lib
     setJournalOpen(true);
     try {
       const queued = await startBatch();
-      setResult(`Запущен анализ ${queued} песен — результаты появляются в журнале`);
+      if (queued === 0) {
+        // Все уже проанализированы — сразу выключаем loading
+        setResult("Все песни уже проанализированы");
+        setLoading(false);
+      } else {
+        setResult(`Запущен анализ ${queued} песен — результаты появляются в журнале`);
+      }
     } catch (e: any) {
       setResult(`Ошибка: ${e.message}`);
       setLoading(false);
