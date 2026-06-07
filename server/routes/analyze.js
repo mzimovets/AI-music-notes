@@ -186,16 +186,15 @@ async function executeWebFetch(rawUrl) {
 
 async function analyzeWithClaude(songName, pdfText) {
   const baseUrl = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "");
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  // aiprimetech.io использует ANTHROPIC_AUTH_TOKEN + Authorization: Bearer
+  const apiKey = process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY;
 
   console.log(`[analyze] baseUrl=${baseUrl} | key=${apiKey ? apiKey.slice(0,16)+"…" : "НЕТ"}`);
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY не задан");
+  if (!apiKey) throw new Error("ANTHROPIC_AUTH_TOKEN не задан");
 
-  // Отправляем оба заголовка — aiprimetech.io принимает x-api-key
   const authHeaders = {
-    "x-api-key": apiKey,
-    "anthropic-version": "2023-06-01",
     "Authorization": `Bearer ${apiKey}`,
+    "anthropic-version": "2023-06-01",
   };
 
   // Есть ли кириллица в PDF (не просто "па, па, па...")
