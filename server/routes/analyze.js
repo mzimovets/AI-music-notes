@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { database } from "../index.js";
+import { fetchLyricsFromWeb } from "../lyrics-fetcher.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "../uploads");
@@ -184,7 +185,7 @@ async function executeWebFetch(rawUrl) {
 
 // ─── Запрос к Claude ──────────────────────────────────────────────────────────
 
-async function analyzeWithClaude(songName, pdfText) {
+async function analyzeWithClaude(songName, pdfText, webLyrics = null) {
   const baseUrl = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "");
   // aiprimetech.io использует ANTHROPIC_AUTH_TOKEN + Authorization: Bearer
   const apiKey = process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_API_KEY;
@@ -210,15 +211,20 @@ async function analyzeWithClaude(songName, pdfText) {
   ].join(" ");
 
   const pdfSection = hasRealText
-    ? `\n\nТекст из PDF нот (вспомогательный, может содержать ошибки SATB-записи):\n---\n${pdfText.slice(0, 1200)}\n---`
+    ? `\n\nТекст из PDF нот (вспомогательный, может содержать ошибки SATB-записи):\n---\n${pdfText.slice(0, 1000)}\n---`
     : "";
 
-  const userContent = `Проанализируй хоровую песню «${songName}».${pdfSection}
+  const webSection = webLyrics
+    ? `\n\nТекст песни, найденный в интернете (основной источник):\n---\n${webLyrics.slice(0, 1500)}\n---`
+    : "";
+
+  const userContent = `Проанализируй хоровую песню «${songName}».${webSection}${pdfSection}
 
 Верни ТОЛЬКО JSON на русском языке (никаких пояснений до или после):
 {"mood":"настроение (3-5 слов)","description":"1-2 предложения о песне","tags":["тег1","тег2"],"lyrics":"Куплет 1:\\nстрока\\nстрока\\n\\nПрипев:\\nстрока"}
 
-Если текст песни неизвестен — lyrics оставь пустым "".`;
+${webLyrics ? "Используй найденный текст для заполнения поля lyrics." : "Если текст песни неизвестен — lyrics оставь пустым \"\"."}
+Поля mood, description и tags заполни на основе содержания и характера произведения.`;
 
   // До 3 попыток получить JSON
   const messages = [{ role: "user", content: userContent }];
@@ -347,12 +353,19 @@ export function analyzeRoutes(app) {
         const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
         const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
 
-        const aiSummary = await analyzeWithClaude(song.name, pdfText);
+        // Если PDF пустой или короткий — пробуем найти текст в интернете
+        const hasGoodPdf = (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 5;
+        const webLyrics = hasGoodPdf ? null : await fetchLyricsFromWeb(song.name);
+        if (webLyrics) console.log(`[analyze] «${song.name}» — используем веб-текст`);
+
+        const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
         aiSummary.analyzedAt = Date.now();
         aiSummary.hasPdfText = !!pdfText;
+        aiSummary.hasWebLyrics = !!webLyrics;
 
         const update = { aiSummary };
         if (pdfText) update.extractedText = pdfText;
+        if (webLyrics) update.webLyrics = webLyrics;
 
         database.update({ _id: id }, { $set: update }, {}, (updateErr) => {
           if (updateErr) {
@@ -394,11 +407,19 @@ export function analyzeRoutes(app) {
                 const filename = song.file?.filename || song.originalName;
                 const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
                 const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
-                const aiSummary = await analyzeWithClaude(song.name, pdfText);
+
+                // Если PDF скудный — ищем текст в интернете
+                const hasGoodPdf = (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 5;
+                const webLyrics = hasGoodPdf ? null : await fetchLyricsFromWeb(song.name);
+                if (webLyrics) console.log(`[batch] «${song.name}» — используем веб-текст`);
+
+                const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
                 aiSummary.analyzedAt = Date.now();
                 aiSummary.hasPdfText = !!pdfText;
+                aiSummary.hasWebLyrics = !!webLyrics;
                 const update = { aiSummary };
                 if (pdfText) update.extractedText = pdfText;
+                if (webLyrics) update.webLyrics = webLyrics;
                 await new Promise((resolve, reject) =>
                   database.update({ _id: song._id }, { $set: update }, {}, (e) =>
                     e ? reject(e) : resolve(null)
