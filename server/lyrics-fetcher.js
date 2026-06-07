@@ -48,6 +48,10 @@ function htmlToText(html) {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/&laquo;/g, "«")
+    .replace(/&raquo;/g, "»")
+    .replace(/&mdash;/g, "—")
+    .replace(/&ndash;/g, "–")
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/[ \t]+/g, " ")
     .replace(/\n[ \t]+/g, "\n")
@@ -76,60 +80,91 @@ function looksLikeLyrics(text) {
   if (avgLen < 8 || avgLen > 60) return false;
 
   // Не должно быть слишком много ссылок / спецсимволов (признак навигации)
-  const suspiciousChars = (text.match(/[|>•→©®]/g) || []).length;
-  if (suspiciousChars > lines.length * 0.3) return false;
+  const suspiciousChars = (text.match(/[|>•→©®»«]/g) || []).length;
+  if (suspiciousChars > lines.length * 0.2) return false;
 
   return true;
 }
 
+// Ключевые слова которые выдают не-текст (навигация, формы, копирайт)
+const JUNK_KEYWORDS = [
+  "Заглавная страница", "Свежие правки", "Случайная страница", "Ссылки сюда",
+  "Постоянная ссылка", "Служебные страницы", "Войти", "Обсуждение",
+  "Добавить комментарий", "Ваш адрес email", "Обязательные поля",
+  "Копирайт ©", "Copyright ©", "Все права защищены", "All rights reserved",
+  "Политика конфиденциальности", "Пользовательское соглашение",
+  "Войдите или зарегистрируйтесь",
+];
+
 /**
- * Из текста страницы вырезает блок, похожий на текст песни:
- * — много строк с кириллицей, — короткие строки (как стихи), — суммарно 80-3000 символов.
+ * Ищет в тексте страницы самый длинный непрерывный блок лирики.
+ * Лирика = 6+ подряд идущих коротких кириллических строк.
  */
-function extractLyricsBlock(pageText, minLen = 80) {
-  const paragraphs = pageText.split(/\n{2,}/);
+function extractLyricsBlock(pageText) {
+  const allLines = pageText.split("\n").map(l => l.trim());
 
-  const scored = paragraphs.map((para) => {
-    const lines = para.split("\n").map(l => l.trim()).filter(Boolean);
-    if (lines.length < 2) return { para, score: 0 };
+  // Скользящее окно: ищем самую длинную серию "лирических" строк
+  const isLyricLine = (l) =>
+    l.length >= 2 && l.length <= 75 &&
+    /[а-яёА-ЯЁ]/.test(l) &&
+    !/[»«|©®@]/.test(l) &&
+    !JUNK_KEYWORDS.some(kw => l.includes(kw));
 
-    const cyrLines = lines.filter(l => /[а-яёА-ЯЁ]/.test(l));
-    const shortLines = cyrLines.filter(l => l.length > 2 && l.length < 80);
-    const avgLen = shortLines.reduce((s, l) => s + l.length, 0) / (shortLines.length || 1);
+  let bestStart = -1, bestLen = 0;
+  let curStart = -1, curLen = 0;
+  let emptyStreak = 0; // разрешаем до 2 пустых строк внутри блока
 
-    // Хорошие стихи: много коротких кириллических строк, средняя длина 10-50
-    const score = shortLines.length * (avgLen > 8 && avgLen < 55 ? 2 : 0.5);
-    return { para, score, len: para.length };
-  });
-
-  // Берём топ-блоки по score, не слишком короткие
-  const good = scored
-    .filter(s => s.score >= 4 && s.len >= minLen)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 6);
-
-  if (good.length === 0) return null;
-
-  // Склеиваем до 2500 символов
-  let result = "";
-  for (const { para } of good) {
-    if (result.length + para.length > 2500) break;
-    result += (result ? "\n\n" : "") + para.trim();
+  for (let i = 0; i < allLines.length; i++) {
+    const line = allLines[i];
+    if (isLyricLine(line)) {
+      if (curStart === -1) curStart = i;
+      curLen++;
+      emptyStreak = 0;
+    } else if (line === "" && curStart !== -1 && emptyStreak < 2) {
+      // пустая строка внутри блока — ок (разделитель куплетов)
+      emptyStreak++;
+    } else {
+      // конец блока
+      if (curLen > bestLen) { bestStart = curStart; bestLen = curLen; }
+      curStart = -1; curLen = 0; emptyStreak = 0;
+    }
   }
+  if (curLen > bestLen) { bestStart = curStart; bestLen = curLen; }
 
-  // Финальная проверка — убеждаемся что результат похож на стихи
-  if (!result || result.length < minLen || !looksLikeLyrics(result)) return null;
-  return result;
+  if (bestStart === -1 || bestLen < 6) return null;
+
+  const block = allLines.slice(bestStart, bestStart + bestLen + 3).join("\n").trim();
+  if (block.length < 150) return null;
+  if (JUNK_KEYWORDS.some(kw => block.includes(kw))) return null;
+
+  return block.slice(0, 2500);
 }
 
 // ─── Парсеры конкретных сайтов ───────────────────────────────────────────────
 
 /**
+ * Строит поисковый запрос: «Мгновения Рождественский» лучше находит текст
+ * чем просто «Мгновения».
+ */
+function buildQuery(name, authorLyrics, author) {
+  const parts = [name];
+  if (authorLyrics) {
+    // Берём только фамилию автора слов
+    const surname = authorLyrics.trim().split(/\s+/).pop();
+    if (surname && surname.length > 2) parts.push(surname);
+  } else if (author) {
+    const surname = author.trim().split(/\s+/).pop();
+    if (surname && surname.length > 2) parts.push(surname);
+  }
+  return parts.join(" ");
+}
+
+/**
  * pesni.guru — большая база русских песен.
  * Поиск: https://pesni.guru/search?q=...
  */
-async function fromPesniGuru(name) {
-  const searchUrl = `https://pesni.guru/search?q=${encodeURIComponent(name)}`;
+async function fromPesniGuru(name, query) {
+  const searchUrl = `https://pesni.guru/search?q=${encodeURIComponent(query)}`;
   const searchHtml = await fetchHtml(searchUrl);
 
   // Ищем ссылку на страницу песни в результатах
@@ -153,8 +188,8 @@ async function fromPesniGuru(name) {
 /**
  * megalyrics.ru — ещё одна большая база.
  */
-async function fromMegalyrics(name) {
-  const searchUrl = `https://megalyrics.ru/search/?s=${encodeURIComponent(name)}`;
+async function fromMegalyrics(name, query) {
+  const searchUrl = `https://megalyrics.ru/search/?s=${encodeURIComponent(query)}`;
   const searchHtml = await fetchHtml(searchUrl);
 
   const linkMatch = searchHtml.match(/href="(https?:\/\/megalyrics\.ru\/lyric\/[^"?]+)"/i);
@@ -172,8 +207,8 @@ async function fromMegalyrics(name) {
 /**
  * tekstovnik.ru
  */
-async function fromTekstovnik(name) {
-  const searchUrl = `https://www.tekstovnik.ru/search/?q=${encodeURIComponent(name)}`;
+async function fromTekstovnik(name, query) {
+  const searchUrl = `https://www.tekstovnik.ru/search/?q=${encodeURIComponent(query)}`;
   const searchHtml = await fetchHtml(searchUrl);
 
   const linkMatch = searchHtml.match(/href="(\/text\/[^"?]+)"/);
@@ -204,12 +239,9 @@ async function fromRustih(name) {
 
 /**
  * amalgama-lab.com — хорошо для советских / классических / детских.
- * Формат: https://amalgama-lab.com/songs/a/artist/song_slug.html
- * У них есть поиск, но попробуем через DuckDuckGo lite.
  */
-async function fromAmalgama(name) {
-  // Ищем через их поиск (если есть)
-  const searchUrl = `https://amalgama-lab.com/search/?q=${encodeURIComponent(name)}`;
+async function fromAmalgama(name, query) {
+  const searchUrl = `https://amalgama-lab.com/search/?q=${encodeURIComponent(query)}`;
   const searchHtml = await fetchHtml(searchUrl);
 
   const linkMatch = searchHtml.match(/href="(\/songs\/[^"?#]+\.html)"/i);
@@ -232,43 +264,104 @@ async function fromFolkTale(name) {
 
 /**
  * Wikisource (ru.wikisource.org) — классика, народные.
+ * Используем поиск вместо прямого URL — надёжнее.
  */
 async function fromWikisource(name) {
-  const wikiName = encodeURIComponent(name.replace(/\s+/g, "_"));
-  const url = `https://ru.wikisource.org/wiki/${wikiName}`;
-  const html = await fetchHtml(url);
+  const searchUrl = `https://ru.wikisource.org/w/index.php?search=${encodeURIComponent(name)}&ns0=1`;
+  const searchHtml = await fetchHtml(searchUrl);
+  // Ищем ссылку на страницу в результатах поиска
+  const linkMatch = searchHtml.match(/href="(\/wiki\/[^"?#:]+)"[^>]*>[^<]*(?:[Тт]екст|[Пп]есн)/);
+  if (!linkMatch) return null;
+  const songUrl = `https://ru.wikisource.org${linkMatch[1]}`;
+  const songHtml = await fetchHtml(songUrl);
+  return extractLyricsBlock(htmlToText(songHtml));
+}
+
+// ─── DuckDuckGo Lite поиск ───────────────────────────────────────────────────
+
+/**
+ * Ищет через DuckDuckGo Lite (не блокирует ботов) и возвращает список URL результатов.
+ */
+async function ddgSearch(query, maxResults = 6) {
+  const res = await fetch(`https://lite.duckduckgo.com/lite?q=${encodeURIComponent(query)}`, {
+    signal: AbortSignal.timeout(8000),
+    headers: { "User-Agent": "Mozilla/5.0", "Accept-Language": "ru-RU,ru;q=0.9" },
+  });
+  const html = await res.text();
+  // DDG lite кодирует ссылки как: href="//duckduckgo.com/l/?uddg=ENCODED_URL&..."
+  const urls = [];
+  for (const m of html.matchAll(/uddg=(https?%3A[^&"]+)/g)) {
+    try {
+      const url = decodeURIComponent(m[1]);
+      if (!urls.includes(url)) urls.push(url);
+      if (urls.length >= maxResults) break;
+    } catch {}
+  }
+  return urls;
+}
+
+/**
+ * Пытается извлечь текст песни из произвольного URL.
+ */
+async function fetchLyricsFromUrl(url) {
+  const html = await fetchHtml(url, 10000);
   return extractLyricsBlock(htmlToText(html));
 }
 
 // ─── Главная функция ─────────────────────────────────────────────────────────
 
 /**
- * Пробует все сайты параллельно, возвращает первый успешный результат.
+ * Пробует найти текст песни:
+ * 1. Поиск через DuckDuckGo Lite (по названию + автор слов)
+ * 2. Прямые URL на известные сайты как запасной вариант
+ *
  * @param {string} name — название песни
+ * @param {string} [authorLyrics] — автор слов
+ * @param {string} [author] — автор музыки
  * @returns {Promise<string|null>}
  */
-export async function fetchLyricsFromWeb(name) {
-  const fetchers = [
-    { site: "pesni.guru",    fn: () => fromPesniGuru(name) },
-    { site: "megalyrics.ru", fn: () => fromMegalyrics(name) },
-    { site: "tekstovnik.ru", fn: () => fromTekstovnik(name) },
-    { site: "amalgama-lab",  fn: () => fromAmalgama(name) },
-    { site: "rustih.ru",     fn: () => fromRustih(name) },
-    { site: "folk-tale.ru",  fn: () => fromFolkTale(name) },
-    { site: "wikisource",    fn: () => fromWikisource(name) },
+export async function fetchLyricsFromWeb(name, authorLyrics = "", author = "") {
+  const query = buildQuery(name, authorLyrics, author);
+  console.log(`[lyrics] поиск: «${query} текст слова»`);
+
+  // 1. Сначала ищем через DDG
+  try {
+    const urls = await ddgSearch(`${query} текст слова`);
+    console.log(`[lyrics] DDG нашёл ${urls.length} ссылок`);
+    for (const url of urls) {
+      try {
+        const lyrics = await fetchLyricsFromUrl(url);
+        if (lyrics && lyrics.length >= 150) {
+          const domain = new URL(url).hostname;
+          console.log(`[lyrics] «${name}» → найден текст на ${domain} (${lyrics.length} симв.)`);
+          return lyrics;
+        }
+      } catch {}
+    }
+  } catch (e) {
+    console.log(`[lyrics] DDG ошибка: ${e.message}`);
+  }
+
+  // 2. Запасные сайты параллельно
+  const slug = translitRu(name);
+  const fallbacks = [
+    { site: "rustih.ru",    fn: () => fromRustih(name) },
+    { site: "folk-tale.ru", fn: () => fromFolkTale(name) },
+    { site: "pesni.guru",   fn: () => fromPesniGuru(name, query) },
+    { site: "megalyrics",   fn: () => fromMegalyrics(name, query) },
+    { site: "wikisource",   fn: () => fromWikisource(name) },
   ];
 
-  // Запускаем все параллельно, возвращаем первый непустой результат
   return new Promise((resolve) => {
     let resolved = false;
-    let pending = fetchers.length;
+    let pending = fallbacks.length;
 
-    for (const { site, fn } of fetchers) {
+    for (const { site, fn } of fallbacks) {
       fn()
         .then((lyrics) => {
-          if (!resolved && lyrics && lyrics.length >= 80) {
+          if (!resolved && lyrics && lyrics.length >= 150) {
             resolved = true;
-            console.log(`[lyrics] «${name}» → найден текст на ${site} (${lyrics.length} симв.)`);
+            console.log(`[lyrics] «${name}» → запасной ${site} (${lyrics.length} симв.)`);
             resolve(lyrics);
           }
         })
@@ -278,7 +371,7 @@ export async function fetchLyricsFromWeb(name) {
         .finally(() => {
           pending--;
           if (pending === 0 && !resolved) {
-            console.log(`[lyrics] «${name}» — текст не найден ни на одном сайте`);
+            console.log(`[lyrics] «${name}» — текст не найден`);
             resolve(null);
           }
         });
