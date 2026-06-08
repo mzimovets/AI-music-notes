@@ -72,7 +72,8 @@ import { SortableSong } from "./SortableSong";
 import {
   DndContext,
   closestCenter,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -172,7 +173,10 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
 
   const searchRef = useRef(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Мышь: 8px движения для активации — позволяет кликать без случайного драга
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // Тач: 250мс удержание + 5px допуск — позволяет скроллить без активации драга
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   );
 
   const programRef = useRef<{ handleDownload: () => void }>(null);
