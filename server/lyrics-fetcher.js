@@ -98,6 +98,7 @@ const JUNK_KEYWORDS = [
   "Все исполнители", "Все жанры", "Топ песен",
   "Рекомендуем почитать", "Другие тексты", "Похожие стихи", "Читать также",
   "Смотрите также", "Вам также понравится",
+  "Веб-сайт", "Поделиться", "Нравится", "Скачать", "Распечатать",
   // Метаданные каталогов (РГБ и подобные)
   "государственная библиотека", "Место хранения", "Год издания",
   "Место издания", "Количество страниц", "Формат документа",
@@ -112,10 +113,10 @@ const JUNK_KEYWORDS = [
 function extractLyricsBlock(pageText) {
   const allLines = pageText.split("\n").map(l => l.trim());
 
-  // Паттерн навигации: "Исполнитель - Название" или "Автор — Произведение"
-  // \w не матчит кириллицу в JS, поэтому используем .{2,40}.
+  // Паттерн навигации: "Исполнитель - Название" (пробел-дефис-пробел).
+  // Em-dash (—) намеренно не включён — он встречается в реальных текстах песен.
   const isNavLine = (l) =>
-    (/^.{2,40} - [А-ЯЁA-Z\d]/.test(l) || /^.{5,40} — [А-ЯЁA-Z\d]/.test(l)) && l.length <= 70;
+    /^.{2,40} - [А-ЯЁA-Z\d]/.test(l) && l.length <= 70;
 
   // Скользящее окно: ищем самую длинную серию "лирических" строк
   const isLyricLine = (l) =>
@@ -146,17 +147,17 @@ function extractLyricsBlock(pageText) {
   }
   if (curLen > bestLen) { bestStart = curStart; bestLen = curLen; }
 
-  if (bestStart === -1 || bestLen < 8) return null;
+  if (bestStart === -1 || bestLen < 6) return null;
 
-  const block = allLines.slice(bestStart, bestStart + bestLen + 3).join("\n").trim();
-  if (block.length < 250) return null;
-  if (JUNK_KEYWORDS.some(kw => block.includes(kw))) return null;
+  // Берём ровно найденный блок без лишних строк после (они тянут мусор)
+  const block = allLines.slice(bestStart, bestStart + bestLen).join("\n").trim();
+  if (block.length < 200) return null;
 
   const blockLines = block.split("\n").filter(l => l.trim().length > 0);
 
-  // Проверка 1: если > 25% строк — "Автор - Название", это навигационный список
+  // Проверка 1: если > 30% строк — "Автор - Название", это навигационный список
   const navRatio = blockLines.filter(l => isNavLine(l.trim())).length / blockLines.length;
-  if (navRatio > 0.25) return null;
+  if (navRatio > 0.30) return null;
 
   // Проверка 2: если > 40% строк начинаются с "—", это прозаический диалог, не песня
   const dialogueRatio = blockLines.filter(l => /^—/.test(l.trim())).length / blockLines.length;
