@@ -992,11 +992,13 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                     </Card>
                   </>
                 )}
-                {activeTab === "ai" && (
-                  <div className="mt-12 flex flex-col flex-1 min-h-0 pb-4">
-                    <AiRecommendContent onClose={onClose} />
-                  </div>
-                )}
+                {/* ИИ-вкладка: скрываем через CSS, не размонтируем — чтобы не сбрасывалось состояние */}
+                <div
+                  className="mt-12 flex flex-col flex-1 min-h-0 pb-4"
+                  style={{ display: activeTab === "ai" ? "flex" : "none" }}
+                >
+                  <AiRecommendContent onClose={onClose} />
+                </div>
               </DrawerBody>
             </>
           )}
