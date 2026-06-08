@@ -155,19 +155,26 @@ function extractLyricsBlock(pageText) {
 // ─── Парсеры конкретных сайтов ───────────────────────────────────────────────
 
 /**
- * Строит поисковый запрос: «Мгновения Рождественский» лучше находит текст
- * чем просто «Мгновения».
+ * Строит поисковый запрос: включает автора слов и автора музыки чтобы
+ * найти именно нужную версию (напр. «Ave Maria Шуберт», а не случайную).
  */
 function buildQuery(name, authorLyrics, author) {
   const parts = [name];
+
+  // Берём фамилию автора слов (приоритет — он пишет текст)
   if (authorLyrics) {
-    // Берём только фамилию автора слов
     const surname = authorLyrics.trim().split(/\s+/).pop();
     if (surname && surname.length > 2) parts.push(surname);
-  } else if (author) {
-    const surname = author.trim().split(/\s+/).pop();
-    if (surname && surname.length > 2) parts.push(surname);
   }
+
+  // Добавляем фамилию автора музыки если она не совпадает с уже добавленной
+  if (author) {
+    const surname = author.trim().split(/\s+/).pop();
+    if (surname && surname.length > 2 && !parts.includes(surname)) {
+      parts.push(surname);
+    }
+  }
+
   return parts.join(" ");
 }
 
