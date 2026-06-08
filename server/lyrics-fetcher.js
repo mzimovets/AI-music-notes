@@ -94,6 +94,8 @@ const JUNK_KEYWORDS = [
   "Копирайт ©", "Copyright ©", "Все права защищены", "All rights reserved",
   "Политика конфиденциальности", "Пользовательское соглашение",
   "Войдите или зарегистрируйтесь",
+  "Популярные тексты", "Популярные песни", "Последние добавленные",
+  "Все исполнители", "Все жанры", "Топ песен",
 ];
 
 /**
@@ -103,11 +105,16 @@ const JUNK_KEYWORDS = [
 function extractLyricsBlock(pageText) {
   const allLines = pageText.split("\n").map(l => l.trim());
 
+  // Паттерн навигации: "Исполнитель - Название" или "Автор - Произведение"
+  // Два слова с заглавной буквы, разделённые " - " — это список песен, не лирика
+  const isNavLine = (l) => /^[А-ЯЁA-Z\d][\w\s]+ - [А-ЯЁA-Z\d]/.test(l);
+
   // Скользящее окно: ищем самую длинную серию "лирических" строк
   const isLyricLine = (l) =>
     l.length >= 2 && l.length <= 75 &&
     /[а-яёА-ЯЁ]/.test(l) &&
     !/[»«|©®@]/.test(l) &&
+    !isNavLine(l) &&
     !JUNK_KEYWORDS.some(kw => l.includes(kw));
 
   let bestStart = -1, bestLen = 0;
@@ -136,6 +143,11 @@ function extractLyricsBlock(pageText) {
   const block = allLines.slice(bestStart, bestStart + bestLen + 3).join("\n").trim();
   if (block.length < 250) return null;
   if (JUNK_KEYWORDS.some(kw => block.includes(kw))) return null;
+
+  // Финальная проверка: если > 25% строк — "Автор - Название", это навигация, не лирика
+  const blockLines = block.split("\n").filter(l => l.trim().length > 0);
+  const navRatio = blockLines.filter(l => isNavLine(l.trim())).length / blockLines.length;
+  if (navRatio > 0.25) return null;
 
   return block.slice(0, 2500);
 }
