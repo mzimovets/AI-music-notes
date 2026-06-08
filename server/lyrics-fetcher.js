@@ -311,9 +311,12 @@ async function fetchLyricsFromUrl(url) {
 // ─── Главная функция ─────────────────────────────────────────────────────────
 
 /**
- * Пробует найти текст песни:
- * 1. Поиск через DuckDuckGo Lite (по названию + автор слов)
- * 2. Прямые URL на известные сайты как запасной вариант
+ * Пробует найти текст песни: все источники запускаются параллельно,
+ * возвращается первый успешный результат.
+ *
+ * Порядок приоритетов (первый кто вернёт >= 150 символов — побеждает):
+ * – Прямые парсеры конкретных сайтов (быстрее и надёжнее поисковиков)
+ * – DuckDuckGo Lite как дополнительный шанс
  *
  * @param {string} name — название песни
  * @param {string} [authorLyrics] — автор слов
@@ -322,46 +325,43 @@ async function fetchLyricsFromUrl(url) {
  */
 export async function fetchLyricsFromWeb(name, authorLyrics = "", author = "") {
   const query = buildQuery(name, authorLyrics, author);
-  console.log(`[lyrics] поиск: «${query} текст слова»`);
+  console.log(`[lyrics] поиск: «${query}»`);
 
-  // 1. Сначала ищем через DDG
-  try {
-    const urls = await ddgSearch(`${query} текст слова`);
-    console.log(`[lyrics] DDG нашёл ${urls.length} ссылок`);
-    for (const url of urls) {
-      try {
-        const lyrics = await fetchLyricsFromUrl(url);
-        if (lyrics && lyrics.length >= 150) {
-          const domain = new URL(url).hostname;
-          console.log(`[lyrics] «${name}» → найден текст на ${domain} (${lyrics.length} симв.)`);
-          return lyrics;
+  // Все источники запускаем параллельно — возвращаем первый успешный результат
+  const sources = [
+    { site: "pesni.guru",      fn: () => fromPesniGuru(name, query) },
+    { site: "amalgama-lab",    fn: () => fromAmalgama(name, query) },
+    { site: "megalyrics.ru",   fn: () => fromMegalyrics(name, query) },
+    { site: "tekstovnik.ru",   fn: () => fromTekstovnik(name, query) },
+    { site: "rustih.ru",       fn: () => fromRustih(name) },
+    { site: "folk-tale.ru",    fn: () => fromFolkTale(name) },
+    { site: "wikisource",      fn: () => fromWikisource(name) },
+    {
+      site: "duckduckgo",
+      fn: async () => {
+        const urls = await ddgSearch(`${query} текст слова`);
+        console.log(`[lyrics] DDG нашёл ${urls.length} ссылок`);
+        for (const url of urls) {
+          try {
+            const lyrics = await fetchLyricsFromUrl(url);
+            if (lyrics && lyrics.length >= 150) return lyrics;
+          } catch {}
         }
-      } catch {}
-    }
-  } catch (e) {
-    console.log(`[lyrics] DDG ошибка: ${e.message}`);
-  }
-
-  // 2. Запасные сайты параллельно
-  const slug = translitRu(name);
-  const fallbacks = [
-    { site: "rustih.ru",    fn: () => fromRustih(name) },
-    { site: "folk-tale.ru", fn: () => fromFolkTale(name) },
-    { site: "pesni.guru",   fn: () => fromPesniGuru(name, query) },
-    { site: "megalyrics",   fn: () => fromMegalyrics(name, query) },
-    { site: "wikisource",   fn: () => fromWikisource(name) },
+        return null;
+      },
+    },
   ];
 
   return new Promise((resolve) => {
     let resolved = false;
-    let pending = fallbacks.length;
+    let pending = sources.length;
 
-    for (const { site, fn } of fallbacks) {
+    for (const { site, fn } of sources) {
       fn()
         .then((lyrics) => {
           if (!resolved && lyrics && lyrics.length >= 150) {
             resolved = true;
-            console.log(`[lyrics] «${name}» → запасной ${site} (${lyrics.length} симв.)`);
+            console.log(`[lyrics] «${name}» → ${site} (${lyrics.length} симв.)`);
             resolve(lyrics);
           }
         })
@@ -371,7 +371,7 @@ export async function fetchLyricsFromWeb(name, authorLyrics = "", author = "") {
         .finally(() => {
           pending--;
           if (pending === 0 && !resolved) {
-            console.log(`[lyrics] «${name}» — текст не найден`);
+            console.log(`[lyrics] «${name}» — текст не найден ни на одном сайте`);
             resolve(null);
           }
         });

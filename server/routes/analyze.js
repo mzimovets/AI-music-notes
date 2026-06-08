@@ -360,10 +360,11 @@ export function analyzeRoutes(app) {
         const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
         const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
 
-        // Если PDF пустой или короткий — пробуем найти текст в интернете
-        const hasGoodPdf = (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 5;
-        const webLyrics = hasGoodPdf ? null : await fetchLyricsFromWeb(song.name);
-        if (webLyrics) console.log(`[analyze] «${song.name}» — используем веб-текст`);
+        // Всегда ищем текст в интернете: PDF нот содержит SATB-текст с артефактами,
+        // веб-источник даёт чистый текст песни — он всегда предпочтительнее.
+        const webLyrics = await fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || "");
+        if (webLyrics) console.log(`[analyze] «${song.name}» — используем веб-текст (${webLyrics.length} симв.)`);
+        else console.log(`[analyze] «${song.name}» — веб не нашёл, используем только PDF`);
 
         const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
         aiSummary.analyzedAt = Date.now();
@@ -415,10 +416,11 @@ export function analyzeRoutes(app) {
                 const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
                 const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
 
-                // Если PDF скудный — ищем текст в интернете
-                const hasGoodPdf = (pdfText.match(/[а-яёА-ЯЁ]{3,}/g) || []).length >= 5;
-                const webLyrics = hasGoodPdf ? null : await fetchLyricsFromWeb(song.name);
-                if (webLyrics) console.log(`[batch] «${song.name}» — используем веб-текст`);
+                // Всегда ищем текст в интернете: PDF нот содержит SATB-артефакты,
+                // веб-источник даёт чистый текст песни — он всегда предпочтительнее.
+                const webLyrics = await fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || "");
+                if (webLyrics) console.log(`[batch] «${song.name}» — используем веб-текст (${webLyrics.length} симв.)`);
+                else console.log(`[batch] «${song.name}» — веб не нашёл, используем только PDF`);
 
                 const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
                 aiSummary.analyzedAt = Date.now();
