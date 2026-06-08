@@ -42,14 +42,6 @@ interface AiSong {
   matched?: ServerSong | null;
 }
 
-interface SortedSong {
-  id: string;
-  name: string;
-  section: string;
-  reason: string;
-  matched?: ServerSong | null;
-}
-
 // ─── Цвета категорий ─────────────────────────────────────────────────────────
 
 const CATEGORY_STYLE: Record<string, { border: string; text: string; bg: string }> = {
@@ -64,12 +56,6 @@ function getCategoryStyle(category?: string | null) {
   if (!category) return DEFAULT_STYLE;
   return CATEGORY_STYLE[category.toLowerCase()] ?? DEFAULT_STYLE;
 }
-
-const SECTION_ICON: Record<string, string> = {
-  "Разгрев": "🔥",
-  "Середина": "🎵",
-  "Финал": "🔥",
-};
 
 // ─── Утилиты ─────────────────────────────────────────────────────────────────
 
@@ -120,12 +106,10 @@ function SortableAiCard({
   song,
   index,
   onReplace,
-  isUnmatched,
 }: {
-  song: AiSong | SortedSong;
+  song: AiSong;
   index: number;
   onReplace: (id: string) => void;
-  isUnmatched: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: song.id });
@@ -249,11 +233,6 @@ function SortableAiCard({
             </div>
           )}
 
-          {isUnmatched && (
-            <div style={{ fontSize: 10, color: "#f59e0b", marginTop: 4 }}>
-              ⚠ Не найдено в библиотеке
-            </div>
-          )}
         </div>
 
         {/* Кнопка замены */}
@@ -276,27 +255,6 @@ function SortableAiCard({
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-// ─── Разделитель секции ─────────────────────────────────────────────────────
-
-const SECTION_LINE_COLOR: Record<string, string> = {
-  "Разгрев":  "#fb923c",
-  "Середина": "#a78bfa",
-  "Финал":    "#34d399",
-};
-
-function SectionDivider({ section }: { section: string }) {
-  const color = SECTION_LINE_COLOR[section] ?? "#CBD5E1";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "12px 0" }}>
-      <div style={{ flex: 1, height: 1, background: color, opacity: 0.4 }} />
-      <span style={{ fontSize: 11, fontWeight: 600, color, letterSpacing: "0.04em" }}>
-        {SECTION_ICON[section] ?? "•"} {section}
-      </span>
-      <div style={{ flex: 1, height: 1, background: color, opacity: 0.4 }} />
     </div>
   );
 }
@@ -356,15 +314,15 @@ function ReplaceModal({
   );
 }
 
-// ─── Общий рендер результатов с DND ─────────────────────────────────────────
+// ─── Рендер результатов с DND ────────────────────────────────────────────────
 
-function SortableResults<T extends AiSong | SortedSong>({
+function SortableResults({
   items,
   setItems,
   onReplace,
 }: {
-  items: T[];
-  setItems: React.Dispatch<React.SetStateAction<T[]>>;
+  items: AiSong[];
+  setItems: React.Dispatch<React.SetStateAction<AiSong[]>>;
   onReplace: (id: string) => void;
 }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -375,20 +333,9 @@ function SortableResults<T extends AiSong | SortedSong>({
     setItems((prev) => {
       const oldIdx = prev.findIndex((s) => s.id === active.id);
       const newIdx = prev.findIndex((s) => s.id === over.id);
-      return arrayMove(prev, oldIdx, newIdx) as T[];
+      return arrayMove(prev, oldIdx, newIdx);
     });
   };
-
-  // Группировка по секциям
-  const sections = items.reduce<{ section: string; songs: T[] }[]>((acc, song) => {
-    const last = acc[acc.length - 1];
-    if (last && last.section === song.section) {
-      last.songs.push(song);
-    } else {
-      acc.push({ section: song.section, songs: [song] });
-    }
-    return acc;
-  }, []);
 
   return (
     <DndContext
@@ -399,22 +346,13 @@ function SortableResults<T extends AiSong | SortedSong>({
     >
       <SortableContext items={items.map((s) => s.id)} strategy={verticalListSortingStrategy}>
         <div>
-          {sections.map(({ section, songs: secSongs }) => (
-            <React.Fragment key={section || "default"}>
-              {section && <SectionDivider section={section} />}
-              {secSongs.map((song) => {
-                const globalIdx = items.findIndex((s) => s.id === song.id);
-                return (
-                  <SortableAiCard
-                    key={song.id}
-                    song={song}
-                    index={globalIdx}
-                    onReplace={onReplace}
-                    isUnmatched={!song.matched}
-                  />
-                );
-              })}
-            </React.Fragment>
+          {items.map((song, idx) => (
+            <SortableAiCard
+              key={song.id}
+              song={song}
+              index={idx}
+              onReplace={onReplace}
+            />
           ))}
         </div>
       </SortableContext>
@@ -863,7 +801,7 @@ function TabRecommend({
           id: genInstanceId(),
           name: r.name,
           author: r.author ?? "",
-          section: r.section ?? "",
+          section: "",
           reason: r.reason ?? "",
           matched: matchSong(r.name, library),
         }))
@@ -1014,142 +952,15 @@ function TabRecommend({
   );
 }
 
-// ─── Таб 2: Выстроить порядок ────────────────────────────────────────────────
-
-function TabSort({
-  rpiBaseUrl,
-  library,
-  stackSongs,
-  onAccept,
-}: {
-  rpiBaseUrl?: string;
-  library: ServerSong[];
-  stackSongs: any[];
-  onAccept: (songs: SortedSong[]) => void;
-}) {
-  const [context, setContext] = useState("");
-  const [songNamesText, setSongNamesText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [items, setItems] = useState<SortedSong[]>([]);
-  const [replaceTargetId, setReplaceTargetId] = useState<string | null>(null);
-
-  const fillFromStack = () => {
-    setSongNamesText(
-      stackSongs.filter((s) => !s.isReserve).map((s) => s.name).join("\n")
-    );
-  };
-
-  const handleSort = async () => {
-    const songNames = songNamesText.split("\n").map((s) => s.trim()).filter(Boolean);
-    if (songNames.length === 0) { setError("Введите хотя бы одну песню"); return; }
-
-    setLoading(true);
-    setError(null);
-    setItems([]);
-    try {
-      const res = await fetch(`/api/sort-program`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ songNames, context }),
-      });
-      const data = await res.json();
-      if (data.status !== "ok") throw new Error(data.message || "Ошибка сервера");
-      setItems(
-        (data.sorted as any[]).map((r) => ({
-          id: genInstanceId(),
-          name: r.name,
-          section: r.section ?? "",
-          reason: r.reason ?? "",
-          matched: matchSong(r.name, library),
-        }))
-      );
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleReplaceSelect = (libraryItem: ServerSong) => {
-    setItems((prev) =>
-      prev.map((s) =>
-        s.id === replaceTargetId ? { ...s, name: libraryItem.name, matched: libraryItem } : s
-      )
-    );
-  };
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2">
-        <Textarea
-          label="Песни (каждая с новой строки)"
-          placeholder=""
-          value={songNamesText}
-          onValueChange={setSongNamesText}
-          minRows={4}
-          maxRows={10}
-          classNames={{ label: "input-header text-xs text-default-500", input: "main-font text-sm" }}
-        />
-        {stackSongs.filter((s) => !s.isReserve).length > 0 && (
-          <button
-            onClick={fillFromStack}
-            className="main-font w-full text-white rounded-xl"
-            style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15, padding: "8px 0" }}
-          >
-            Заполнить из стопки
-          </button>
-        )}
-      </div>
-
-      <Button
-        onPress={handleSort}
-        isLoading={loading}
-        className="w-full main-font text-white rounded-xl"
-        style={{ background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)", fontSize: 15 }}
-        isDisabled={!songNamesText.trim()}
-      >
-        {loading ? "Выстраиваю…" : "Выстроить порядок"}
-      </Button>
-
-      {error && <p className="text-red-500 text-sm text-center">{error}</p>}
-
-      {items.length > 0 && (
-        <>
-          <SortableResults items={items} setItems={setItems} onReplace={setReplaceTargetId} />
-          <Button
-            onPress={() => onAccept(items)}
-            className="w-full main-font text-white rounded-xl"
-            style={{ background: "linear-gradient(to right, #bd9673, #7d5e42)", fontSize: 15 }}
-            variant="flat"
-          >
-            Принять порядок
-          </Button>
-        </>
-      )}
-
-      <ReplaceModal
-        isOpen={!!replaceTargetId}
-        onClose={() => setReplaceTargetId(null)}
-        library={library}
-        onSelect={handleReplaceSelect}
-      />
-    </div>
-  );
-}
-
 // ─── Контент для боковой панели ──────────────────────────────────────────────
 
 export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
   const ctx = useStackContext() as any;
   const setStackSongs: (songs: any[]) => void = ctx.setStackSongs;
-  const stackSongs: any[] = ctx.stackSongs ?? [];
   const { allSongs } = useAllSongsLibraryContextProvider();
   const { rpiBaseUrl, isLocal } = useLocalServer();
 
-  const [activeTab, setActiveTab] = useState<"recommend" | "sort">("recommend");
-
-  const handleAcceptRecommend = useCallback(
+  const handleAccept = useCallback(
     (aiSongs: AiSong[]) => {
       setStackSongs(
         aiSongs.filter((s) => s.matched).map((s) => ({
@@ -1163,44 +974,10 @@ export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
     [setStackSongs, onClose]
   );
 
-  const handleAcceptSort = useCallback(
-    (sorted: SortedSong[]) => {
-      const newSongs = sorted.filter((s) => s.matched).map((s) => ({
-        ...s.matched!,
-        instanceId: genInstanceId(),
-        isReserve: false,
-      }));
-      if (newSongs.length > 0) setStackSongs(newSongs);
-      onClose?.();
-    },
-    [setStackSongs, onClose]
-  );
-
   return (
     <div className="flex flex-col h-full">
-      <div className="flex gap-1 mb-4 bg-default-100/70 rounded-lg p-1 shrink-0">
-        {(["recommend", "sort"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-1.5 rounded-md text-xs input-header transition-all ${
-              activeTab === tab
-                ? "bg-white shadow-sm text-[#3B2A1A]"
-                : "text-default-400 hover:text-default-600"
-            }`}
-          >
-            {tab === "recommend" ? "Подобрать" : "Выстроить порядок"}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 min-h-0 overflow-y-auto">
-        <div style={{ display: activeTab === "recommend" ? "block" : "none" }}>
-          <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
-        </div>
-        <div style={{ display: activeTab === "sort" ? "block" : "none" }}>
-          <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
-        </div>
+        <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAccept} />
       </div>
     </div>
   );
@@ -1211,10 +988,8 @@ export function AiRecommendContent({ onClose }: { onClose?: () => void }) {
 export function AiRecommend() {
   const ctx = useStackContext() as any;
   const setStackSongs: (songs: any[]) => void = ctx.setStackSongs;
-  const stackSongs: any[] = ctx.stackSongs ?? [];
   const { allSongs } = useAllSongsLibraryContextProvider();
   const { isLocal, rpiBaseUrl } = useLocalServer();
-  const [activeTab, setActiveTab] = useState<"recommend" | "sort">("recommend");
   const [isOpen, setIsOpen] = useState(false);
   const [hasInternet, setHasInternet] = useState(() =>
     typeof navigator !== "undefined" ? navigator.onLine : true
@@ -1227,20 +1002,11 @@ export function AiRecommend() {
     return () => { window.removeEventListener("online", on); window.removeEventListener("offline", off); };
   }, []);
 
-  const handleAcceptRecommend = useCallback(
+  const handleAccept = useCallback(
     (aiSongs: AiSong[]) => {
       setStackSongs(
         aiSongs.filter((s) => s.matched).map((s) => ({ ...s.matched!, instanceId: genInstanceId(), isReserve: false }))
       );
-      setIsOpen(false);
-    },
-    [setStackSongs]
-  );
-
-  const handleAcceptSort = useCallback(
-    (sorted: SortedSong[]) => {
-      const newSongs = sorted.filter((s) => s.matched).map((s) => ({ ...s.matched!, instanceId: genInstanceId(), isReserve: false }));
-      if (newSongs.length > 0) setStackSongs(newSongs);
       setIsOpen(false);
     },
     [setStackSongs]
@@ -1286,21 +1052,7 @@ export function AiRecommend() {
       </button>
       {isOpen && (
         <div className="mt-2 rounded-xl border border-[#E6D3C2] bg-[#FFFAF5]/80 p-4">
-          <div className="flex gap-1 mb-4 bg-default-100/70 rounded-lg p-1">
-            {(["recommend", "sort"] as const).map((tab) => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`flex-1 py-1.5 rounded-md text-xs input-header transition-all ${activeTab === tab ? "bg-white shadow-sm text-[#3B2A1A]" : "text-default-400"}`}
-              >
-                {tab === "recommend" ? "Подобрать" : "Выстроить порядок"}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: activeTab === "recommend" ? "block" : "none" }}>
-            <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAcceptRecommend} />
-          </div>
-          <div style={{ display: activeTab === "sort" ? "block" : "none" }}>
-            <TabSort rpiBaseUrl={rpiBaseUrl} library={allSongs} stackSongs={stackSongs} onAccept={handleAcceptSort} />
-          </div>
+          <TabRecommend rpiBaseUrl={rpiBaseUrl} isLocal={isLocal} library={allSongs} onAccept={handleAccept} />
         </div>
       )}
     </div>
