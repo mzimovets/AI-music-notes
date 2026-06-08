@@ -210,21 +210,25 @@ async function analyzeWithClaude(songName, pdfText, webLyrics = null) {
     "Верни ТОЛЬКО валидный JSON-объект — никакого другого текста.",
   ].join(" ");
 
-  const pdfSection = hasRealText
-    ? `\n\nТекст из PDF нот (вспомогательный, может содержать ошибки SATB-записи):\n---\n${pdfText.slice(0, 1000)}\n---`
+  // Веб-текст — только подсказка для проверки, не основной источник
+  const webHint = webLyrics
+    ? `\n\nНайденный в интернете текст (используй только если точно совпадает с «${songName}», иначе игнорируй):\n---\n${webLyrics.slice(0, 1500)}\n---`
     : "";
 
-  const webSection = webLyrics
-    ? `\n\nТекст песни, найденный в интернете (основной источник):\n---\n${webLyrics.slice(0, 1500)}\n---`
+  // PDF — последний резерв, только если нет ни веба, ни уверенных знаний
+  const pdfHint = hasRealText && !webLyrics
+    ? `\n\nТекст из PDF нот (последний резерв, содержит ошибки SATB-нотации — используй осторожно):\n---\n${pdfText.slice(0, 1000)}\n---`
     : "";
 
-  const lyricsInstruction = webLyrics
-    ? `Поле lyrics: проверь, что текст из раздела «Текст песни» выше действительно соответствует песне «${songName}» (совпадают характерные строки, тема, стиль). Если соответствует — скопируй его. Если текст явно чужой (другая песня, проза, навигация) — используй свои знания или оставь пустым "".`
-    : hasRealText
-      ? "Поле lyrics заполни текстом из раздела «Текст из PDF» выше (исправь очевидные ошибки SATB-нотации)."
-      : "Поле lyrics заполни текстом этой песни из своих знаний, если знаешь его точно. Если не уверен — оставь пустым \"\".";
+  const lyricsInstruction = [
+    `Поле lyrics — приоритеты по убыванию:`,
+    `1. Если ты точно знаешь текст песни «${songName}» из своих обучающих данных — напиши его.`,
+    webLyrics ? `2. Если найденный интернет-текст выше точно совпадает с этой песней — используй его для уточнения.` : "",
+    hasRealText && !webLyrics ? `2. Если из обучающих данных не знаешь текст — попробуй восстановить из PDF выше.` : "",
+    `${webLyrics ? "3" : hasRealText ? "3" : "2"}. Если не уверен — оставь поле lyrics пустым "".`,
+  ].filter(Boolean).join("\n");
 
-  const userContent = `Проанализируй хоровую песню «${songName}».${webSection}${pdfSection}
+  const userContent = `Проанализируй хоровую песню «${songName}».${webHint}${pdfHint}
 
 ${lyricsInstruction}
 
@@ -358,13 +362,19 @@ export function analyzeRoutes(app) {
       try {
         const filename = song.file?.filename || song.originalName;
         const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
-        const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
 
-        // Всегда ищем текст в интернете: PDF нот содержит SATB-текст с артефактами,
-        // веб-источник даёт чистый текст песни — он всегда предпочтительнее.
-        const webLyrics = await fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || "");
-        if (webLyrics) console.log(`[analyze] «${song.name}» — используем веб-текст (${webLyrics.length} симв.)`);
-        else console.log(`[analyze] «${song.name}» — веб не нашёл, используем только PDF`);
+        // Запускаем PDF и веб параллельно, но с жёстким таймаутом на веб (20 сек)
+        const webTimeout = new Promise(resolve => setTimeout(() => resolve(null), 20000));
+        const [pdfText, webLyrics] = await Promise.all([
+          filePath && fs.existsSync(filePath) ? extractPdfText(filePath) : Promise.resolve(""),
+          Promise.race([
+            fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || ""),
+            webTimeout,
+          ]),
+        ]);
+
+        if (webLyrics) console.log(`[analyze] «${song.name}» — веб нашёл текст (${webLyrics.length} симв.)`);
+        else console.log(`[analyze] «${song.name}» — веб не нашёл, Claude использует свои знания`);
 
         const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
         aiSummary.analyzedAt = Date.now();
@@ -416,11 +426,14 @@ export function analyzeRoutes(app) {
                 const filePath = filename ? path.join(UPLOADS_DIR, filename) : null;
                 const pdfText = filePath && fs.existsSync(filePath) ? await extractPdfText(filePath) : "";
 
-                // Всегда ищем текст в интернете: PDF нот содержит SATB-артефакты,
-                // веб-источник даёт чистый текст песни — он всегда предпочтительнее.
-                const webLyrics = await fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || "");
-                if (webLyrics) console.log(`[batch] «${song.name}» — используем веб-текст (${webLyrics.length} симв.)`);
-                else console.log(`[batch] «${song.name}» — веб не нашёл, используем только PDF`);
+                // Запускаем PDF и веб параллельно, с жёстким таймаутом на веб (20 сек)
+                const webTimeout = new Promise(resolve => setTimeout(() => resolve(null), 20000));
+                const webLyrics = await Promise.race([
+                  fetchLyricsFromWeb(song.name, song.authorLyrics || "", song.author || ""),
+                  webTimeout,
+                ]);
+                if (webLyrics) console.log(`[batch] «${song.name}» — веб нашёл текст (${webLyrics.length} симв.)`);
+                else console.log(`[batch] «${song.name}» — веб не нашёл, Claude использует свои знания`);
 
                 const aiSummary = await analyzeWithClaude(song.name, pdfText, webLyrics);
                 aiSummary.analyzedAt = Date.now();
