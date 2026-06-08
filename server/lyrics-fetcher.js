@@ -86,7 +86,7 @@ function looksLikeLyrics(text) {
   return true;
 }
 
-// Ключевые слова которые выдают не-текст (навигация, формы, копирайт)
+// Ключевые слова которые выдают не-текст (навигация, формы, копирайт, метаданные)
 const JUNK_KEYWORDS = [
   "Заглавная страница", "Свежие правки", "Случайная страница", "Ссылки сюда",
   "Постоянная ссылка", "Служебные страницы", "Войти", "Обсуждение",
@@ -98,6 +98,11 @@ const JUNK_KEYWORDS = [
   "Все исполнители", "Все жанры", "Топ песен",
   "Рекомендуем почитать", "Другие тексты", "Похожие стихи", "Читать также",
   "Смотрите также", "Вам также понравится",
+  // Метаданные каталогов (РГБ и подобные)
+  "государственная библиотека", "Место хранения", "Год издания",
+  "Место издания", "Количество страниц", "Формат документа",
+  // Метаданные поэтических баз и сайтов текстов
+  "Автор:", "Размер:", "Строк:", "Страниц:", "Исполнитель:", "Жанр:", "Альбом:",
 ];
 
 /**
@@ -147,10 +152,15 @@ function extractLyricsBlock(pageText) {
   if (block.length < 250) return null;
   if (JUNK_KEYWORDS.some(kw => block.includes(kw))) return null;
 
-  // Финальная проверка: если > 25% строк — "Автор - Название", это навигация, не лирика
   const blockLines = block.split("\n").filter(l => l.trim().length > 0);
+
+  // Проверка 1: если > 25% строк — "Автор - Название", это навигационный список
   const navRatio = blockLines.filter(l => isNavLine(l.trim())).length / blockLines.length;
   if (navRatio > 0.25) return null;
+
+  // Проверка 2: если > 40% строк начинаются с "—", это прозаический диалог, не песня
+  const dialogueRatio = blockLines.filter(l => /^—/.test(l.trim())).length / blockLines.length;
+  if (dialogueRatio > 0.4) return null;
 
   return block.slice(0, 2500);
 }
@@ -349,7 +359,9 @@ export async function fetchLyricsFromWeb(name, authorLyrics = "", author = "") {
   const query = buildQuery(name, authorLyrics, author);
   console.log(`[lyrics] поиск: «${query}»`);
 
-  // Все источники запускаем параллельно — возвращаем первый успешный результат
+  // Все источники запускаем параллельно — возвращаем первый успешный результат.
+  // Wikisource намеренно исключён: он содержит литературные тексты, а не тексты песен —
+  // часто возвращает одноимённые прозаические произведения вместо лирики.
   const sources = [
     { site: "pesni.guru",      fn: () => fromPesniGuru(name, query) },
     { site: "amalgama-lab",    fn: () => fromAmalgama(name, query) },
@@ -357,7 +369,6 @@ export async function fetchLyricsFromWeb(name, authorLyrics = "", author = "") {
     { site: "tekstovnik.ru",   fn: () => fromTekstovnik(name, query) },
     { site: "rustih.ru",       fn: () => fromRustih(name) },
     { site: "folk-tale.ru",    fn: () => fromFolkTale(name) },
-    { site: "wikisource",      fn: () => fromWikisource(name) },
     {
       site: "duckduckgo",
       fn: async () => {
