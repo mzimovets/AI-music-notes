@@ -137,21 +137,38 @@ self.addEventListener("push", (event) => {
     return;
   }
 
-  // Не показывать если приложение открыто и в фокусе
+  const title = data.title ?? "Новая программа";
+  const options: NotificationOptions = {
+    body: data.body ?? "",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
+    tag: data.tag,
+    data: { url: data.url ?? "/" },
+  };
+
+  // На iOS .focused ненадёжен — используем visibilityState через postMessage
+  // Если клиентов нет совсем — приложение закрыто, показываем сразу
   (event as ExtendableEvent).waitUntil(
     sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      const isFocused = clientList.some((c) => (c as WindowClient).focused);
-      if (isFocused) return;
-
-      const title = data.title ?? "Новая программа";
-      const options: NotificationOptions = {
-        body: data.body ?? "",
-        icon: "/icons/icon-192x192.png",
-        badge: "/icons/icon-192x192.png",
-        tag: data.tag,
-        data: { url: data.url ?? "/" },
-      };
-      return sw.registration.showNotification(title, options);
+      if (clientList.length === 0) {
+        return sw.registration.showNotification(title, options);
+      }
+      // Спрашиваем клиентов об их видимости; показываем если хотя бы один скрыт/свёрнут
+      return Promise.all(
+        clientList.map(
+          (c) =>
+            new Promise<string>((resolve) => {
+              const channel = new MessageChannel();
+              channel.port1.onmessage = (e) => resolve(e.data);
+              c.postMessage({ type: "GET_VISIBILITY" }, [channel.port2]);
+              // таймаут на случай если клиент не ответит
+              setTimeout(() => resolve("hidden"), 300);
+            })
+        )
+      ).then((states) => {
+        const anyHidden = states.some((s) => s !== "visible");
+        if (anyHidden) return sw.registration.showNotification(title, options);
+      });
     })
   );
 });
