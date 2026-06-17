@@ -1,5 +1,6 @@
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
+import { sendPushToAll } from "./push.js";
 
 export const stacksRoutes = (app, urlencodedParser) => {
   app.get("/stack/:stackId", (req, res) => {
@@ -23,8 +24,11 @@ export const stacksRoutes = (app, urlencodedParser) => {
       console.log("adding stack: ", req.params.stackId);
       if (err) console.log("err", err);
       res.json({ status: "ok", doc });
-      // Мгновенный push на мастер (фоново)
-      if (!err && doc) pushLocalChangeToRemote(doc);
+      if (!err && doc) {
+        pushLocalChangeToRemote(doc);
+        const name = doc.name || "Новая программа";
+        sendPushToAll("Новая программа", name, `/stackView/${req.params.stackId}`);
+      }
     });
   });
 

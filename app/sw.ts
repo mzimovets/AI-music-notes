@@ -122,3 +122,32 @@ const serwist = new Serwist({
 });
 
 serwist.addEventListeners();
+
+self.addEventListener("push", (event) => {
+  const data = (event as PushEvent).data?.json() ?? {};
+  const title = data.title ?? "Новая программа";
+  const options: NotificationOptions = {
+    body: data.body ?? "",
+    icon: "/icons/icon-192x192.png",
+    badge: "/icons/icon-192x192.png",
+    data: { url: data.url ?? "/" },
+  };
+  (event as ExtendableEvent).waitUntil(
+    (self as unknown as ServiceWorkerGlobalScope).registration.showNotification(title, options)
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  const e = event as NotificationEvent;
+  e.notification.close();
+  const url = e.notification.data?.url ?? "/";
+  e.waitUntil(
+    (self as unknown as ServiceWorkerGlobalScope).clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clientList) => {
+        const existing = clientList.find((c) => c.url.includes(url));
+        if (existing) return existing.focus();
+        return (self as unknown as ServiceWorkerGlobalScope).clients.openWindow(url);
+      })
+  );
+});
