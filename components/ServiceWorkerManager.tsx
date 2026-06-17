@@ -324,18 +324,6 @@ export function ServiceWorkerManager() {
     return () => { socket.off("db-synced", handler); };
   }, []);
 
-  // Отвечаем SW на запрос видимости (для подавления уведомлений когда приложение открыто)
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === "GET_VISIBILITY") {
-        event.ports[0]?.postMessage(document.visibilityState);
-      }
-    };
-    navigator.serviceWorker.addEventListener("message", handler);
-    return () => navigator.serviceWorker.removeEventListener("message", handler);
-  }, []);
-
   // SW регистрируется всегда
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
