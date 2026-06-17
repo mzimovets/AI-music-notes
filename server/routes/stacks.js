@@ -1,6 +1,6 @@
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
-import { sendPushToAll } from "./push.js";
+import { sendPushToAll, sendClosePush } from "./push.js";
 
 export const stacksRoutes = (app, urlencodedParser) => {
   app.get("/stack/:stackId", (req, res) => {
@@ -24,11 +24,7 @@ export const stacksRoutes = (app, urlencodedParser) => {
       console.log("adding stack: ", req.params.stackId);
       if (err) console.log("err", err);
       res.json({ status: "ok", doc });
-      if (!err && doc) {
-        pushLocalChangeToRemote(doc);
-        const name = doc.name || "Новая программа";
-        sendPushToAll("Новая программа", name, `/stackView/${req.params.stackId}`);
-      }
+      if (!err && doc) pushLocalChangeToRemote(doc);
     });
   });
 
@@ -41,10 +37,17 @@ export const stacksRoutes = (app, urlencodedParser) => {
         console.log("updating stack: ", req.params.stackId);
         if (err) console.log("err", err);
         res.json({ status: "ok", doc: num });
-        // Получаем обновлённый документ и пушим на мастер (фоново)
         if (!err) {
           database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
-            if (!findErr && doc) pushLocalChangeToRemote(doc);
+            if (!findErr && doc) {
+              pushLocalChangeToRemote(doc);
+              const tag = `stack-${req.params.stackId}`;
+              if (req.body.isPublished === true || req.body.isPublished === "true") {
+                sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
+              } else if (req.body.isPublished === false || req.body.isPublished === "false") {
+                sendClosePush(tag);
+              }
+            }
           });
         }
       },
@@ -59,10 +62,17 @@ export const stacksRoutes = (app, urlencodedParser) => {
         console.log("edited stack: ", req.params.stackId);
         if (err) console.log("err", err);
         res.json({ status: "ok", doc: num });
-        // Получаем обновлённый документ и пушим на мастер (фоново)
         if (!err) {
           database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
-            if (!findErr && doc) pushLocalChangeToRemote(doc);
+            if (!findErr && doc) {
+              pushLocalChangeToRemote(doc);
+              const tag = `stack-${req.params.stackId}`;
+              if (req.body.isPublished === true || req.body.isPublished === "true") {
+                sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
+              } else if (req.body.isPublished === false || req.body.isPublished === "false") {
+                sendClosePush(tag);
+              }
+            }
           });
         }
       },

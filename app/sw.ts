@@ -125,11 +125,22 @@ serwist.addEventListeners();
 
 self.addEventListener("push", (event) => {
   const data = (event as PushEvent).data?.json() ?? {};
+
+  if (data.action === "close") {
+    (event as ExtendableEvent).waitUntil(
+      (self as unknown as ServiceWorkerGlobalScope).registration
+        .getNotifications({ tag: data.tag })
+        .then((notifications) => notifications.forEach((n) => n.close()))
+    );
+    return;
+  }
+
   const title = data.title ?? "Новая программа";
   const options: NotificationOptions = {
     body: data.body ?? "",
     icon: "/icons/icon-192x192.png",
     badge: "/icons/icon-192x192.png",
+    tag: data.tag,
     data: { url: data.url ?? "/" },
   };
   (event as ExtendableEvent).waitUntil(

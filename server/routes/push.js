@@ -28,24 +28,29 @@ webpush.setVapidDetails(
   vapidKeys.privateKey
 );
 
-export async function sendPushToAll(title, body, url = "/") {
+async function sendToAll(payload) {
   database.find({ docType: "push-subscription" }, async (err, subs) => {
     if (err || !subs?.length) return;
-    console.log(`[push] Отправляю уведомление ${subs.length} подписчикам: «${title}»`);
     for (const sub of subs) {
       try {
-        await webpush.sendNotification(
-          sub.subscription,
-          JSON.stringify({ title, body, url })
-        );
+        await webpush.sendNotification(sub.subscription, JSON.stringify(payload));
       } catch (e) {
-        // Подписка устарела — удаляем
         if (e.statusCode === 410 || e.statusCode === 404) {
           database.remove({ _id: sub._id }, {}, () => {});
         }
       }
     }
   });
+}
+
+export async function sendPushToAll(title, body, url = "/", tag = "stack") {
+  console.log(`[push] Отправляю уведомление: «${title}»`);
+  sendToAll({ title, body, url, tag });
+}
+
+export async function sendClosePush(tag) {
+  console.log(`[push] Закрываю уведомление: ${tag}`);
+  sendToAll({ action: "close", tag });
 }
 
 export const pushRoutes = (app) => {
