@@ -42,9 +42,10 @@ export const stacksRoutes = (app, urlencodedParser) => {
             if (!findErr && doc) {
               pushLocalChangeToRemote(doc);
               const tag = `stack-${req.params.stackId}`;
-              if (req.body.isPublished === true || req.body.isPublished === "true") {
+              const pub = req.body.isPublished;
+              if (pub === true || pub === "true") {
                 sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
-              } else if (req.body.isPublished === false || req.body.isPublished === "false") {
+              } else if (pub === false || pub === "false") {
                 sendClosePush(tag);
               }
             }
@@ -67,9 +68,10 @@ export const stacksRoutes = (app, urlencodedParser) => {
             if (!findErr && doc) {
               pushLocalChangeToRemote(doc);
               const tag = `stack-${req.params.stackId}`;
-              if (req.body.isPublished === true || req.body.isPublished === "true") {
+              const pub = req.body.isPublished;
+              if (pub === true || pub === "true") {
                 sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
-              } else if (req.body.isPublished === false || req.body.isPublished === "false") {
+              } else if (pub === false || pub === "false") {
                 sendClosePush(tag);
               }
             }

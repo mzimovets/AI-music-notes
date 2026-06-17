@@ -124,41 +124,49 @@ const serwist = new Serwist({
 serwist.addEventListeners();
 
 self.addEventListener("push", (event) => {
+  const sw = self as unknown as ServiceWorkerGlobalScope;
   const data = (event as PushEvent).data?.json() ?? {};
 
+  // Закрыть уведомление по тегу (стопка снята с публикации)
   if (data.action === "close") {
     (event as ExtendableEvent).waitUntil(
-      (self as unknown as ServiceWorkerGlobalScope).registration
+      sw.registration
         .getNotifications({ tag: data.tag })
         .then((notifications) => notifications.forEach((n) => n.close()))
     );
     return;
   }
 
-  const title = data.title ?? "Новая программа";
-  const options: NotificationOptions = {
-    body: data.body ?? "",
-    icon: "/icons/icon-192x192.png",
-    badge: "/icons/icon-192x192.png",
-    tag: data.tag,
-    data: { url: data.url ?? "/" },
-  };
+  // Не показывать если приложение открыто и в фокусе
   (event as ExtendableEvent).waitUntil(
-    (self as unknown as ServiceWorkerGlobalScope).registration.showNotification(title, options)
+    sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      const isFocused = clientList.some((c) => (c as WindowClient).focused);
+      if (isFocused) return;
+
+      const title = data.title ?? "Новая программа";
+      const options: NotificationOptions = {
+        body: data.body ?? "",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-192x192.png",
+        tag: data.tag,
+        data: { url: data.url ?? "/" },
+      };
+      return sw.registration.showNotification(title, options);
+    })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
+  const sw = self as unknown as ServiceWorkerGlobalScope;
   const e = event as NotificationEvent;
   e.notification.close();
-  const url = e.notification.data?.url ?? "/";
+  const path = e.notification.data?.url ?? "/";
+  const fullUrl = new URL(path, sw.location.origin).href;
   e.waitUntil(
-    (self as unknown as ServiceWorkerGlobalScope).clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((clientList) => {
-        const existing = clientList.find((c) => c.url.includes(url));
-        if (existing) return existing.focus();
-        return (self as unknown as ServiceWorkerGlobalScope).clients.openWindow(url);
-      })
+    sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      const existing = clientList.find((c) => c.url === fullUrl);
+      if (existing) return existing.focus();
+      return sw.clients.openWindow(fullUrl);
+    })
   );
 });

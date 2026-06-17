@@ -7,7 +7,7 @@ export function NotificationBell() {
   const { isSupported, isSubscribed, loading, subscribe, unsubscribe } =
     usePushSubscription(rpiBaseUrl);
 
-  if (!isSupported) return null;
+  if (!isSupported || isSubscribed) return null;
 
   const handleClick = () => {
     if (isSubscribed) unsubscribe();
