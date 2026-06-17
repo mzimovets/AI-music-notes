@@ -19,7 +19,6 @@ export const stacksRoutes = (app, urlencodedParser) => {
   });
 
   app.post("/stack/:stackId", urlencodedParser, (req, res) => {
-    console.log("req.body", req.body);
     database.insert({ _id: req.params.stackId, ...req.body, updatedAt: Date.now() }, (err, doc) => {
       console.log("adding stack: ", req.params.stackId);
       if (err) console.log("err", err);
@@ -29,7 +28,6 @@ export const stacksRoutes = (app, urlencodedParser) => {
   });
 
   app.post("/stack/:stackId/update", urlencodedParser, (req, res) => {
-    console.log("req.body", req.body);
     database.update(
       { _id: req.params.stackId },
       { $set: { ...req.body, updatedAt: Date.now() } },
