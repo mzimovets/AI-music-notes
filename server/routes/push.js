@@ -31,6 +31,7 @@ webpush.setVapidDetails(
 async function sendToAll(payload) {
   database.find({ docType: "push-subscription" }, async (err, subs) => {
     if (err || !subs?.length) return;
+    console.log(`[push] Отправляю подписчикам: ${subs.length}`);
     for (const sub of subs) {
       try {
         await webpush.sendNotification(sub.subscription, JSON.stringify(payload));

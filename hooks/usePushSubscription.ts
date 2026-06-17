@@ -20,7 +20,11 @@ export function usePushSubscription(rpiBaseUrl: string) {
       "serviceWorker" in navigator &&
       "PushManager" in window;
     setIsSupported(supported);
-    if (supported) checkSubscription();
+    if (supported) {
+      // Если разрешение уже выдано — сразу скрываем колокольчик
+      if (Notification.permission === "granted") setIsSubscribed(true);
+      checkSubscription();
+    }
   }, []);
 
   async function checkSubscription() {
@@ -36,6 +40,7 @@ export function usePushSubscription(rpiBaseUrl: string) {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") return;
+      setIsSubscribed(true); // скрываем колокольчик сразу после разрешения
 
       const base = rpiBaseUrl || "";
       const keyRes = await fetch(`${base}/api/push/vapid-public-key`);

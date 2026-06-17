@@ -138,12 +138,16 @@ self.addEventListener("push", (event) => {
   }
 
   (event as ExtendableEvent).waitUntil(
-    sw.registration.showNotification(data.title ?? "Новая программа", {
-      body: data.body ?? "",
-      icon: "/icons/icon-192x192.png",
-      badge: "/icons/icon-192x192.png",
-      tag: data.tag,
-      data: { url: data.url ?? "/" },
+    sw.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      const appOpen = clientList.some((c) => (c as WindowClient).focused);
+      if (appOpen) return;
+      return sw.registration.showNotification(data.title ?? "Новая программа", {
+        body: data.body ?? "",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/icon-192x192.png",
+        tag: data.tag,
+        data: { url: data.url ?? "/" },
+      });
     })
   );
 });
