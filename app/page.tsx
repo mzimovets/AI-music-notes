@@ -50,12 +50,19 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [showStacks, setShowStacks] = useState(() => {
     if (typeof window === "undefined") return false;
+    // Пробуем кешированное имя пользователя, чтобы прочитать нужный ключ сразу
+    const cachedUsername = localStorage.getItem("cachedUsername");
+    if (cachedUsername) {
+      const saved = localStorage.getItem(`showStacks_${cachedUsername}`);
+      if (saved !== null) return saved === "true";
+    }
     return localStorage.getItem("showStacks") === "true";
   });
 
-  // Загружаем пользовательский preferences когда сессия стала известна
+  // Кешируем имя пользователя и синхронизируем предпочтение
   useEffect(() => {
     if (!session?.user?.name) return;
+    localStorage.setItem("cachedUsername", session.user.name);
     const saved = localStorage.getItem(`showStacks_${session.user.name}`);
     if (saved !== null) setShowStacks(saved === "true");
   }, [session?.user?.name]);
@@ -335,19 +342,21 @@ export default function Home() {
               aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
               style={{
                 width: 36, height: 36, borderRadius: "50%",
-                background: "linear-gradient(135deg, #EDE0D4, #D9C4AE)",
+                background: "linear-gradient(to right, #BD9673, #7D5E42)",
                 border: "none", cursor: "pointer", flexShrink: 0,
                 display: "flex", alignItems: "center", justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(125,94,66,0.18)",
-                transition: "box-shadow 0.15s, transform 0.1s",
+                boxShadow: "0 2px 8px rgba(125,94,66,0.35)",
+                transition: "box-shadow 0.15s",
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 14px rgba(125,94,66,0.30)")}
-              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(125,94,66,0.18)")}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 14px rgba(125,94,66,0.5)")}
+              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(125,94,66,0.35)")}
             >
               <DownArrIcon
-                width={16}
-                height={16}
-                fill="#7D5E42"
+                width={18}
+                height={18}
+                fill="white"
+                stroke="white"
+                strokeWidth={0.8}
                 style={{ transition: "transform 0.25s ease", transform: showStacks ? "rotate(0deg)" : "rotate(180deg)" }}
               />
             </button>
