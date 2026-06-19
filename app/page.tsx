@@ -52,6 +52,13 @@ export default function Home() {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("showStacks") === "true";
   });
+
+  // Загружаем пользовательский preferences когда сессия стала известна
+  useEffect(() => {
+    if (!session?.user?.name) return;
+    const saved = localStorage.getItem(`showStacks_${session.user.name}`);
+    if (saved !== null) setShowStacks(saved === "true");
+  }, [session?.user?.name]);
   const [isWifiManagerOpen, setIsWifiManagerOpen] = useState(false);
   const [hasFirmwareUpdate, setHasFirmwareUpdate] = useState(false);
   const [hasBoardDanger, setHasBoardDanger] = useState(false);
@@ -95,8 +102,9 @@ export default function Home() {
   }, [isLocal, rpiBaseUrl, boardOffline]);
 
   useEffect(() => {
-    localStorage.setItem("showStacks", String(showStacks));
-  }, [showStacks]);
+    const key = session?.user?.name ? `showStacks_${session.user.name}` : "showStacks";
+    localStorage.setItem(key, String(showStacks));
+  }, [showStacks, session?.user?.name]);
 
   useEffect(() => {
     const backUrl = getBackendBaseUrl();
@@ -321,31 +329,28 @@ export default function Home() {
           </div>
 
           {stacks.length > 4 && (
-            <Button
-              isIconOnly
+            <button
               type="button"
-              onPress={(e) => {
-                setShowStacks((prev) => !prev);
-              }}
-              //           className="
-              //   flex items-center justify-center
-              //   h-8 w-8 p-0
-              //   bg-transparent border-none shadow-none
-              //   text-black
-              //   transition-transform duration-200
-              //   hover:scale-110
-              //   focus:outline-none
-              //   active:outline-none
-              // "
+              onClick={() => setShowStacks((prev) => !prev)}
               aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+              style={{
+                width: 36, height: 36, borderRadius: "50%",
+                background: "linear-gradient(135deg, #EDE0D4, #D9C4AE)",
+                border: "none", cursor: "pointer", flexShrink: 0,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 2px 8px rgba(125,94,66,0.18)",
+                transition: "box-shadow 0.15s, transform 0.1s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.boxShadow = "0 4px 14px rgba(125,94,66,0.30)")}
+              onMouseLeave={(e) => (e.currentTarget.style.boxShadow = "0 2px 8px rgba(125,94,66,0.18)")}
             >
               <DownArrIcon
-                width={18}
-                height={18}
-                className="text-black transition-transform duration-200"
-                style={{ transform: showStacks ? "rotate(0deg)" : "rotate(180deg)" }}
+                width={16}
+                height={16}
+                fill="#7D5E42"
+                style={{ transition: "transform 0.25s ease", transform: showStacks ? "rotate(0deg)" : "rotate(180deg)" }}
               />
-            </Button>
+            </button>
           )}
         </div>
       )}
