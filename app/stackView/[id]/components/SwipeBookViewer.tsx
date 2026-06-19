@@ -276,6 +276,41 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       };
     }, [navigate]);
 
+    // ── Mouse events for desktop ──────────────────────────────────────────────
+    const mouseStartX = useRef<number | null>(null);
+    const mouseStartY = useRef<number | null>(null);
+
+    useEffect(() => {
+      const el = containerRef.current;
+      if (!el) return;
+
+      const onMouseDown = (e: MouseEvent) => {
+        mouseStartX.current = e.clientX;
+        mouseStartY.current = e.clientY;
+      };
+
+      const onMouseUp = (e: MouseEvent) => {
+        if (mouseStartX.current === null || mouseStartY.current === null) return;
+        const dx = e.clientX - mouseStartX.current;
+        const dy = e.clientY - mouseStartY.current;
+        mouseStartX.current = null;
+        mouseStartY.current = null;
+
+        if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) {
+          navigate(dx < 0 ? 1 : -1);
+        } else if (Math.abs(dx) < 8 && Math.abs(dy) < 8) {
+          onTapRef.current?.();
+        }
+      };
+
+      el.addEventListener("mousedown", onMouseDown);
+      el.addEventListener("mouseup", onMouseUp);
+      return () => {
+        el.removeEventListener("mousedown", onMouseDown);
+        el.removeEventListener("mouseup", onMouseUp);
+      };
+    }, [navigate]);
+
     // Всегда одна страница
     const pagesToShow = mobilePages.length > 0
       ? [mobilePages[mobileIndex]]

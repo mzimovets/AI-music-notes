@@ -39,11 +39,10 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
         let loadingTask;
         if (typeof fileUrl === "string") {
-          loadingTask = (pdfjsLib as any).getDocument(fileUrl);
+          loadingTask = (pdfjsLib as any).getDocument({ url: fileUrl, isEvalSupported: false });
         } else {
           const arrayBuffer = await fileUrl.arrayBuffer();
-
-          loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer });
+          loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer, isEvalSupported: false });
         }
 
         const pdf = await loadingTask.promise;
@@ -171,19 +170,15 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         height: "100%",
         width: "100%",
         boxSizing: "border-box",
-        overflow: "auto",
+        overflow: "hidden",
       }}
     >
       <canvas
         ref={canvasRef}
         style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          height: "100%",
           width: "100%",
-          boxSizing: "border-box",
-          overflow: "auto",
+          height: "auto",
+          display: "block",
         }}
       />
     </div>
