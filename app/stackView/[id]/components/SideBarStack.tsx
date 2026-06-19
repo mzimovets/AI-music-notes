@@ -559,7 +559,7 @@ export const SideBarStack = ({
                     variant="flat"
                     onClick={() => setActiveTab("stack")}
                   >
-                    Программа
+                    Репертуар
                   </Button>
                   {stackSongs.length > 0 && (
                     <Button
