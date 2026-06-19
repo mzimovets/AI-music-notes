@@ -45,8 +45,8 @@ export const CategoryHeader = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-8" >
-      {/* Левая колонка: кнопка назад + картинка */}
-      <div className="flex items-start gap-3 md:w-auto md:grow-0 justify-center md:justify-start">
+      {/* Левая колонка: картинка с кнопкой назад поверх */}
+      <div className="relative md:w-auto md:grow-0 flex justify-center md:justify-start">
         <NavBackButton />
         <Card className="w-[200px] aspect-square">
           <Image
