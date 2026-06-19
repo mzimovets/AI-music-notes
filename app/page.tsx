@@ -13,7 +13,6 @@ import { Button } from "@heroui/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoadingCamerton } from "@/components/LoadingCamerton";
 import { StackCard } from "./home/StackCard";
-import { LeftArrIcon } from "@/components/icons/LeftArrIcon";
 import { DownArrIcon } from "@/components/icons/DownArrIcon";
 import { Search } from "./home/search/Search";
 import { useSession } from "next-auth/react";
@@ -340,11 +339,12 @@ export default function Home() {
               // "
               aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
             >
-              {showStacks ? (
-                <DownArrIcon width={18} height={18} className="text-black" />
-              ) : (
-                <LeftArrIcon width={18} height={18} className="text-black" />
-              )}
+              <DownArrIcon
+                width={18}
+                height={18}
+                className="text-black transition-transform duration-200"
+                style={{ transform: showStacks ? "rotate(0deg)" : "rotate(180deg)" }}
+              />
             </Button>
           )}
         </div>
