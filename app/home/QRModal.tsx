@@ -22,6 +22,8 @@ export const QRModal = ({
   const [otp, setOtp] = useState("");
   const [verified, setVerified] = useState(false);
   const tokenRef = useRef("");
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -38,7 +40,7 @@ export const QRModal = ({
       if (token === tokenRef.current) {
         setVerified(true);
         setTimeout(() => {
-          onClose();
+          onCloseRef.current();
         }, 2000);
       }
     };
@@ -54,14 +56,14 @@ export const QRModal = ({
       .then((data) => {
         tokenRef.current = data.token;
         setOtp(data.otp);
-        const frontendBase = `http://${data.localIP}:${window.location.port || 3000}`;
-        setQrUrl(`${frontendBase}/authPage?qr=${data.token}`);
+        setQrUrl(`${window.location.origin}/authPage?qr=${data.token}`);
       });
 
     return () => {
       socket.off("qr-verified", handleVerified);
     };
-  }, [isOpen, onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   return (
     <Modal
