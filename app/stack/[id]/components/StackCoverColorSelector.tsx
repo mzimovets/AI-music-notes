@@ -17,7 +17,7 @@ export const StackCoverColorSelector = () => {
       <PopoverContent>
         <div className="px-1 py-2">
           <div className="text-small font-bold">
-            Выберите цвет обложки стопки
+            Выберите цвет обложки программы
           </div>
           <div className="grid grid-cols-4 gap-3 mt-3 justify-items-center">
             {[

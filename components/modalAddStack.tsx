@@ -117,8 +117,8 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
               setStackName(e.target.value);
               if (validationError) setValidationError(false);
             }}
-            placeholder="Введите название стопки"
-            label="Название стопки"
+            placeholder="Введите название программы"
+            label="Название программы"
             labelPlacement="outside"
             isRequired
             isInvalid={validationError}

@@ -332,14 +332,14 @@ export default function Home() {
             onClick={() => setShowStacks((prev) => !prev)}
             className="leading-none cursor-pointer select-none"
           >
-            Стопки
+            Программы
           </div>
 
           {stacks.length > 4 && (
             <button
               type="button"
               onClick={() => setShowStacks((prev) => !prev)}
-              aria-label={showStacks ? "Скрыть стопки" : "Показать стопки"}
+              aria-label={showStacks ? "Скрыть программы" : "Показать программы"}
               style={{
                 width: 36, height: 36, borderRadius: "50%",
                 background: "linear-gradient(to right, #BD9673, #7D5E42)",

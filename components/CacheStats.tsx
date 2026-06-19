@@ -77,7 +77,7 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
   return (
     <div className="flex justify-center mt-6 text-gray-400 font-bold text-sm">
       <span>
-        Стопки:{" "}
+        Программы:{" "}
         <span className="text-gray-500 font-medium">{stacksCount}</span> •
         Ноты:{" "}
         <span className="text-gray-500 font-medium">{songsCount}</span> •
