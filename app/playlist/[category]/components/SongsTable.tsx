@@ -35,11 +35,12 @@ export const SongsTable = () => {
 
     if (!searchValue.trim()) return sorted;
 
-    const lowerSearch = searchValue.toLowerCase().trim();
+    const norm = (s: string) => s.normalize("NFC").toLowerCase();
+    const lowerSearch = norm(searchValue).trim();
 
     return sorted.filter((song) => {
-      const nameMatch = song.name?.toLowerCase().includes(lowerSearch);
-      const authorMatch = song.author?.toLowerCase().includes(lowerSearch);
+      const nameMatch = song.name && norm(song.name).includes(lowerSearch);
+      const authorMatch = song.author && norm(song.author).includes(lowerSearch);
       return nameMatch || authorMatch;
     });
   }, [songs, searchValue]);

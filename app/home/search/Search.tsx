@@ -40,22 +40,20 @@ export const Search = ({ allSongs }: { allSongs: ServerSong[] }) => {
       return;
     }
 
-    const lowerSearch = searchText.toLowerCase().trim();
+    const norm = (s: string) => s.normalize("NFC").toLowerCase();
+    const lowerSearch = norm(searchText).trim();
 
     const results = allSongs.filter((song) => {
-      const nameMatch = song.name.toLowerCase().includes(lowerSearch);
-
-      const authorMatch =
-        song.author && song.author.toLowerCase().includes(lowerSearch);
-
+      const nameMatch = norm(song.name).includes(lowerSearch);
+      const authorMatch = song.author && norm(song.author).includes(lowerSearch);
       return nameMatch || authorMatch;
     });
 
     results.sort((a, b) => {
-      const aNameLower = a.name.toLowerCase();
-      const bNameLower = b.name.toLowerCase();
-      const aAuthorLower = a.author ? a.author.toLowerCase() : "";
-      const bAuthorLower = b.author ? b.author.toLowerCase() : "";
+      const aNameLower = norm(a.name);
+      const bNameLower = norm(b.name);
+      const aAuthorLower = a.author ? norm(a.author) : "";
+      const bAuthorLower = b.author ? norm(b.author) : "";
 
       const aNameStartsWith = aNameLower.startsWith(lowerSearch);
       const bNameStartsWith = bNameLower.startsWith(lowerSearch);

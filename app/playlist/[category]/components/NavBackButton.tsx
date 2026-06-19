@@ -16,7 +16,7 @@ export const NavBackButton = () => {
           router.push("/");
         }}
         isIconOnly
-        className={`fixed left-3 top-20 z-9 ${buttonClassName} font-normal shadow-md`}
+        className={`${buttonClassName} font-normal shadow-md`}
       >
         <LeftArr className="h-6 w-6" />
       </Button>

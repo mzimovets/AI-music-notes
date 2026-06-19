@@ -6,6 +6,7 @@ import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
 import { usePlaylistContext } from "../PlaylistContextProvider";
 import { categorySongs } from "@/components/constants";
 import { ChangeEvent } from "react";
+import { NavBackButton } from "./NavBackButton";
 
 export const CategoryHeader = () => {
   const params = useParams<{ category: string }>();
@@ -44,8 +45,9 @@ export const CategoryHeader = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-8" >
-      {/* Левая колонка с изображением */}
-      <div className="flex justify-center md:block md:w-auto md:grow-0">
+      {/* Левая колонка: кнопка назад + картинка */}
+      <div className="flex items-start gap-3 md:w-auto md:grow-0 justify-center md:justify-start">
+        <NavBackButton />
         <Card className="w-[200px] aspect-square">
           <Image
             alt="album cover"
