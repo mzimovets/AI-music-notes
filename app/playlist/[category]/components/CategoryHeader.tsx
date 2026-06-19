@@ -45,9 +45,10 @@ export const CategoryHeader = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-8" >
-      {/* Левая колонка: картинка с кнопкой назад поверх */}
-      <div className="md:w-auto md:grow-0 flex justify-center md:justify-start">
-        <div className="relative w-[200px] aspect-square rounded-xl overflow-hidden shadow-md">
+      {/* Левая колонка: кнопка назад + картинка */}
+      <div className="md:w-auto md:grow-0 flex items-center gap-2 justify-center md:justify-start">
+        <NavBackButton />
+        <div className="w-[200px] aspect-square rounded-xl overflow-hidden shadow-md flex-shrink-0">
           <img
             alt="album cover"
             className="object-cover w-full h-full"
@@ -55,7 +56,6 @@ export const CategoryHeader = () => {
             width={200}
             height={200}
           />
-          <NavBackButton />
         </div>
       </div>
 
