@@ -438,7 +438,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                     variant="flat"
                     onClick={() => setActiveTab("stack")}
                   >
-                    Стопка
+                    Программа
                   </Button>
                   {stackSongs.length > 0 && (
                     <Button
@@ -611,7 +611,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                       >
                         <div className="flex items-center justify-between px-2 mb-2">
                           <span className="text-xs main-font font-bold uppercase tracking-wider text-default-500">
-                            Ваша стопка
+                            Ваша программа
                           </span>
                           <div className="flex gap-2">
                             <Chip

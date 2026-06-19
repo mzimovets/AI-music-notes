@@ -273,7 +273,7 @@ export const Sidebar = () => {
         <Card className="mt-8 p-2 pt-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm overflow-visible rounded-2xl">
           <div className="flex items-center justify-between px-2 mb-2">
             <span className="text-xs main-font font-bold uppercase tracking-wider text-default-400">
-              Ваша стопка
+              Ваша программа
             </span>
             <span className="text-[10px] bg-default-100 px-2 py-0.5 rounded-full text-default-500">
               Drag & Drop

@@ -484,7 +484,7 @@ export const SideBarStack = ({
               <ModalBody>
                 <div className="space-y-3">
                   <p className="text-gray-600 input-header text-sm">
-                    Стопка{" "}
+                    Программа{" "}
                     <span className="font-semibold text-gray-900">
                       "{stackResponse.doc?.name}"
                     </span>{" "}
@@ -492,7 +492,7 @@ export const SideBarStack = ({
                   </p>
                   <div className="p-4 bg-amber-50 rounded-xl border border-amber-200">
                     <p className="text-sm font-semibold text-amber-800 input-header flex items-center gap-2">
-                      <span>⚠️</span> Певчие потеряют доступ к стопке
+                      <span>⚠️</span> Певчие потеряют доступ к программе
                     </p>
                   </div>
                 </div>
@@ -559,7 +559,7 @@ export const SideBarStack = ({
                     variant="flat"
                     onClick={() => setActiveTab("stack")}
                   >
-                    Стопка
+                    Программа
                   </Button>
                   {stackSongs.length > 0 && (
                     <Button
@@ -844,7 +844,7 @@ export const SideBarStack = ({
                       >
                         <div className="flex items-center justify-between px-2 mb-2">
                           <span className="text-xs main-font font-bold uppercase tracking-wider text-default-500">
-                            Ваша стопка
+                            Ваша программа
                           </span>
                           <div className="flex gap-2">
                             {session?.user?.role === "регент" && (

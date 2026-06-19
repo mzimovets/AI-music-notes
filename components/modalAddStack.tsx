@@ -107,7 +107,7 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
           <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#BD9673] to-[#7D5E42] flex items-center justify-center shadow-lg">
             <StackIcon className="w-7 h-7 text-white" />
           </div>
-          Создать новую стопку
+          Создать новую программу
         </ModalHeader>
         <ModalBody>
           <Input

@@ -267,7 +267,7 @@ return (
                       className="w-full bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-md justify-start gap-1.5 input-header px-4"
                       startContent={<StackIcon color="white" />}
                     >
-                      Новая стопка
+                      Новая программа
                     </Button>
                   )}
 
@@ -358,7 +358,7 @@ return (
                   <ExitIcon className="w-7 h-7 text-white" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">
-                  Покинуть стопку
+                  Покинуть программу
                 </h3>
                 <p className="text-gray-600 text-base max-w-xs input-header">
                   Вы действительно хотите выйти из программы и перейти на главную

@@ -103,11 +103,11 @@ export default function StackPage() {
   };
 
   // Use a simplified helper for stack name
-  const stackNameToSave = stackName?.trim() || "Стопка";
+  const stackNameToSave = stackName?.trim() || "Программа";
 
   // ИИ ниже
   const save = async () => {
-    const finalName = stackName?.trim() ? stackName : "Стопка";
+    const finalName = stackName?.trim() ? stackName : "Программа";
 
     if (!navigator.onLine) {
       enqueue({
@@ -409,7 +409,7 @@ export default function StackPage() {
           <EmptyStackIcon className="w-32 h-32 text-gray-400" />
 
           <p className="text-center text-gray-400 text-xl input-header font-medium leading-snug max-w-md">
-            В этой стопке пока нет песен — добавьте песню через боковое меню{" "}
+            В этой программе пока нет песен — добавьте песню через боковое меню{" "}
             <SidebarIcon className="inline" />
           </p>
         </div>

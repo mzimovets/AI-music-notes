@@ -132,19 +132,13 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
 }) {
   const [show, setShow] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const onFocus = () => {
-    setTimeout(() => {
-      const panel = inputRef.current?.closest("[data-expand-panel]")?.parentElement;
-      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 300);
-  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
       <div style={{ position: "relative" }}>
         <input
           ref={inputRef}
           type={show ? "text" : "password"} placeholder={placeholder} value={value} autoFocus
-          onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown} onFocus={onFocus}
+          onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
           className="input-header"
           style={{
             width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
@@ -381,9 +375,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   useEffect(() => {
     if (!isOpen) { if (checkTimer.current) clearInterval(checkTimer.current); return; }
     checkUpdate();
-    checkTimer.current = setInterval(checkUpdate, 3 * 60_000);
+    // Если ошибка — повторяем каждые 30с, иначе каждые 3 мин
+    const interval = updateInfo?.error ? 30_000 : 3 * 60_000;
+    checkTimer.current = setInterval(checkUpdate, interval);
     return () => { if (checkTimer.current) clearInterval(checkTimer.current); };
-  }, [isOpen, checkUpdate]);
+  }, [isOpen, checkUpdate, updateInfo?.error]);
 
   // ── Poll sync status every 5 min ─────────────────────────────────────────────
   const fetchSyncStatus = useCallback(async () => {
@@ -1586,7 +1582,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                                               {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
                                             </Chip>
                                           </TableCell>
-                                          <TableCell className="text-center text-black/40">{c.type === "song" ? "Песня" : "Стопка"}</TableCell>
+                                          <TableCell className="text-center text-black/40">{c.type === "song" ? "Песня" : "Программа"}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
@@ -1645,16 +1641,23 @@ function ScanNetItem({ net, status, connectingTo, selectedSsid, password, connec
   const sel = selectedSsid === net.ssid;
   const isConnecting = connectingTo === net.ssid;
   const isCurrentNet = net.ssid === status?.ssid;
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const handleClick = () => {
     if (isCurrentNet || isConnecting) return;
     if (isOpen_(net)) { handleConnectNew(net.ssid, ""); return; }
     setConnectError(null); setPassword("");
+    const opening = !sel;
     setSelectedSsid(sel ? null : net.ssid);
+    if (opening) {
+      setTimeout(() => {
+        containerRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 50);
+    }
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", marginBottom: 4 }}>
+    <div ref={containerRef} style={{ display: "flex", flexDirection: "column", marginBottom: 4 }}>
       <button onClick={handleClick} style={{
         display: "flex", alignItems: "center", gap: 10,
         padding: "9px 12px", width: "100%",

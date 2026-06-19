@@ -66,7 +66,7 @@ export const DeleteModal = (props) => {
                 </div>
               </div>
               <h3 className="text-2xl font-bold text-gray-900 mt-2">
-                Удалить стопку?
+                Удалить программу?
               </h3>
               <p className="text-gray-600 text-base input-header max-w-xs">
                 Несохранённые изменения будут потеряны
