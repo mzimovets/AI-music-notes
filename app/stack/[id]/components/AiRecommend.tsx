@@ -754,6 +754,7 @@ function TabRecommend({
   const [context, setContext] = useState<string>(saved?.context ?? "");
   const [duration, setDuration] = useState<number>(saved?.duration ?? 60);
   const [loading, setLoading] = useState(false);
+  const [progressText, setProgressText] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [items, setItems] = useState<AiSong[]>(() => {
     if (!saved?.items?.length) return [];
@@ -778,6 +779,7 @@ function TabRecommend({
     setError(null);
     setItems([]);
     setRationale("");
+    setProgressText("");
     try {
       const res = await fetch(`/api/recommend`, {
         method: "POST",
@@ -785,7 +787,6 @@ function TabRecommend({
         body: JSON.stringify({
           context,
           durationMinutes: duration,
-          // Отправляем максимум 80 песен с кэшированным AI-анализом если есть
           songs: library.slice(0, 80).map((s) => ({
             name: s.name,
             category: s.category,
@@ -793,23 +794,49 @@ function TabRecommend({
           })),
         }),
       });
-      const data = await res.json();
-      if (data.status !== "ok") throw new Error(data.message || "Ошибка сервера");
-      if (data.rationale) setRationale(data.rationale);
-      setItems(
-        (data.recommendations as any[]).map((r) => ({
-          id: genInstanceId(),
-          name: r.name,
-          author: r.author ?? "",
-          section: "",
-          reason: r.reason ?? "",
-          matched: matchSong(r.name, library),
-        }))
-      );
+
+      if (!res.body) throw new Error("Нет ответа от сервера");
+
+      const reader = res.body.getReader();
+      const dec = new TextDecoder();
+      let buf = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += dec.decode(value, { stream: true });
+
+        const parts = buf.split("\n\n");
+        buf = parts.pop() ?? "";
+
+        for (const part of parts) {
+          if (!part.startsWith("data: ")) continue;
+          const event = JSON.parse(part.slice(6));
+          if (event.type === "progress") {
+            setProgressText(event.text);
+          } else if (event.type === "result") {
+            if (event.rationale) setRationale(event.rationale);
+            setItems(
+              (event.recommendations as any[]).map((r) => ({
+                id: genInstanceId(),
+                name: r.name,
+                author: r.author ?? "",
+                section: "",
+                reason: r.reason ?? "",
+                matched: matchSong(r.name, library),
+              }))
+            );
+            setProgressText("");
+          } else if (event.type === "error") {
+            throw new Error(event.message);
+          }
+        }
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setLoading(false);
+      setProgressText("");
     }
   };
 
@@ -883,10 +910,18 @@ function TabRecommend({
       {library.length === 0 && (
         <p className="text-center text-amber-500 text-xs">Библиотека не загружена</p>
       )}
-      {library.length > 0 && !context.trim() && (
-        <p className="text-center text-default-400 text-xs">Опишите контекст выступления</p>
+      {loading && progressText && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center" }}>
+          <span style={{
+            display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+            border: "2px solid #7D5E42", borderTopColor: "transparent",
+            animation: "spin 0.8s linear infinite", flexShrink: 0,
+          }} />
+          <span className="main-font" style={{ fontSize: 12, color: "#7D5E42" }}>{progressText}</span>
+        </div>
       )}
       {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       {rationale && (
         <div style={{

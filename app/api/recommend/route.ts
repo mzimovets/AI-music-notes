@@ -1,73 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 
-const MODEL = "claude-sonnet-4-6";
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const MODEL = "claude-haiku-4-5-20251001";
 
 function parseJsonResponse(text: string) {
   const stripped = text.replace(/```(?:json)?\s*/gi, "").replace(/```/g, "").trim();
   const match = stripped.match(/\{[\s\S]*\}/);
-  if (!match) {
-    console.error("[recommend] raw text was:", JSON.stringify(text));
-    throw new Error("Нет JSON в ответе модели");
-  }
+  if (!match) throw new Error("Нет JSON в ответе модели");
   return JSON.parse(match[0]);
-}
-
-async function callClaude(messages: { role: string; content: string }[]): Promise<string> {
-  const baseUrl = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "");
-  const apiKey  = process.env.ANTHROPIC_API_KEY!;
-
-  const res = await fetch(`${baseUrl}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 1024,
-      // Запрещаем extended thinking — оно добавляет 30+ сек и не нужно для этой задачи
-      thinking: { type: "disabled" },
-      system: [
-        "Ты — помощник по составлению концертных программ.",
-        "Отвечай ТОЛЬКО валидным JSON-объектом без каких-либо пояснений, markdown или других слов.",
-        "КРИТИЧНО: используй названия песен ТОЧНО так, как они написаны в библиотеке — не изменяй, не сокращай, не добавляй слова.",
-      ].join(" "),
-      messages,
-    }),
-  });
-
-  const raw = await res.text();
-  console.log("[recommend] HTTP status:", res.status);
-  console.log("[recommend] raw response:", raw.slice(0, 600));
-
-  const data = JSON.parse(raw);
-
-  // Ищем блок с type="text" — sonnet может возвращать thinking-блоки перед текстом
-  if (Array.isArray(data?.content)) {
-    const textBlock = data.content.find((b: any) => b.type === "text" && b.text);
-    if (textBlock) return textBlock.text;
-  }
-
-  // OpenAI-формат
-  if (data?.choices?.[0]?.message?.content) return data.choices[0].message.content;
-
-  throw new Error(`Неожиданный формат ответа: ${raw.slice(0, 200)}`);
 }
 
 export async function POST(req: NextRequest) {
   if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
+    return Response.json(
       { status: "error", message: "ANTHROPIC_API_KEY не задан на сервере" },
       { status: 503 }
     );
   }
 
   const body = await req.json().catch(() => null);
-  if (!body) {
-    return NextResponse.json({ status: "error", message: "Неверный JSON" }, { status: 400 });
-  }
+  if (!body) return Response.json({ status: "error", message: "Неверный JSON" }, { status: 400 });
 
   const { context, durationMinutes, songs } = body as {
     context?: string;
@@ -76,16 +30,12 @@ export async function POST(req: NextRequest) {
   };
 
   if (!songs || !Array.isArray(songs) || songs.length === 0) {
-    return NextResponse.json(
-      { status: "error", message: "Список песнопений не передан" },
-      { status: 400 }
-    );
+    return Response.json({ status: "error", message: "Список песнопений не передан" }, { status: 400 });
   }
 
   const dur = Number(durationMinutes) || 60;
   const estimatedCount = Math.max(1, Math.round(dur / 3));
 
-  // Формируем список: имя, категория, mood + description + теги из AI-анализа
   const songList = songs
     .slice(0, 70)
     .map((s) => {
@@ -124,21 +74,97 @@ ${songList}
 Верни JSON:
 {"rationale":"2-3 предложения о логике программы","recommendations":[{"name":"ТОЧНОЕ название из библиотеки","reason":"почему эта песня подходит по контексту"}]}`;
 
-  try {
-    const text = await callClaude([{ role: "user", content: userPrompt }]);
-    const parsed = parseJsonResponse(text);
+  const encoder = new TextEncoder();
 
-    if (!Array.isArray(parsed.recommendations)) {
-      throw new Error("Неверная структура ответа");
-    }
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (data: object) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+        } catch {}
+      };
 
-    return NextResponse.json({
-      status: "ok",
-      recommendations: parsed.recommendations,
-      rationale: parsed.rationale ?? "",
-    });
-  } catch (err: any) {
-    console.error("[api/recommend]", err.message);
-    return NextResponse.json({ status: "error", message: err.message }, { status: 500 });
-  }
+      try {
+        send({ type: "progress", text: `Анализирую библиотеку: ${Math.min(songs.length, 70)} произведений` });
+
+        const baseUrl = (process.env.ANTHROPIC_BASE_URL || "https://api.anthropic.com").replace(/\/$/, "");
+        const apiKey = process.env.ANTHROPIC_API_KEY!;
+
+        send({ type: "progress", text: "Подбираю репертуар…" });
+
+        const res = await fetch(`${baseUrl}/v1/messages`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "Authorization": `Bearer ${apiKey}`,
+          },
+          body: JSON.stringify({
+            model: MODEL,
+            max_tokens: 1024,
+            stream: true,
+            system: [
+              "Ты — помощник по составлению концертных программ.",
+              "Отвечай ТОЛЬКО валидным JSON-объектом без каких-либо пояснений, markdown или других слов.",
+              "КРИТИЧНО: используй названия песен ТОЧНО так, как они написаны в библиотеке — не изменяй, не сокращай, не добавляй слова.",
+            ].join(" "),
+            messages: [{ role: "user", content: userPrompt }],
+          }),
+        });
+
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`Anthropic ${res.status}: ${errText.slice(0, 200)}`);
+        }
+
+        send({ type: "progress", text: "Формирую программу…" });
+
+        let fullText = "";
+        const reader = res.body!.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+
+          const lines = buf.split("\n");
+          buf = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.slice(6).trim();
+            if (raw === "[DONE]") continue;
+            try {
+              const event = JSON.parse(raw);
+              if (event.type === "content_block_delta" && event.delta?.type === "text_delta") {
+                fullText += event.delta.text;
+                send({ type: "chunk", text: event.delta.text });
+              }
+            } catch {}
+          }
+        }
+
+        const parsed = parseJsonResponse(fullText);
+        if (!Array.isArray(parsed.recommendations)) throw new Error("Неверная структура ответа");
+
+        send({ type: "result", recommendations: parsed.recommendations, rationale: parsed.rationale ?? "" });
+      } catch (err: any) {
+        send({ type: "error", message: err.message });
+      } finally {
+        try { controller.close(); } catch {}
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache, no-transform",
+      "Connection": "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
 }
