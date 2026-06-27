@@ -25,6 +25,7 @@ export const Pattern: React.FC<PatternProps> = ({
     xmlSpace="preserve"
     xmlns="http://www.w3.org/2000/svg"
     className={className}
+    style={{ overflow: "hidden" }}
   >
     <defs id="defs1">
       <linearGradient id="patternGradient" x1="0%" y1="0%" x2="100%" y2="100%">
