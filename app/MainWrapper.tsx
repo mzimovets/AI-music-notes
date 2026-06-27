@@ -6,12 +6,13 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isStackView = pathname.startsWith("/stackView");
   const isSongRead = pathname.startsWith("/songRead");
+  const isAuthPage = pathname.startsWith("/authPage");
 
   return (
     <>
       <main
         className={
-          isStackView || isSongRead
+          isStackView || isSongRead || isAuthPage
             ? "flex-grow"
             : "md:container md:w-[85%] lg:w-[65%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
         }
