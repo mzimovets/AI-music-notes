@@ -44,7 +44,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         }
 
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.polyfill.mjs";
 
         let loadingTask;
         if (typeof fileUrl === "string") {
