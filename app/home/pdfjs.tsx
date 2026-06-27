@@ -19,6 +19,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [pdfDoc, setPdfDocState] = useState<any>(null);
   const [scale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -93,6 +94,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
       }
 
       try {
+        setRenderError(null);
         onLoadStartRef.current?.();
         if (num < 1 || num > pdfDoc.numPages) {
           console.warn(`[Pdfjs] pageNum ${num} out of range [1, ${pdfDoc.numPages}] — skipping render`);
@@ -141,6 +143,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") {
           console.error("Ошибка при рендеринге страницы PDF:", err);
+          setRenderError(`${err?.name}: ${err?.message}`);
         }
       } finally {
         if (isActive) {
@@ -171,6 +174,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         width: "100%",
         boxSizing: "border-box",
         overflow: "hidden",
+        position: "relative",
       }}
     >
       <canvas
@@ -181,6 +185,16 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           display: "block",
         }}
       />
+      {renderError && (
+        <div style={{
+          position: "absolute", top: 8, left: 8, right: 8,
+          background: "rgba(200,0,0,0.85)", color: "#fff",
+          borderRadius: 8, padding: "8px 12px", fontSize: 12,
+          wordBreak: "break-all", zIndex: 10,
+        }}>
+          {renderError}
+        </div>
+      )}
     </div>
   );
 }
