@@ -152,8 +152,8 @@ export default function Page() {
           </ModalBody>
         </ModalContent>
       </Modal>
-      <Card className="p-8 w-full max-w-md sm:max-w-lg md:max-w-xl shadow-lg md:shadow-2xl bg-white/60 backdrop-blur-xl rounded-2xl border border-white/50 overflow-hidden">
-        <div style={{ position: "absolute", top: 0, left: 0, width: 124, height: 120, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+      <Card className="p-8 w-full max-w-md sm:max-w-lg md:max-w-xl shadow-lg md:shadow-2xl bg-white/60 backdrop-blur-xl rounded-2xl border border-white/50">
+        <div className="absolute top-0 left-0 pt-2 pl-2 z-0 pointer-events-none">
           <Pattern width={124} height={120} className="opacity-80" />
         </div>
 
@@ -267,12 +267,12 @@ export default function Page() {
           <Button
             type="submit"
             isLoading={isLoading}
-            className="input-header self-start px-10 py-2 rounded-lg bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white font-medium hover:opacity-90 transition-all"
+            className="input-header mt-2 px-10 py-2 rounded-lg bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white font-medium hover:opacity-90 transition-all"
           >
             {isLoading ? "" : "Войти"}
           </Button>
         </Form>
-        <div style={{ position: "absolute", bottom: 0, right: 0, width: 124, height: 120, overflow: "hidden", pointerEvents: "none", zIndex: 0 }}>
+        <div className="absolute bottom-3 right-2 z-0 pointer-events-none">
           <Pattern width={124} height={120} className="scale-y-[-1] scale-x-[-1] opacity-80" />
         </div>
       </Card>
