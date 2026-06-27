@@ -10,7 +10,7 @@ export const NavBackButton = () => {
     "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full";
 
   return (
-    <div>
+    <div className="absolute top-2 right-full mr-2 z-10">
       <Button
         onPress={() => {
           router.push("/");

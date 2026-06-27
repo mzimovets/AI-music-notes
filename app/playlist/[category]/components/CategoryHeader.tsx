@@ -45,17 +45,19 @@ export const CategoryHeader = () => {
 
   return (
     <div className="flex flex-col md:flex-row gap-8" >
-      {/* Левая колонка: кнопка назад + картинка */}
-      <div className="md:w-auto md:grow-0 flex items-center gap-2 justify-center md:justify-start">
-        <NavBackButton />
-        <div className="w-[200px] aspect-square rounded-xl overflow-hidden shadow-md flex-shrink-0">
-          <img
-            alt="album cover"
-            className="object-cover w-full h-full"
-            src={categoryObj?.image ?? ""}
-            width={200}
-            height={200}
-          />
+      {/* Левая колонка: картинка, кнопка абсолютно левее */}
+      <div className="md:w-auto md:grow-0 flex justify-center md:justify-start">
+        <div className="relative">
+          <NavBackButton />
+          <div className="w-[200px] aspect-square rounded-xl overflow-hidden shadow-md">
+            <img
+              alt="album cover"
+              className="object-cover w-full h-full"
+              src={categoryObj?.image ?? ""}
+              width={200}
+              height={200}
+            />
+          </div>
         </div>
       </div>
 

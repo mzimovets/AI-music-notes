@@ -152,7 +152,7 @@ export default function Page() {
           </ModalBody>
         </ModalContent>
       </Modal>
-      <Card className="p-8 w-full max-w-md sm:max-w-lg md:max-w-xl shadow-lg md:shadow-2xl bg-white/60 backdrop-blur-xl rounded-2xl border border-white/50">
+      <Card className="p-8 w-full max-w-md sm:max-w-lg md:max-w-xl shadow-lg md:shadow-2xl bg-white/60 backdrop-blur-xl rounded-2xl border border-white/50 overflow-hidden">
         <div className="absolute top-0 left-0 pt-2 pl-2 z-0 pointer-events-none">
           <Pattern width={124} height={120} className="opacity-80" />
         </div>
