@@ -82,7 +82,7 @@ export const CategoryHeader = () => {
               className="mx-auto mt-4"
               classNames={{
                 inputWrapper: "bg-[#FFFAF5] rounded-md",
-                input: "text-sm",
+                input: "text-sm input-header",
                 clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
               }}
             />
