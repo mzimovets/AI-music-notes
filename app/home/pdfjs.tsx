@@ -35,6 +35,14 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     const loadPdf = async () => {
       try {
+        // Полифилл для Safari iOS — Map.getOrInsertComputed появился позже pdfjs 5.x
+        if (!("getOrInsertComputed" in Map.prototype)) {
+          (Map.prototype as any).getOrInsertComputed = function(key: any, fn: (k: any) => any) {
+            if (!this.has(key)) this.set(key, fn(key));
+            return this.get(key);
+          };
+        }
+
         const pdfjsLib = await import("pdfjs-dist/build/pdf");
         (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
