@@ -156,8 +156,14 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
       (async () => {
         try {
+          if (!("getOrInsertComputed" in Map.prototype)) {
+            (Map.prototype as any).getOrInsertComputed = function(key: any, fn: (k: any) => any) {
+              if (!this.has(key)) this.set(key, fn(key));
+              return this.get(key);
+            };
+          }
           const pdfjsLib = await import("pdfjs-dist/build/pdf");
-          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
+          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/pdf.worker.polyfill.mjs";
 
           // Если байты уже есть — не скачиваем повторно.
           // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,
