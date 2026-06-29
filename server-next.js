@@ -1,12 +1,10 @@
-// Кастомный Next.js-сервер: добавляет WebSocket-прокси для кликера
-// на том же порту 3000 (SSL терминируется снаружи контейнера)
-import { createServer } from "http";
-import { parse } from "url";
-import next from "next";
-import { WebSocket, WebSocketServer } from "ws";
+// Кастомный Next.js-сервер: WebSocket-прокси /ws-clicker на порту 3000
+const { createServer } = require("http");
+const { parse } = require("url");
+const next = require("next");
+const { WebSocket, WebSocketServer } = require("ws");
 
 const port = parseInt(process.env.PORT_NEXT || "3000", 10);
-
 const app = next({ dev: false });
 const handle = app.getRequestHandler();
 
@@ -24,7 +22,11 @@ app.prepare().then(() => {
     }
 
     wss.handleUpgrade(req, socket, head, (client) => {
-      const upstream = new WebSocket("ws://localhost:4000/ws-clicker");
+      const upstreamHeaders = {};
+      if (req.headers["x-clicker-sender"]) {
+        upstreamHeaders["x-clicker-sender"] = req.headers["x-clicker-sender"];
+      }
+      const upstream = new WebSocket("ws://localhost:4000/ws-clicker", { headers: upstreamHeaders });
 
       upstream.on("open", () => {
         client.on("message", (data) => {

@@ -77,29 +77,34 @@ if (process.platform === "linux" && process.env.IS_LOCAL_SERVER === "true") {
 // --------- HID Clicker + WebSocket ---------
 // --------- HID Clicker + WebSocket ---------
 import HID from "node-hid";
-import { WebSocketServer } from "ws";
+import { WebSocket, WebSocketServer } from "ws";
 
-let wss = null; // инициализируется после создания httpServer
-
+let wss = null;
 let device = null;
+const receiverClients = new Set(); // браузеры
+let remoteSender = null;           // RPi5 sender на VPS
+let vpsSender = null;              // наш исходящий коннект к VPS (с RPi5)
+
+const CLICKER_SECRET = process.env.CLICKER_SENDER_SECRET || "";
+
+const broadcastToReceivers = (msg) => {
+  const data = JSON.stringify(msg);
+  receiverClients.forEach((c) => { if (c.readyState === 1) c.send(data); });
+};
 
 const broadcast = (action) => {
-  if (!wss) return;
   console.log(`[clicker] ${action}`);
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify({ type: "clicker", direction: action }));
-    }
-  });
+  broadcastToReceivers({ type: "clicker", direction: action });
+  if (vpsSender?.readyState === 1) {
+    vpsSender.send(JSON.stringify({ type: "clicker", direction: action }));
+  }
 };
 
 const broadcastStatus = (connected) => {
-  if (!wss) return;
-  wss.clients.forEach((client) => {
-    if (client.readyState === 1) {
-      client.send(JSON.stringify({ type: "clicker-connected", connected }));
-    }
-  });
+  broadcastToReceivers({ type: "clicker-connected", connected });
+  if (vpsSender?.readyState === 1) {
+    vpsSender.send(JSON.stringify({ type: "clicker-connected", connected }));
+  }
 };
 
 // wss.on("connection") инициализируется после httpServer
@@ -147,11 +152,36 @@ const connectDevice = () => {
 connectDevice();
 setInterval(connectDevice, 2000);
 
-// Рассылаем актуальный статус всем клиентам каждую секунду
-setInterval(() => broadcastStatus(!!device), 1000);
+// Рассылаем актуальный статус браузерам каждую секунду
+setInterval(() => broadcastToReceivers({ type: "clicker-connected", connected: !!device || !!remoteSender }), 1000);
+
+// Если задан CLICKER_VPS_URL — подключаемся к VPS как sender (RPi5 → VPS)
+const startVpsSender = () => {
+  const VPS_URL = process.env.CLICKER_VPS_URL;
+  if (!VPS_URL || !CLICKER_SECRET) return;
+  if (vpsSender) return;
+
+  vpsSender = new WebSocket(VPS_URL, {
+    headers: { "x-clicker-sender": CLICKER_SECRET },
+  });
+
+  vpsSender.on("open", () => {
+    console.log("[clicker] Sender подключился к VPS:", VPS_URL);
+    vpsSender.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
+  });
+
+  vpsSender.on("close", () => {
+    vpsSender = null;
+    setTimeout(startVpsSender, 5000);
+  });
+
+  vpsSender.on("error", () => {});
+};
+startVpsSender();
 
 process.on("SIGINT", () => {
   if (device) device.close();
+  if (vpsSender) vpsSender.close();
   process.exit(0);
 });
 // -------------------------------------------
@@ -273,8 +303,32 @@ const httpServer = createServer(app);
 try {
   wss = new WebSocketServer({ server: httpServer, path: "/ws-clicker" });
   console.log("[clicker] WebSocket подключён к httpServer по пути /ws-clicker");
-  wss.on("connection", (ws) => {
-    ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
+
+  wss.on("connection", (ws, req) => {
+    const isSender = CLICKER_SECRET && req.headers["x-clicker-sender"] === CLICKER_SECRET;
+
+    if (isSender) {
+      remoteSender = ws;
+      console.log("[clicker] Sender (RPi5) подключился");
+      broadcastToReceivers({ type: "clicker-connected", connected: true });
+
+      ws.on("message", (rawData) => {
+        try { broadcastToReceivers(JSON.parse(rawData.toString())); } catch {}
+      });
+
+      ws.on("close", () => {
+        remoteSender = null;
+        console.log("[clicker] Sender (RPi5) отключился");
+        broadcastToReceivers({ type: "clicker-connected", connected: !!device });
+      });
+
+      ws.on("error", () => { remoteSender = null; });
+    } else {
+      receiverClients.add(ws);
+      ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device || !!remoteSender }));
+      ws.on("close", () => receiverClients.delete(ws));
+      ws.on("error", () => receiverClients.delete(ws));
+    }
   });
 } catch (err) {
   console.warn("[clicker] WebSocket не удалось запустить:", err);
