@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "start": "next start",
+    "start": "node server-next.js",
     "lint": "eslint --fix",
     "clicker": "node scripts/clicker.js"
   },
