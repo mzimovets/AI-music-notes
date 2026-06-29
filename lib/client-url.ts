@@ -57,11 +57,15 @@ export function getUploadUrl(filename: string) {
   return getPublicUrl(getUploadPath(filename));
 }
 
-export function getClickerWebSocketUrl(port = 3001) {
+export function getClickerWebSocketUrl() {
   if (typeof window === "undefined") {
-    return `ws://localhost:${port}`;
+    return "ws://localhost:4000/ws-clicker";
   }
-
+  // На localhost Next.js = 3000, Express = 4000 — обращаемся напрямую к Express
+  if (window.location.hostname === "localhost") {
+    return "ws://localhost:4000/ws-clicker";
+  }
+  // На продакшне — через nginx (SSL), тот же хост, путь /ws-clicker
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.hostname}:${port}`;
+  return `${protocol}://${window.location.host}/ws-clicker`;
 }

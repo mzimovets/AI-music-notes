@@ -79,11 +79,7 @@ if (process.platform === "linux" && process.env.IS_LOCAL_SERVER === "true") {
 import HID from "node-hid";
 import { WebSocketServer } from "ws";
 
-let wss = null;
-try {
-  wss = new WebSocketServer({ port: 3001 });
-  console.log("[clicker] WebSocket сервер запущен на ws://localhost:3001");
-} catch (err) {}
+let wss = null; // инициализируется после создания httpServer
 
 let device = null;
 
@@ -106,12 +102,7 @@ const broadcastStatus = (connected) => {
   });
 };
 
-// При подключении нового клиента сразу отправляем текущий статус
-if (wss) {
-  wss.on("connection", (ws) => {
-    ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
-  });
-}
+// wss.on("connection") инициализируется после httpServer
 
 const connectDevice = () => {
   if (device) return; // уже подключено
@@ -276,6 +267,18 @@ app.use(bodyParser.json());
 
 const PORT = process.env.PORT || 4000;
 const httpServer = createServer(app);
+
+// WebSocket кликера — на том же httpServer по пути /ws-clicker
+// (через nginx proxied с SSL, без отдельного порта 3001)
+try {
+  wss = new WebSocketServer({ server: httpServer, path: "/ws-clicker" });
+  console.log("[clicker] WebSocket подключён к httpServer по пути /ws-clicker");
+  wss.on("connection", (ws) => {
+    ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
+  });
+} catch (err) {
+  console.warn("[clicker] WebSocket не удалось запустить:", err);
+}
 
 export const io = new SocketIOServer(httpServer, {
   cors: {
