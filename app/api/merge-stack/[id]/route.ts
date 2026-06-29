@@ -7,11 +7,14 @@ import fs from "fs/promises";
 export const runtime = "nodejs";
 
 // ─── Серверный кэш ────────────────────────────────────────────────────────────
-// Репризы НЕ кэшируются — они запрашиваются свежими при каждом ответе,
-// чтобы изменения в карточке песни сразу отражались в стопке.
 type CacheEntry = { bytes: Uint8Array; baseOffsets: OffsetEntry[]; name: string };
 const pdfCache = new Map<string, CacheEntry>();
 const PDF_CACHE_MAX = 20;
+
+// Кэш репризов — обновляется не чаще раза в 15 секунд
+let reprisesCacheMap: Map<string, { fromPage: number; toPage: number }[]> | null = null;
+let reprisesCacheTime = 0;
+const REPRISES_TTL = 15_000;
 
 // Шрифт читается один раз и остаётся в памяти
 let cachedFontBytes: Buffer | null = null;
@@ -67,20 +70,22 @@ type OffsetEntry = {
   songId?: string;
 };
 
-/** Забирает актуальные репризы из БД */
+/** Забирает актуальные репризы из БД, с кэшем 15 сек */
 async function fetchFreshReprisesMap(backendUrl: string): Promise<Map<string, { fromPage: number; toPage: number }[]>> {
+  const now = Date.now();
+  if (reprisesCacheMap && now - reprisesCacheTime < REPRISES_TTL) return reprisesCacheMap;
   const map = new Map<string, { fromPage: number; toPage: number }[]>();
   try {
     const res = await fetch(`${backendUrl}/songs`, { cache: "no-store" });
     if (res.ok) {
       const { docs } = await res.json();
       for (const doc of (docs || [])) {
-        if (doc._id && doc.reprises?.length) {
-          map.set(doc._id, doc.reprises);
-        }
+        if (doc._id && doc.reprises?.length) map.set(doc._id, doc.reprises);
       }
     }
   } catch { /* некритично */ }
+  reprisesCacheMap = map;
+  reprisesCacheTime = now;
   return map;
 }
 
@@ -263,16 +268,26 @@ export async function GET(
       await appendFromDisk(merged, path.join(MEALS_DIR, mealEntry.start), offsets, false, "trapeza-start", cursor);
     }
 
-    // 4b. Основные песни — каждая начинается с левой страницы
-    for (const song of mainSongs) {
-      const filename = song?.file?.filename;
-      if (!filename) continue;
+    // 4b. Основные песни — загружаем параллельно, добавляем по порядку
+    const mainFetched = await Promise.all(
+      mainSongs.map(async (song: any) => {
+        const filename = song?.file?.filename;
+        if (!filename) return null;
+        try {
+          const res = await fetch(`${BACKEND_URL}/uploads/${filename}`);
+          if (!res.ok) return null;
+          return { bytes: await res.arrayBuffer(), song };
+        } catch { return null; }
+      })
+    );
+    for (const item of mainFetched) {
+      if (!item) continue;
       alignToLeftPage();
-      await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, false, cursor);
+      await appendPdfBytes(merged, item.bytes, offsets, false, "song", cursor);
       const lastEntry = offsets[offsets.length - 1];
       if (lastEntry) {
-        lastEntry.songId = song._id;
-        lastEntry.reprises = freshReprisesMap.get(song._id) ?? song.reprises ?? [];
+        lastEntry.songId = item.song._id;
+        lastEntry.reprises = freshReprisesMap.get(item.song._id) ?? item.song.reprises ?? [];
       }
     }
 
@@ -289,15 +304,25 @@ export async function GET(
       if (coverName) await addSectionPage(merged, cursor, coverName, "Резерв");
       else addBlankPage(merged, cursor);
 
-      for (const song of reserveSongs) {
-        const filename = song?.file?.filename;
-        if (!filename) continue;
+      const reserveFetched = await Promise.all(
+        reserveSongs.map(async (song: any) => {
+          const filename = song?.file?.filename;
+          if (!filename) return null;
+          try {
+            const res = await fetch(`${BACKEND_URL}/uploads/${filename}`);
+            if (!res.ok) return null;
+            return { bytes: await res.arrayBuffer(), song };
+          } catch { return null; }
+        })
+      );
+      for (const item of reserveFetched) {
+        if (!item) continue;
         alignToLeftPage();
-        await appendFromUrl(merged, `${BACKEND_URL}/uploads/${filename}`, offsets, true, cursor);
+        await appendPdfBytes(merged, item.bytes, offsets, true, "song", cursor);
         const lastEntry = offsets[offsets.length - 1];
         if (lastEntry) {
-          lastEntry.songId = song._id;
-          lastEntry.reprises = freshReprisesMap.get(song._id) ?? song.reprises ?? [];
+          lastEntry.songId = item.song._id;
+          lastEntry.reprises = freshReprisesMap.get(item.song._id) ?? item.song.reprises ?? [];
         }
       }
     }

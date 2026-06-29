@@ -9,15 +9,19 @@ const POLYFILL = `if (!Map.prototype.getOrInsertComputed) {
 }
 `;
 
+let workerCache: string | null = null;
+
 export async function GET() {
-  const workerPath = path.resolve(
-    "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
-  );
-  const content = await readFile(workerPath, "utf8");
-  return new Response(POLYFILL + content, {
+  if (!workerCache) {
+    const workerPath = path.resolve(
+      "node_modules/pdfjs-dist/build/pdf.worker.min.mjs"
+    );
+    workerCache = POLYFILL + (await readFile(workerPath, "utf8"));
+  }
+  return new Response(workerCache, {
     headers: {
       "Content-Type": "application/javascript",
-      "Cache-Control": "public, max-age=86400",
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }
