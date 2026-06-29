@@ -28,6 +28,10 @@ export interface SwipeBookViewerProps {
   onTap?: () => void;
   /** Вызывается при смене текущей страницы */
   onPageChange?: (page: number) => void;
+  /** Ошибка загрузки PDF */
+  loadError?: boolean;
+  /** Повторить загрузку */
+  onRetry?: () => void;
 }
 
 // ─── Single page canvas renderer ─────────────────────────────────────────────
@@ -114,7 +118,7 @@ function PdfPage({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewerProps>(
-  ({ pdfUrl, pdfData, height, contentRanges = [], onTap, onPageChange }, ref) => {
+  ({ pdfUrl, pdfData, height, contentRanges = [], onTap, onPageChange, loadError, onRetry }, ref) => {
     const onPageChangeRef = useRef(onPageChange);
     useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
     const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -366,7 +370,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                       isRight={isRight}
                       isSingle={isOnly}
                     />
-                    {/* Spine line between pages */}
                     {isLeft && (
                       <div
                         style={{
@@ -384,14 +387,31 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                   </div>
                 );
               })
-            : // Loading placeholder
-              <Skeleton
-                style={{
-                  width: Math.floor(pageHeight * 0.707),
-                  height: pageHeight,
-                  borderRadius: "6px",
-                }}
-              />}
+            : loadError
+              ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16, color: "#7D5E42" }}>
+                  <span style={{ fontSize: 15 }}>Не удалось загрузить ноты</span>
+                  <button
+                    onClick={onRetry}
+                    style={{
+                      padding: "10px 28px",
+                      borderRadius: 12,
+                      background: "linear-gradient(to right, #BD9673, #7D5E42)",
+                      color: "#fff",
+                      fontSize: 15,
+                      border: "none",
+                      cursor: "pointer",
+                    }}
+                  >
+                    Повторить
+                  </button>
+                </div>
+              : <Skeleton
+                  style={{
+                    width: Math.floor(pageHeight * 0.707),
+                    height: pageHeight,
+                    borderRadius: "6px",
+                  }}
+                />}
         </div>
       </div>
     );

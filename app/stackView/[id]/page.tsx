@@ -63,6 +63,8 @@ export default function Page() {
   const [trapezaEndPageCount, setTrapezaEndPageCount] = useState<number | undefined>();
   const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
   const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
+  const [pdfLoadError, setPdfLoadError] = useState(false);
+  const [pdfRetry, setPdfRetry] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   // absoluteFromPage → { absoluteTo (для прыжка), relativeTo (для отображения внутри файла) }
   const [repriseMap, setRepriseMap] = useState<Map<number, { absoluteTo: number; relativeTo: number }>>(new Map());
@@ -307,24 +309,24 @@ export default function Page() {
   // Fetch song page offsets + кешируем байты PDF чтобы не скачивать дважды
   useEffect(() => {
     if (!mergedPdfUrl) return;
-    // При смене URL сбрасываем только байты; Map по songId остаётся —
-    // pageCount привязан к файлу и не зависит от позиции → пустых прямоугольников нет.
     setPdfData(undefined);
+    setPdfLoadError(false);
     let cancelled = false;
     (async () => {
       try {
         const res = await fetch(mergedPdfUrl);
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) { setPdfLoadError(true); return; }
         const header = res.headers.get("x-song-pages");
         const bytes = await res.arrayBuffer();
         if (cancelled) return;
         setPdfData(bytes);
         if (!header) return;
         applySongPageEntries(JSON.parse(header));
-      } catch {}
+      } catch { if (!cancelled) setPdfLoadError(true); }
     })();
     return () => { cancelled = true; };
-  }, [mergedPdfUrl, applySongPageEntries]);
+  }, [mergedPdfUrl, applySongPageEntries, pdfRetry]);
 
   // Обновляем репризы когда пользователь возвращается на вкладку
   // (репризы могли измениться в карточке песни без изменения состава стопки)
@@ -456,6 +458,8 @@ export default function Page() {
               contentRanges={contentRanges}
               onTap={handleBookTap}
               onPageChange={setCurrentPage}
+              loadError={pdfLoadError}
+              onRetry={() => { setPdfLoadError(false); setPdfRetry(r => r + 1); }}
             />
           </div>
         </div>
