@@ -63,8 +63,6 @@ export default function Page() {
   const [trapezaEndPageCount, setTrapezaEndPageCount] = useState<number | undefined>();
   const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
   const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
-  const [pdfLoadError, setPdfLoadError] = useState(false);
-  const [pdfRetry, setPdfRetry] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   // absoluteFromPage → { absoluteTo (для прыжка), relativeTo (для отображения внутри файла) }
   const [repriseMap, setRepriseMap] = useState<Map<number, { absoluteTo: number; relativeTo: number }>>(new Map());
@@ -310,23 +308,31 @@ export default function Page() {
   useEffect(() => {
     if (!mergedPdfUrl) return;
     setPdfData(undefined);
-    setPdfLoadError(false);
     let cancelled = false;
-    (async () => {
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const load = async (attempt = 0) => {
       try {
         const res = await fetch(mergedPdfUrl);
         if (cancelled) return;
-        if (!res.ok) { setPdfLoadError(true); return; }
+        if (!res.ok) {
+          if (attempt < 5) retryTimer = setTimeout(() => load(attempt + 1), 2000);
+          return;
+        }
         const header = res.headers.get("x-song-pages");
         const bytes = await res.arrayBuffer();
         if (cancelled) return;
         setPdfData(bytes);
         if (!header) return;
         applySongPageEntries(JSON.parse(header));
-      } catch { if (!cancelled) setPdfLoadError(true); }
-    })();
-    return () => { cancelled = true; };
-  }, [mergedPdfUrl, applySongPageEntries, pdfRetry]);
+      } catch {
+        if (!cancelled && attempt < 5) retryTimer = setTimeout(() => load(attempt + 1), 2000);
+      }
+    };
+
+    load();
+    return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
+  }, [mergedPdfUrl, applySongPageEntries]);
 
   // Обновляем репризы когда пользователь возвращается на вкладку
   // (репризы могли измениться в карточке песни без изменения состава стопки)
@@ -458,8 +464,6 @@ export default function Page() {
               contentRanges={contentRanges}
               onTap={handleBookTap}
               onPageChange={setCurrentPage}
-              loadError={pdfLoadError}
-              onRetry={() => { setPdfLoadError(false); setPdfRetry(r => r + 1); }}
             />
           </div>
         </div>
