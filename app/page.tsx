@@ -326,7 +326,7 @@ export default function Home() {
 
       {/* Stacks.tsx */}
       {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
-        <div className="pb-0 flex items-center font-header gap-4 mt-8">
+        <div className="pb-0 flex items-center font-header gap-4 mt-8 mb-4">
           {/* Оборачиваем текст в span с курсором */}
           <div
             onClick={() => setShowStacks((prev) => !prev)}
@@ -363,7 +363,7 @@ export default function Home() {
           )}
         </div>
       )}
-      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
+      <section className="flex flex-col items-center justify-center gap-4 pb-8 md:pb-2">
         <AnimatePresence initial={false}>
           {(showStacks || stacks.length <= 4) && (
             <motion.div
