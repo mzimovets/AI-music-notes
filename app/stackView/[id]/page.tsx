@@ -24,6 +24,7 @@ type StackUpdatedPayload = {
   stackId: string;
   songs: any[];
   mealType: string | null;
+  programSelected?: string[];
 };
 
 type SongPageEntry = {
@@ -108,6 +109,7 @@ export default function Page() {
       if (!payload || payload.stackId !== stackId) return;
       setStackSongs(payload.songs || []);
       setMealType(payload.mealType || null);
+      if (payload.programSelected) setProgramSelected(payload.programSelected);
     };
 
     const handleVisibilityChanged = ({ stackId: changedId, isPublished, deleted }: { stackId: string; isPublished?: boolean; deleted?: boolean }) => {
@@ -259,30 +261,32 @@ export default function Page() {
     setTrapezaStartPageCount(undefined);
     setTrapezaEndPageCount(undefined);
 
-    // Дебаунс 800ms — ждём пока пользователь закончит вносить изменения
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
-      try {
-        justSavedRef.current = true; // помечаем: следующий stackResponse update — от нас
-        await updateStack({
-          stack: stackSongs,
-          mealType: mealType ?? "",
-          programSelected: programSelected as [],
-          isPublished: (stackResponse.doc as any)?.isPublished ?? false,
-          currentUrl: window.location.pathname,
-          name: stackResponse.doc?.name ?? "",
-          cover: (stackResponse.doc as any)?.cover ?? "",
-          id: stackId,
-        });
-      } catch (e) {
-        justSavedRef.current = false;
-        console.error("[book] auto-save failed:", e);
+      if (!isSinger) {
+        // Только регент сохраняет в БД
+        try {
+          justSavedRef.current = true;
+          await updateStack({
+            stack: stackSongs,
+            mealType: mealType ?? "",
+            programSelected: programSelected as [],
+            isPublished: (stackResponse.doc as any)?.isPublished ?? false,
+            currentUrl: window.location.pathname,
+            name: stackResponse.doc?.name ?? "",
+            cover: (stackResponse.doc as any)?.cover ?? "",
+            id: stackId,
+          });
+        } catch (e) {
+          justSavedRef.current = false;
+          console.error("[book] auto-save failed:", e);
+        }
       }
       setPdfVersion(Date.now());
-    }, 800);
+    }, isSinger ? 1200 : 800); // певчие ждут дольше, чтобы регент успел сохранить в БД
 
     return () => clearTimeout(autoSaveTimer.current);
-  }, [stackSongs, mealType, programSelected, stackId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stackSongs, mealType, programSelected, stackId, isSinger]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Применяет SongPageEntry[] к стейту (без скачивания тела PDF) */
   const applySongPageEntries = useCallback((entries: SongPageEntry[]) => {

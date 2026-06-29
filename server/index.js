@@ -381,7 +381,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("stack-updated", (payload = {}) => {
-    const { stackId, songs = [], mealType = null } = payload;
+    const { stackId, songs = [], mealType = null, programSelected = [] } = payload;
 
     if (!stackId) return;
 
@@ -389,6 +389,7 @@ io.on("connection", (socket) => {
       stackId,
       songs,
       mealType,
+      programSelected,
     });
   });
 
