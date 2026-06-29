@@ -46,6 +46,8 @@ export default function Page() {
   const router = useRouter();
   const { data: session, status: sessionStatus } = useSession();
   const isSinger = sessionStatus === "loading" ? true : session?.user?.role !== "регент";
+  const isSingerRef = useRef(isSinger);
+  isSingerRef.current = isSinger;
 
   const [viewMode, setViewMode] = useState<"scroll" | "book">("scroll");
   const [viewerHeight, setViewerHeight] = useState(() =>
@@ -263,7 +265,7 @@ export default function Page() {
 
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
-      if (!isSinger) {
+      if (!isSingerRef.current) {
         // Только регент сохраняет в БД
         try {
           justSavedRef.current = true;
@@ -283,10 +285,10 @@ export default function Page() {
         }
       }
       setPdfVersion(Date.now());
-    }, isSinger ? 1200 : 800); // певчие ждут дольше, чтобы регент успел сохранить в БД
+    }, isSingerRef.current ? 1200 : 800); // певчие ждут дольше, чтобы регент успел сохранить в БД
 
     return () => clearTimeout(autoSaveTimer.current);
-  }, [stackSongs, mealType, programSelected, stackId, isSinger]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stackSongs, mealType, programSelected, stackId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Применяет SongPageEntry[] к стейту (без скачивания тела PDF) */
   const applySongPageEntries = useCallback((entries: SongPageEntry[]) => {
