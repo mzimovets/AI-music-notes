@@ -159,13 +159,18 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       };
     }, []);
 
-    // Load PDF
+    // Load PDF — грузим только когда родитель передал байты (pdfData).
+    // Пока pdfData === undefined (идёт fetch нового PDF) — держим старый pdfDoc видимым,
+    // не сбрасываем его в null. Это исключает вечный скелетон при смене состава стопки.
     useEffect(() => {
-      setPdfDoc(null);
-      setNumPages(0);
+      if (!pdfData) return;
+
+      // Сбрасываем навигацию на страницу 1 для нового PDF
       setCurrentPage(1);
+      currentPageRef.current = 1;
       setMobileIndex(0);
       mobileIndexRef.current = 0;
+
       let cancelled = false;
 
       (async () => {
@@ -179,13 +184,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           const pdfjsLib = await import("pdfjs-dist/build/pdf");
           (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
 
-          // Если байты уже есть — не скачиваем повторно.
           // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,
-          // после чего оригинал становится detached и непригоден для повторного использования.
-          const source = pdfData
-            ? { data: pdfData.slice(0) }
-            : { url: pdfUrl, isEvalSupported: false };
-          const pdf = await (pdfjsLib as any).getDocument(source).promise;
+          // после чего оригинал становится detached.
+          const pdf = await (pdfjsLib as any).getDocument({ data: pdfData.slice(0) }).promise;
           if (!cancelled) {
             setPdfDoc(pdf);
             setNumPages(pdf.numPages);
@@ -197,7 +198,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       })();
 
       return () => { cancelled = true; };
-    }, [pdfUrl, pdfData]);
+    }, [pdfData]);
 
     // Список реальных страниц для мобайла (без пустых/разделительных)
     // Строим из contentRanges: каждый диапазон [offset, offset+count)
