@@ -21,7 +21,6 @@ import { socket } from "@/lib/socket";
 import { CacheStats } from "@/components/CacheStats";
 import { WiFiManagerModal } from "@/components/WiFiManagerModal";
 import { useLocalServer } from "@/hooks/useLocalServer";
-import { NotificationBell } from "@/components/NotificationBell";
 
 
 export default function Home() {
@@ -392,10 +391,7 @@ export default function Home() {
 
       <CacheStats songsCount={allSongs.length} stacksCount={stacks.length} />
 
-      {/* Колокольчик уведомлений — фиксированная кнопка справа снизу */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <NotificationBell />
-      </div>
+
     </SongsLibraryContextProvider>
   );
 }

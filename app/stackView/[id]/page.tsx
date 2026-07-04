@@ -253,18 +253,18 @@ export default function Page() {
     if (key === pdfUpdateKeyRef.current) return;
     pdfUpdateKeyRef.current = key;
 
-    // Сбрасываем устаревшие данные страниц немедленно — новые придут после перестройки PDF.
-    // Это предотвращает переход на неправильные страницы при изменении порядка песен.
-    setSongPageDataById(new Map());
-    setSongPageEntries([]);
-    setContentRanges([]);
-    setTrapezaStartPage(undefined);
-    setTrapezaEndPage(undefined);
-    setTrapezaStartPageCount(undefined);
-    setTrapezaEndPageCount(undefined);
-
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
+      // Сбрасываем страничные данные непосредственно перед пересборкой PDF,
+      // чтобы при быстром добавлении нескольких песен не мигал экран загрузки.
+      setSongPageDataById(new Map());
+      setSongPageEntries([]);
+      setContentRanges([]);
+      setTrapezaStartPage(undefined);
+      setTrapezaEndPage(undefined);
+      setTrapezaStartPageCount(undefined);
+      setTrapezaEndPageCount(undefined);
+
       if (!isSingerRef.current) {
         // Только регент сохраняет в БД
         try {

@@ -50,7 +50,7 @@ const SortableSong = ({ song, onRemove, index }) => {
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="touch-none select-none">
+    <div ref={setNodeRef} style={style}>
       <Card
         className={`p-3 mb-2 flex-row items-center justify-between gap-4 ${isDragging ? "shadow-xl opacity-50" : "shadow-sm"}`}
       >
@@ -77,7 +77,7 @@ const SortableSong = ({ song, onRemove, index }) => {
           <div
             {...attributes}
             {...listeners}
-            className="cursor-grab active:cursor-grabbing p-1 text-default-400 hover:text-default-600"
+            className="touch-none select-none cursor-grab active:cursor-grabbing p-1 text-default-400 hover:text-default-600"
           >
             <EmptyIcon />
           </div>

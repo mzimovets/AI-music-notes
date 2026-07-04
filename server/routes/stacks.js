@@ -1,6 +1,5 @@
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
-import { sendPushToAll, sendClosePush } from "./push.js";
 
 export const stacksRoutes = (app, urlencodedParser) => {
   app.get("/stack/:stackId", (req, res) => {
@@ -37,16 +36,7 @@ export const stacksRoutes = (app, urlencodedParser) => {
         res.json({ status: "ok", doc: num });
         if (!err) {
           database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
-            if (!findErr && doc) {
-              pushLocalChangeToRemote(doc);
-              const tag = `stack-${req.params.stackId}`;
-              const pub = req.body.isPublished;
-              if (pub === true || pub === "true") {
-                sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
-              } else if (pub === false || pub === "false") {
-                sendClosePush(tag);
-              }
-            }
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
           });
         }
       },
@@ -63,16 +53,7 @@ export const stacksRoutes = (app, urlencodedParser) => {
         res.json({ status: "ok", doc: num });
         if (!err) {
           database.findOne({ _id: req.params.stackId }, (findErr, doc) => {
-            if (!findErr && doc) {
-              pushLocalChangeToRemote(doc);
-              const tag = `stack-${req.params.stackId}`;
-              const pub = req.body.isPublished;
-              if (pub === true || pub === "true") {
-                sendPushToAll("Новая программа", doc.name || "Программа опубликована", `/stackView/${req.params.stackId}`, tag);
-              } else if (pub === false || pub === "false") {
-                sendClosePush(tag);
-              }
-            }
+            if (!findErr && doc) pushLocalChangeToRemote(doc);
           });
         }
       },

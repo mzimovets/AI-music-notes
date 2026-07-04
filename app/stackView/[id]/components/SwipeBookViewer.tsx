@@ -123,6 +123,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const [isMobile, setIsMobile] = useState(() =>
       typeof window !== "undefined" && window.innerWidth < 1024
     );
+    const [isLandscape, setIsLandscape] = useState(() =>
+      typeof window !== "undefined" && window.innerWidth > window.innerHeight
+    );
 
     // live refs so handlers don't go stale
     const currentPageRef = useRef(1);
@@ -130,19 +133,30 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const isMobileRef = useRef(
       typeof window !== "undefined" && window.innerWidth < 1024
     );
+    const isLandscapeRef = useRef(
+      typeof window !== "undefined" && window.innerWidth > window.innerHeight
+    );
 
     useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
     useEffect(() => { numPagesRef.current = numPages; }, [numPages]);
+    useEffect(() => { isLandscapeRef.current = isLandscape; }, [isLandscape]);
 
-    // Detect mobile / resize
+    // Detect mobile / resize / orientation
     useEffect(() => {
       const check = () => {
         const m = window.innerWidth < 1024;
         isMobileRef.current = m;
         setIsMobile(m);
+        const landscape = window.innerWidth > window.innerHeight;
+        isLandscapeRef.current = landscape;
+        setIsLandscape(landscape);
       };
       window.addEventListener("resize", check);
-      return () => window.removeEventListener("resize", check);
+      window.addEventListener("orientationchange", check);
+      return () => {
+        window.removeEventListener("resize", check);
+        window.removeEventListener("orientationchange", check);
+      };
     }, []);
 
     // Load PDF
@@ -204,18 +218,17 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
-    // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
+    // Navigation — ±1 в портрете, ±2 в ландшафте (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
-      // onPageChangeRef вызывается СНАРУЖИ setState — нельзя обновлять родительский
-      // компонент (Page) изнутри функции-апдейтера дочернего компонента
+      const step = isLandscapeRef.current ? 2 : 1;
       if (mobilePagesRef.current.length > 0) {
-        const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, mobileIndexRef.current + dir));
+        const next = Math.max(0, Math.min(mobilePagesRef.current.length - 1, mobileIndexRef.current + dir * step));
         mobileIndexRef.current = next;
         currentPageRef.current = mobilePagesRef.current[next];
         setMobileIndex(next);
         onPageChangeRef.current?.(mobilePagesRef.current[next]);
       } else {
-        const next = Math.max(1, Math.min(numPagesRef.current, currentPageRef.current + dir));
+        const next = Math.max(1, Math.min(numPagesRef.current, currentPageRef.current + dir * step));
         currentPageRef.current = next;
         setCurrentPage(next);
         onPageChangeRef.current?.(next);
@@ -317,10 +330,13 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       };
     }, [navigate]);
 
-    // Всегда одна страница
-    const pagesToShow = mobilePages.length > 0
-      ? [mobilePages[mobileIndex]]
-      : [currentPage];
+    const pagesToShow: number[] = mobilePages.length > 0
+      ? isLandscape
+        ? [mobilePages[mobileIndex], mobilePages[mobileIndex + 1]].filter((p): p is number => p !== undefined)
+        : [mobilePages[mobileIndex]]
+      : isLandscape && currentPage + 1 <= numPages
+        ? [currentPage, currentPage + 1]
+        : [currentPage];
 
     // Target page height: 97% of container height
     const pageHeight = Math.floor(height * 0.97);
