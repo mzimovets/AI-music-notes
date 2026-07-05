@@ -201,7 +201,7 @@ export default function StackPage() {
           <StackName />
 
           <div className="mt-2 mb-4 flex justify-center">
-            <div className="flex gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
+            <div className="flex gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
               <ActionButton variant="green" onClick={save}>
                 <SaveIcon />
               </ActionButton>

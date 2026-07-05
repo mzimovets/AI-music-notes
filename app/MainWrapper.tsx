@@ -8,6 +8,7 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
   const isSongRead = pathname.startsWith("/songRead");
   const isAuthPage = pathname.startsWith("/authPage");
   const isSongPage = pathname.startsWith("/song/");
+  const isStackPage = pathname.startsWith("/stack/");
 
   return (
     <>
@@ -17,7 +18,9 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
             ? "flex-grow"
             : isSongPage
               ? "md:w-[85%] xl:w-[65%] md:mx-auto max-w-[1200px] pt-4 px-6 flex-grow"
-              : "md:container md:w-[85%] lg:w-[80%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
+              : isStackPage
+                ? "md:w-[85%] xl:w-[70%] md:mx-auto max-w-[1400px] pt-4 px-6 flex-grow"
+                : "md:container md:w-[85%] lg:w-[80%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
         }
       >
         {children}

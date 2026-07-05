@@ -9,7 +9,7 @@ export const ActionButton = React.forwardRef<
   ActionButtonProps
 >(({ children, onClick, variant, className, ...props }, ref) => {
   const baseClass =
-    "button-edit-font px-3 py-1.5 text-sm rounded-full border transition-all flex gap-1.5 items-center";
+    "button-edit-font px-3 py-1.5 lg:px-5 lg:py-2.5 text-sm lg:text-base rounded-full border transition-all flex gap-1.5 lg:gap-2 items-center";
 
   const variants = {
     green:
