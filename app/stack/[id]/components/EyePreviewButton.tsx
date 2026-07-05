@@ -6,7 +6,7 @@ export const EyePreviewButton = ({ onClick }: { onClick: () => void }) => {
       radius="lg"
       size="sm"
       onClick={onClick}
-      className="min-w-0 px-3 bg-blue-50 text-blue-400 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-none"
+      className="min-w-0 px-4 py-5 bg-blue-50 text-blue-400 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-none"
     >
       <svg
         xmlns="http://www.w3.org"
@@ -14,7 +14,7 @@ export const EyePreviewButton = ({ onClick }: { onClick: () => void }) => {
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
-        className="w-5 h-5"
+        className="w-6 h-6"
       >
         <path
           strokeLinecap="round"

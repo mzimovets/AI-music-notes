@@ -29,10 +29,11 @@ export default function ModalFilePreviewer({
       onOpenChange={onClose}
       placement="center"
       className="mt-20"
-      size="xl"
+      size="4xl"
       classNames={{
         wrapper: "!items-start",
         base: "-translate-y-10",
+        closeButton: "top-3 right-3 !w-9 !h-9 [&>svg]:w-5 [&>svg]:h-5",
       }}
     >
       <ModalContent>

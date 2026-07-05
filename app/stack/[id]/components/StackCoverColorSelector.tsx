@@ -11,7 +11,7 @@ export const StackCoverColorSelector = () => {
     <Popover placement="bottom" showArrow={true}>
       <PopoverTrigger>
         <ActionButton variant="yellow" onClick={() => {}}>
-          <ColorIcon />
+          <ColorIcon size={26} />
         </ActionButton>
       </PopoverTrigger>
       <PopoverContent>

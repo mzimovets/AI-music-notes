@@ -834,15 +834,14 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
 
                 {activeTab === "program" && (
                   <>
-                    <div className="mt-12 flex items-center justify-between flex-nowrap">
-                      <div className="flex gap-2 items-center">
+                    <div className="mt-12 pt-1 flex items-center gap-2 flex-nowrap">
                         {["Музыка", "Слова", "Аранжировка"].map((item) => (
                           <Chip
                             size="sm"
                             key={item}
                             color="primary"
                             variant="flat"
-                            className={`cursor-pointer input-header border 
+                            className={`cursor-pointer input-header border
                                         px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base
                                         rounded-full
                                         ${
@@ -861,8 +860,6 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                             {item}
                           </Chip>
                         ))}
-                      </div>
-                      <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="flat"
@@ -875,21 +872,6 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                         >
                           <CopyIcon size={22} />
                         </Button>
-                        <Button
-                          size="sm"
-                          variant="flat"
-                          isIconOnly
-                          className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                          onClick={() => programRef.current?.handleDownload()}
-                        >
-                          <DownloadPngIcon />
-                        </Button>
-                        <ProgramDownload
-                          ref={programRef}
-                          backgroundUrl="/ProgramCover.png"
-                          programText={getProgramText()}
-                        />
-                      </div>
                     </div>
                     <Card
                       className="mt-0 p-4 bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl 

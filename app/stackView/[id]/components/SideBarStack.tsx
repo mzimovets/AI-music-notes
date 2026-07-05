@@ -1077,15 +1077,14 @@ export const SideBarStack = ({
 
                 {activeTab === "program" && (
                   <>
-                    <div className="mt-12 lg:mt-14 flex items-center justify-between flex-nowrap">
-                      <div className="flex gap-2 items-center">
+                    <div className="mt-12 lg:mt-14 pt-1 flex items-center gap-2 flex-nowrap">
                         {["Музыка", "Слова", "Аранжировка"].map((item) => (
                           <Chip
                             size="sm"
                             key={item}
                             color="primary"
                             variant="flat"
-                            className={`cursor-pointer input-header border 
+                            className={`cursor-pointer input-header border
                                         px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base
                                         rounded-full
                                         ${
@@ -1104,9 +1103,7 @@ export const SideBarStack = ({
                             {item}
                           </Chip>
                         ))}
-                      </div>
                       {session?.user?.role === "регент" && (
-                        <div className="flex gap-2">
                           <Button
                             size="sm"
                             variant="flat"
@@ -1119,21 +1116,6 @@ export const SideBarStack = ({
                           >
                             <CopyIcon size={22} />
                           </Button>
-                          <Button
-                            size="sm"
-                            variant="flat"
-                            isIconOnly
-                            className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
-                            onClick={() => programRef.current?.handleDownload()}
-                          >
-                            <DownloadPngIcon />
-                          </Button>
-                          <ProgramDownload
-                            ref={programRef}
-                            backgroundUrl="/ProgramCover.png"
-                            programText={getProgramText()}
-                          />
-                        </div>
                       )}
                     </div>
                     <Card

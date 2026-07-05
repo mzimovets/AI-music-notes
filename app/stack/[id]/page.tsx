@@ -203,11 +203,11 @@ export default function StackPage() {
           <div className="mt-2 mb-4 flex justify-center">
             <div className="flex gap-2 sm:gap-3 lg:gap-4 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-3 rounded-xl bg-[#FFFAF5]/70 border border-[#E6D3C2]">
               <ActionButton variant="green" onClick={save}>
-                <SaveIcon />
+                <SaveIcon size={26} />
               </ActionButton>
 
               <ActionButton variant="brown" onClick={publicStack}>
-                <PublishIcon />
+                <PublishIcon size={26} />
               </ActionButton>
 
               <StackCoverColorSelector />
@@ -229,7 +229,7 @@ export default function StackPage() {
             Программа
           </p>
           <div className="justify-center flex gap-2 mb-6">
-            <p className="text-bold text-sm input-header justify-center text-default-500">
+            <p className="text-bold text-sm lg:text-base input-header justify-center text-default-500">
               {mainSongs.length} {getPluralForm(mainSongs.length)}
             </p>
           </div>
@@ -276,7 +276,7 @@ export default function StackPage() {
                 <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                     <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
-                      <p className="text-bold text-sm input-header">
+                      <p className="text-bold text-sm lg:text-base input-header">
                         {index + 1}. {song.name}
                         {song.author && (
                           <>
@@ -355,7 +355,7 @@ export default function StackPage() {
                 Резерв
               </p>
               <div className="justify-center flex gap-2 mb-6">
-                <p className="text-bold text-sm input-header justify-center text-default-500">
+                <p className="text-bold text-sm lg:text-base input-header justify-center text-default-500">
                   {reserveSongs.length} {getPluralForm(reserveSongs.length)}
                 </p>
               </div>
@@ -368,7 +368,7 @@ export default function StackPage() {
                   <div className="flex flex-col items-center sm:flex-row sm:items-center sm:justify-between gap-2 text-center sm:text-left">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 w-full">
                       <div className="flex flex-row flex-wrap sm:flex-nowrap sm:items-center gap-1 sm:gap-2 justify-center sm:justify-start w-full">
-                        <p className="text-bold text-sm input-header">
+                        <p className="text-bold text-sm lg:text-base input-header">
                           {index + 1}. {song.name}
                           {song.author && (
                             <>
