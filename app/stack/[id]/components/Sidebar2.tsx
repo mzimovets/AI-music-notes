@@ -417,7 +417,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
         isKeyboardDismissDisabled={true}
         hideCloseButton
         classNames={{
-          base: "sm:data-[placement=right]:m-2 sm:data-[placement=left]:m-2  rounded-medium",
+          base: "sm:data-[placement=right]:m-2 sm:data-[placement=left]:m-2 rounded-medium lg:!w-[580px]",
         }}
       >
         <DrawerContent>
@@ -426,14 +426,14 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
               <DrawerHeader
                 className="absolute top-0 inset-x-0 z-50
     flex items-center justify-between
-    h-12
+    h-12 lg:h-14
     px-4
     border-b border-default-200/50
     bg-content1/50 backdrop-blur-lg"
               >
                 <div className="flex w-full px-2 gap-2 input-header">
                   <Button
-                    className={` font-medium text-small ${
+                    className={` font-medium text-small lg:text-sm ${
                       activeTab === "stack"
                         ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                         : "text-default-500"
@@ -447,7 +447,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                   </Button>
                   {stackSongs.length > 0 && (
                     <Button
-                      className={`font-medium text-small ${
+                      className={`font-medium text-small lg:text-sm ${
                         activeTab === "program"
                           ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white"
                           : "text-default-500"
@@ -493,7 +493,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                 {activeTab === "stack" && (
                   <div
                     ref={searchRef}
-                    className="relative w-full flex flex-col flex-1 min-h-0 mt-10"
+                    className="relative w-full flex flex-col flex-1 min-h-0 mt-10 lg:mt-12"
                   >
                     <div className="relative shrink-0 z-50">
                       <Input
@@ -513,7 +513,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                         className="mt-4 w-full text-center justify-center font-header gap-4"
                         classNames={{
                           inputWrapper: "bg-[#FFFAF5] rounded-md",
-                          input: "text-sm pl-2",
+                          input: "text-sm lg:text-base pl-2",
                           clearButton: "text-[#BD9673] hover:text-[#7D5E42]",
                         }}
                       />
@@ -528,10 +528,10 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                   className="p-3 flex-row items-center justify-between gap-4"
                                 >
                                   <div className="flex flex-col overflow-hidden">
-                                    <p className="text-bold text-sm text-left input-header">
+                                    <p className="text-bold text-sm lg:text-base text-left input-header">
                                       {song.name}
                                     </p>
-                                    <p className="text-bold text-sm input-header justify-center text-default-500">
+                                    <p className="text-bold text-sm lg:text-base input-header justify-center text-default-500">
                                       {song.author}
                                     </p>
                                   </div>
@@ -615,7 +615,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
       bg-white/40 backdrop-blur-md border border-default-200 shadow-sm rounded-2xl"
                       >
                         <div className="flex items-center justify-between px-2 mb-2">
-                          <span className="text-xs main-font font-bold uppercase tracking-wider text-default-500">
+                          <span className="text-xs lg:text-sm main-font font-bold uppercase tracking-wider text-default-500">
                             Ваша программа
                           </span>
                           <div className="flex gap-2">
@@ -624,7 +624,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                               color="primary"
                               variant="flat"
                               className={`cursor-pointer input-header border 
-                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
+                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base
                                 rounded-full
                                 ${programSelected.includes("Трапеза") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
                               `}
@@ -643,7 +643,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                               color="primary"
                               variant="flat"
                               className={`cursor-pointer input-header border 
-                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
+                                px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base
                                 rounded-full
                                 ${programSelected.includes("Резерв") || programSelected.includes("reserved") ? "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" : "bg-transparent text-default-500 border-default-300"}
                               `}
@@ -687,7 +687,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                               <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                               <button
                                 onClick={() => handleSongClick(`program`)}
-                                className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                className="cursor-pointer px-3 py-1 text-xs lg:text-sm input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
                               >
                                 Программа
                               </button>
@@ -718,7 +718,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                         handleSongClick(`meal_start`)
                                       }
                                     >
-                                      <p className="text-sm input-header m-0 text-left">
+                                      <p className="text-sm lg:text-base input-header m-0 text-left">
                                         Трапеза (начало)
                                       </p>
                                       <Select
@@ -793,7 +793,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                         onClick={() =>
                                           handleSongClick(`reserve`)
                                         }
-                                        className="cursor-pointer px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
+                                        className="cursor-pointer px-3 py-1 text-xs lg:text-sm input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md"
                                       >
                                         Резерв
                                       </button>
@@ -843,7 +843,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                             color="primary"
                             variant="flat"
                             className={`cursor-pointer input-header border 
-                                        px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm 
+                                        px-2 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-sm lg:text-base
                                         rounded-full
                                         ${
                                           programSelected.includes(item)
@@ -909,7 +909,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                     .length > 0 && (
                                     <div className="flex items-center my-3 select-none pointer-events-none">
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                      <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                      <span className="px-3 py-1 text-xs lg:text-sm input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
                                         Программа
                                       </span>
                                       <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
@@ -925,7 +925,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                         <span className="input-header">
                                           {index + 1}. {song.name}
                                         </span>
-                                        <span className="text-sm input-header text-default-500">
+                                        <span className="text-sm lg:text-base input-header text-default-500">
                                           {(() => {
                                             const musicOn = programSelected.includes("Музыка") && song.author;
                                             const lyricsOn = programSelected.includes("Слова") && song.authorLyrics;
@@ -949,7 +949,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                     <>
                                       <div className="flex items-center my-3 select-none">
                                         <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
-                                        <span className="px-3 py-1 text-xs input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
+                                        <span className="px-3 py-1 text-xs lg:text-sm input-header uppercase tracking-wider font-bold text-[#7D5E42] bg-white/20 rounded-md">
                                           Резерв
                                         </span>
                                         <div className="flex-1 h-px bg-gradient-to-r from-[#7D5E42]/50 to-transparent" />
@@ -964,7 +964,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                             <span className="input-header">
                                               {index + 1}. {song.name}
                                             </span>
-                                            <span className="text-sm input-header text-default-500">
+                                            <span className="text-sm lg:text-base input-header text-default-500">
                                               {(() => {
                                                 const musicOn = programSelected.includes("Музыка") && song.author;
                                                 const lyricsOn = programSelected.includes("Слова") && song.authorLyrics;
