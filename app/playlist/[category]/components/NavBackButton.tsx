@@ -1,25 +1,40 @@
 "use client";
 import { LeftArr } from "@/components/LeftArr";
-import { Button } from "@heroui/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
 export const NavBackButton = () => {
   const router = useRouter();
-  const buttonClassName =
-    "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white rounded-full";
 
   return (
-    <div className="absolute top-2 right-full mr-2 z-10">
-      <Button
-        onPress={() => {
-          router.push("/");
-        }}
-        isIconOnly
-        className={`${buttonClassName} font-normal shadow-md`}
+    <div className="fixed left-0 z-50" style={{ top: 82 }}>
+      <button
+        onClick={() => router.push("/")}
+        className="relative flex items-center justify-center active:opacity-70 transition-opacity"
+        style={{ width: 42, height: 200 }}
+        aria-label="Назад"
       >
-        <LeftArr className="h-6 w-6" />
-      </Button>
+        {/* Фигура: узко сверху, широко посередине, узко снизу */}
+        <svg
+          width="42"
+          height="200"
+          viewBox="0 0 42 200"
+          xmlns="http://www.w3.org/2000/svg"
+          className="absolute inset-0 drop-shadow-md"
+        >
+          <defs>
+            <linearGradient id="navBackGrad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#BD9673" />
+              <stop offset="100%" stopColor="#7D5E42" />
+            </linearGradient>
+          </defs>
+          {/* Гладкая форма: вертикальная касательная в начале и конце — нет острых углов */}
+          <path
+            d="M 0,0 C 0,60 40,60 40,100 C 40,140 0,140 0,200 Z"
+            fill="url(#navBackGrad)"
+          />
+        </svg>
+        <LeftArr className="relative z-10 w-8 h-8" style={{ marginLeft: 8 }} />
+      </button>
     </div>
   );
 };

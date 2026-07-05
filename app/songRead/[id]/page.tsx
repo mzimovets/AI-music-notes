@@ -281,12 +281,12 @@ export default function SongReadPage() {
         <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
 
-      {/* Кнопка репризы — над кликером (регент) или левый нижний угол (певчие) */}
+      {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера */}
       {activeReprise && (
-        <div className={`fixed ${isSinger ? "bottom-6 left-4" : "bottom-16 left-3"} z-50`}>
+        <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
           <button
             onClick={() => goToReprisePage(activeReprise.toPage)}
-            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
+            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg active:scale-95 transition-transform"
             title={`Реприза: перейти на стр. ${activeReprise.toPage}`}
           >
             <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
