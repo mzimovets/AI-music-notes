@@ -71,7 +71,7 @@ export function WiFiScannerModal({ isOpen, onClose }: Props) {
       onOpenChange={(open) => { if (!open) onClose(); }}
       placement="center"
       backdrop="blur"
-      size="sm"
+      size="md"
     >
       <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
         {() => (

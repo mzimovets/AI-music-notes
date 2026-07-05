@@ -1,7 +1,8 @@
 import React from "react";
 import { Monogram } from "@/components/monogram";
 import { InfoCard } from "./components/InfoCard";
-import { BreadcrumbsPage } from "./components/BreadcrumbsPage";
+import { NavBackButton } from "./components/NavBackButton";
+import { SongActionsSticker } from "./components/SongActionsSticker";
 import { getSongById } from "@/lib/utils";
 import { SongContextProvider } from "./SongContextProvider";
 import { DocViewerSection } from "./components/DocViewerSection";
@@ -16,12 +17,9 @@ export default async function PricingPage({
 
   return (
     <SongContextProvider songResponse={song}>
-      <div>
+      <NavBackButton />
+      <div className="w-full">
         <div>
-          <div className="mb-6">
-            <BreadcrumbsPage />
-          </div>
-
           <p className="flex flex-col text-center justify-center font-header gap-4">
             {song.doc.name}
           </p>
@@ -30,10 +28,16 @@ export default async function PricingPage({
             <DocViewerSection
               fileUrl={`/uploads/${song.doc.file.filename}`}
               songId={id}
-            />
+            >
+              <SongActionsSticker />
+            </DocViewerSection>
           )}
         </div>
-        <InfoCard />
+        <div className="pt-4 flex justify-center">
+          <div className="w-full">
+            <InfoCard />
+          </div>
+        </div>
         <div className="flex justify-center">
           <Monogram className="mt-10 h-7" />
         </div>

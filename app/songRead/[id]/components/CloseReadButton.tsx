@@ -45,6 +45,7 @@ shadow-[0_4px_12px_rgba(0,0,0,0.18)]
         onOpenChange={setIsOpen}
         placement="center"
         backdrop="blur"
+        size="lg"
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (

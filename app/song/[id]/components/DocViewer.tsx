@@ -3,20 +3,26 @@ import { useState } from "react";
 import { Pagination } from "@heroui/pagination";
 import { PdfPageCard } from "@/components/PdfPageCard";
 import { SwarrowIconWithCircle } from "@/components/swarrow";
+import { EyeSongPageView } from "@/components/EyeSongPageView";
 
-export const DocViewer = ({ fileUrl }: { fileUrl: string | File }) => {
+export const DocViewer = ({ fileUrl, songId }: { fileUrl: string | File; songId?: string }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
   const [pageNum, setPageNum] = useState<number>(1);
 
   return (
     <>
       <div className="pt-4 flex justify-center">
-        <PdfPageCard
-          cardClassName="md:w-200 w-full h-auto min-h-[420px]"
-          fileUrl={fileUrl}
-          pageNum={pageNum}
-          setPdfDoc={setPdfDoc}
-        />
+        <div className="relative w-full">
+          <PdfPageCard
+            cardClassName="w-full h-auto min-h-[420px]"
+            fileUrl={fileUrl}
+            pageNum={pageNum}
+            setPdfDoc={setPdfDoc}
+          />
+          {songId && pdfDoc && (
+            <EyeSongPageView songId={songId} buttonClassName="absolute top-2 right-2 z-10 min-w-0 px-2 py-2 bg-blue-50 text-blue-400 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 transition-all shadow-sm" />
+          )}
+        </div>
       </div>
 
       {pdfDoc?.numPages > 1 && (

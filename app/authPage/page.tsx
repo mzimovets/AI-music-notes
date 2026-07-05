@@ -68,6 +68,7 @@ export default function Page() {
         isOpen={!!qrToken}
         placement="center"
         backdrop="blur"
+        size="lg"
         isDismissable={!qrLoading}
         onOpenChange={(open) => {
           if (!open) {

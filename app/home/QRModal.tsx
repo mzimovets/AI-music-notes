@@ -71,6 +71,7 @@ export const QRModal = ({
       onOpenChange={onClose}
       placement="center"
       backdrop="blur"
+      size="lg"
       classNames={{ backdrop: "bg-black/40" }}
     >
       <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">

@@ -58,7 +58,7 @@ export const StackViewer = ({
                 id={`pdf-page-${absolutePageNum}`}
               >
                 <PdfPageCard
-                  cardClassName="md:w-200 w-full h-auto min-h-[520px]"
+                  cardClassName="w-full md:w-200 lg:w-[95%] h-auto min-h-[520px]"
                   fileUrl={fileUrl}
                   pageNum={relativePageNum}
                 />

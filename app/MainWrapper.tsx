@@ -7,6 +7,7 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
   const isStackView = pathname.startsWith("/stackView");
   const isSongRead = pathname.startsWith("/songRead");
   const isAuthPage = pathname.startsWith("/authPage");
+  const isSongPage = pathname.startsWith("/song/");
 
   return (
     <>
@@ -14,7 +15,9 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
         className={
           isStackView || isSongRead || isAuthPage
             ? "flex-grow"
-            : "md:container md:w-[85%] lg:w-[65%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
+            : isSongPage
+              ? "md:w-[85%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
+              : "md:container md:w-[85%] lg:w-[80%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
         }
       >
         {children}

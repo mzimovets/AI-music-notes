@@ -289,7 +289,7 @@ export default function Albums() {
   return (
     <div className="w-full bg-[#F7F4F1]">
       <div className="m-0">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {categorySongs.map((post) => (
             <div key={post.key} className="flex flex-col items-center w-full">
               <Card

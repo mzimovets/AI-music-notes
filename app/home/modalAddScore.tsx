@@ -237,10 +237,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         isOpen={isOpen}
         onOpenChange={onOpenChange}
         placement="center"
-        size="3xl"
+        size="5xl"
         backdrop="blur"
         classNames={{
-          base: "mt-100 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl",
+          base: "mt-100 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl !max-w-5xl w-[calc(100vw-32px)]",
         }}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
@@ -325,7 +325,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       placeholder="Введите автора"
                       value={author}
                       description={
-                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
+                        <span className="input-header text-gray-600 text-xs lg:text-sm">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
@@ -339,7 +339,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       placeholder="Введите автора"
                       value={authorLyrics}
                       description={
-                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
+                        <span className="input-header text-gray-600 text-xs lg:text-sm">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }
@@ -353,7 +353,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       placeholder="Введите автора"
                       value={authorArrange}
                       description={
-                        <span className="input-header text-gray-600" style={{ fontSize: "12px" }}>
+                        <span className="input-header text-gray-600 text-xs lg:text-sm">
                           Полное имя и фамилия, напр.: Иван Иванов
                         </span>
                       }

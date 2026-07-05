@@ -310,6 +310,7 @@ return (
         onOpenChange={setIsExitModalOpen}
         placement="center"
         backdrop="blur"
+        size="lg"
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (
@@ -349,6 +350,7 @@ return (
         onOpenChange={setIsExitStackModalOpen}
         placement="center"
         backdrop="blur"
+        size="lg"
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (

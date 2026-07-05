@@ -64,6 +64,7 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
         onOpenChange={setIsOpen}
         placement="center"
         backdrop="blur"
+        size="lg"
         classNames={{ backdrop: "bg-black/40" }}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">

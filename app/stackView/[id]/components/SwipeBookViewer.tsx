@@ -35,6 +35,7 @@ function PdfPage({
   pdfDoc,
   pageNum,
   targetHeight,
+  maxWidth,
   isLeft,
   isRight,
   isSingle,
@@ -42,6 +43,7 @@ function PdfPage({
   pdfDoc: any;
   pageNum: number;
   targetHeight: number;
+  maxWidth?: number;
   isLeft?: boolean;
   isRight?: boolean;
   isSingle?: boolean;
@@ -62,7 +64,9 @@ function PdfPage({
       if (cancelled) return;
 
       const viewport = page.getViewport({ scale: 1 });
-      const scale = targetHeight / viewport.height;
+      const scaleByHeight = targetHeight / viewport.height;
+      const scaleByWidth = maxWidth ? maxWidth / viewport.width : Infinity;
+      const scale = Math.min(scaleByHeight, scaleByWidth);
       const scaledViewport = page.getViewport({ scale });
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
@@ -99,10 +103,10 @@ function PdfPage({
   }, [pdfDoc, pageNum, targetHeight]);
 
   const borderRadius = isSingle
-    ? "6px"
+    ? "12px"
     : isLeft
-      ? "6px 0 0 6px"
-      : "0 6px 6px 0";
+      ? "12px 0 0 12px"
+      : "0 12px 12px 0";
 
   return (
     <canvas
@@ -319,8 +323,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       ? [mobilePages[mobileIndex]]
       : [currentPage];
 
-    // Target page height: 97% of container height
-    const pageHeight = Math.floor(height * 0.97);
+    // Target page height: на большом экране (iPad 13+) чуть меньше
+    const heightFactor = !isMobile ? 0.98 : 0.98;
+    const pageHeight = Math.floor(height * heightFactor);
 
     return (
       <div

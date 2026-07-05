@@ -325,11 +325,10 @@ export default function Home() {
 
       {/* Stacks.tsx */}
       {(isRegent ? stacks.length > 0 : stacks.some((s) => s.isPublished)) && (
-        <div className="pb-0 flex items-center font-header gap-4 mt-8 mb-4">
-          {/* Оборачиваем текст в span с курсором */}
+        <div className="pb-0 flex items-center gap-4 mt-8 mb-4">
           <div
             onClick={() => setShowStacks((prev) => !prev)}
-            className="leading-none cursor-pointer select-none"
+            className="font-header cursor-pointer select-none"
           >
             Программы
           </div>
@@ -372,7 +371,7 @@ export default function Home() {
               transition={{ duration: 0.3, ease: "easeInOut" }}
               className="overflow-hidden w-full"
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <StackCard stacks={stacks} />
               </div>
             </motion.div>
