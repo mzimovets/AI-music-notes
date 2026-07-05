@@ -480,9 +480,9 @@ export default function Page() {
         <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
 
-      {/* Кнопка репризы — правый нижний угол */}
+      {/* Кнопка репризы — над кликером (регент) или левый нижний угол (певчие) */}
       {repriseMap.has(currentPage) && (
-        <div className="fixed bottom-6 right-4 z-50">
+        <div className={`fixed ${isSinger ? "bottom-6 left-4" : "bottom-16 left-3"} z-50`}>
           <button
             onClick={() => goToReprisePage(repriseMap.get(currentPage)!.absoluteTo)}
             className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
