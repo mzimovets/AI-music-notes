@@ -16,7 +16,7 @@ export function MainWrapper({ children }: { children: React.ReactNode }) {
           isStackView || isSongRead || isAuthPage
             ? "flex-grow"
             : isSongPage
-              ? "md:w-[85%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
+              ? "md:w-[85%] xl:w-[65%] md:mx-auto max-w-[1200px] pt-4 px-6 flex-grow"
               : "md:container md:w-[85%] lg:w-[80%] md:mx-auto max-w-[1600px] pt-4 px-6 flex-grow"
         }
       >
