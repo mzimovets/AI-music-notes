@@ -1,7 +1,6 @@
 import { Input } from "@heroui/input";
 import { Select, SelectItem } from "@heroui/select";
-import { songs } from "@/app/home/modalAddScore";
-import { categorySongs } from "@/components/constants";
+import { useCategories } from "@/hooks/useCategories";
 
 interface InfoCardInputProps {
   field: {
@@ -20,12 +19,15 @@ export const InfoCardInput = ({
   onChange,
   category,
 }: InfoCardInputProps) => {
+  // Хук вызывается до ветвления — правила хуков не допускают условного вызова
+  const { categories } = useCategories();
+
   if (field.label === "Категория") {
-    const categoryName = categorySongs.find((f) => f.key === category);
+    const categoryName = categories.find((f) => f.key === category);
 
     const handleSelectionChange = (keys: any) => {
       const selectedKey = Array.from(keys)[0] as string;
-      const selectedCategory = categorySongs.find(
+      const selectedCategory = categories.find(
         (cat) => cat.key === selectedKey,
       );
 
@@ -43,7 +45,7 @@ export const InfoCardInput = ({
         onSelectionChange={handleSelectionChange}
         className="input-header"
       >
-        {categorySongs.map((category) => (
+        {categories.map((category) => (
           <SelectItem
             className="input-header"
             key={category.key}

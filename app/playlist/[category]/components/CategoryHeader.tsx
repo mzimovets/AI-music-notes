@@ -4,7 +4,7 @@ import { Monogram } from "@/components/monogram";
 import { useParams } from "next/navigation";
 import { Card, Input, CardBody, CardHeader, Image } from "@heroui/react";
 import { usePlaylistContext } from "../PlaylistContextProvider";
-import { categorySongs } from "@/components/constants";
+import { useCategories } from "@/hooks/useCategories";
 import { ChangeEvent } from "react";
 import { NavBackButton } from "./NavBackButton";
 
@@ -41,7 +41,8 @@ export const CategoryHeader = () => {
     setSearchValue(event.target.value);
   };
 
-  const categoryObj = categorySongs.find((ctg) => ctg.key == category);
+  const { categories } = useCategories();
+  const categoryObj = categories.find((ctg) => ctg.key == category);
 
   return (
     <div className="flex flex-col md:flex-row gap-8" >

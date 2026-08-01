@@ -9,6 +9,7 @@ import { useStackContext } from "@/app/stack/[id]/components/StackContextProvide
 import { SongsList } from "./components/SongsList";
 import { getPluralForm } from "@/app/stack/[id]/components/GetPluralForm";
 import { socket } from "@/lib/socket";
+import { getBackendBaseUrl } from "@/lib/client-url";
 import { StackViewer } from "./components/StackViewer";
 import { mealFilesMap } from "@/app/stack/[id]/constants";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
@@ -94,8 +95,7 @@ export default function Page() {
     mealType,
   } = useStackContext();
 
-  const BACKEND_URL =
-    process.env.NEXT_PUBLIC_BASIC_BACK_URL || "http://localhost:4000";
+  const BACKEND_URL = getBackendBaseUrl();
 
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const stackId = stackResponse?.doc?._id;

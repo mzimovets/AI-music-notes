@@ -1,5 +1,5 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 
 import React from "react";
 import Albums from "./home/albums";
@@ -21,6 +21,8 @@ import { socket } from "@/lib/socket";
 import { CacheStats } from "@/components/CacheStats";
 import { WiFiManagerModal } from "@/components/WiFiManagerModal";
 import { useLocalServer } from "@/hooks/useLocalServer";
+import { PenIcon } from "@/components/icons/PenIcon";
+import { SaveIcon } from "@/components/icons/SaveIcon";
 
 
 export default function Home() {
@@ -47,6 +49,17 @@ export default function Home() {
   const isRegent = cachedRegent || session?.user?.role === "регент";
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditingCategories, setIsEditingCategories] = useState(false);
+
+  // Сколько песен в каждой категории — модалка по этому числу решает,
+  // можно ли удалять категорию
+  const songsByCategory = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const song of allSongs) {
+      if (song.category) counts[song.category] = (counts[song.category] ?? 0) + 1;
+    }
+    return counts;
+  }, [allSongs]);
   const [showStacks, setShowStacks] = useState(() => {
     if (typeof window === "undefined") return false;
     // Пробуем кешированное имя пользователя, чтобы прочитать нужный ключ сразу
@@ -380,11 +393,42 @@ export default function Home() {
       </section>
       {/*End Stacks.tsx */}
 
-      <div className="pb-0 flex flex-col font-header gap-4 mt-8">Песни</div>
+      <div className="pb-0 flex items-center gap-4 font-header mt-8">
+        Песни
+        {isRegent && (
+          <button
+            type="button"
+            onClick={() => setIsEditingCategories((prev) => !prev)}
+            aria-label={isEditingCategories ? "Готово" : "Изменить категории"}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 12,
+              border: isEditingCategories ? "1.5px solid #86EFAC" : "1.5px solid #D9C4AC",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+              color: isEditingCategories ? "#16A34A" : "#7D5E42",
+              background: isEditingCategories ? "#F0FDF4" : "#FAF5EF",
+            }}
+          >
+            {isEditingCategories ? (
+              <SaveIcon className="w-5 h-5" />
+            ) : (
+              <PenIcon className="w-4 h-4" />
+            )}
+          </button>
+        )}
+      </div>
       {/* <LoadingCamerton /> */}
       <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
         <Suspense>
-          <Albums />
+          <Albums
+            isEditing={isRegent && isEditingCategories}
+            songsByCategory={songsByCategory}
+          />
         </Suspense>
       </section>
 

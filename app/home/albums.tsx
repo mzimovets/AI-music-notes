@@ -1,321 +1,189 @@
-// // "use client";
-
-// // import { Card, ScrollShadow, Button } from "@heroui/react";
-// // import { useContext, useRef } from "react";
-// // import { SongsLibraryContext } from "../providers";
-// // import { useRouter } from "next/navigation";
-// // import { categorySongs } from "@/components/constants";
-// // import SwarrowIcon, { SwarrowIconWithCircle } from "@/components/swarrow";
-
-// // export default function Albums() {
-// //   const context = useContext(SongsLibraryContext) || {};
-// //   const router = useRouter();
-// //   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-// //   // Функция для прокрутки влево
-// //   const scrollLeft = () => {
-// //     if (scrollContainerRef.current) {
-// //       scrollContainerRef.current.scrollBy({
-// //         left: -300, // Прокручиваем на ширину примерно 2 карточек
-// //         behavior: "smooth",
-// //       });
-// //     }
-// //   };
-
-// //   // Функция для прокрутки вправо
-// //   const scrollRight = () => {
-// //     if (scrollContainerRef.current) {
-// //       scrollContainerRef.current.scrollBy({
-// //         left: 300,
-// //         behavior: "smooth",
-// //       });
-// //     }
-// //   };
-
-// //   return (
-// //     <div className="w-full max-w-6xl mx-auto px-4">
-// //       <div className="w-full flex justify-start ml-33 mb-4">
-// //         <div className="flex gap-4">
-// //           <button
-// //             onClick={scrollLeft}
-// //             className="cursor-pointer p-2 hover:opacity-80 transition-opacity"
-// //             title="Предыдущие"
-// //           >
-// //             <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
-// //           </button>
-// //           <button
-// //             onClick={scrollRight}
-// //             className="cursor-pointer p-2 hover:opacity-80 transition-opacity"
-// //             title="Следующие"
-// //           >
-// //             <SwarrowIconWithCircle
-// //               width={50}
-// //               height={13}
-// //               circleSize={20}
-// //               className="rotate-180"
-// //             />
-// //           </button>
-// //           <Button radius="full" isIconOnly>
-// //             -
-// //           </Button>
-// //         </div>
-// //       </div>
-// //       <ScrollShadow
-// //         hideScrollBar
-// //         className="w-full w-[800px] mx-auto"
-// //         orientation="horizontal"
-// //         size={30}
-// //         offset={20}
-// //       >
-// //         <div
-// //           ref={scrollContainerRef}
-// //           className="flex gap-6 pb-4  w-[799px]" //если убрать overflow-x-auto, то появится тень!!!
-// //           style={{
-// //             scrollbarWidth: "thin",
-// //             scrollBehavior: "smooth",
-// //           }}
-// //         >
-// //           {categorySongs.map(
-// //             (
-// //               post: { key: string; name: string; image: string },
-// //               index: number
-// //             ) => (
-// //               <div
-// //                 key={post.key}
-// //                 className="flex-shrink-0 flex flex-col items-center"
-// //               >
-// //                 <Card
-// //                   onPress={() => router.push(`/playlist/${post.key}`)}
-// //                   isPressable
-// //                   className="w-40 h-40 rounded-xl shadow-lg"
-// //                 ></Card>
-// //                 <p className="mt-3 text-center font-medium text-sm md:text-base card-header">
-// //                   {post.name || `Альбом ${index + 1}`}
-// //                 </p>
-// //               </div>
-// //             )
-// //           )}
-// //         </div>
-// //       </ScrollShadow>
-// //     </div>
-// //   );
-// // }
-
-// "use client";
-
-// import { Card, ScrollShadow, Button } from "@heroui/react";
-// import { useContext, useRef, useEffect, useState } from "react";
-// import { SongsLibraryContext } from "../providers";
-// import { useRouter } from "next/navigation";
-// import { categorySongs } from "@/components/constants";
-// import SwarrowIcon, { SwarrowIconWithCircle } from "@/components/swarrow";
-
-// export default function Albums() {
-//   const context = useContext(SongsLibraryContext) || {};
-//   const router = useRouter();
-//   const scrollContainerRef = useRef<HTMLDivElement>(null);
-//   const [showLeftArrow, setShowLeftArrow] = useState(false);
-//   const [showRightArrow, setShowRightArrow] = useState(true);
-
-//   const scrollLeft = () => {
-//     if (scrollContainerRef.current) {
-//       scrollContainerRef.current.scrollBy({
-//         left: -300,
-//         behavior: "smooth",
-//       });
-//     }
-//   };
-
-//   const scrollRight = () => {
-//     if (scrollContainerRef.current) {
-//       scrollContainerRef.current.scrollBy({
-//         left: 300,
-//         behavior: "smooth",
-//       });
-//     }
-//   };
-
-//   const checkScroll = () => {
-//     if (scrollContainerRef.current) {
-//       const { scrollLeft, scrollWidth, clientWidth } =
-//         scrollContainerRef.current;
-//       setShowLeftArrow(scrollLeft > 0);
-//       setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 5);
-//     }
-//   };
-
-//   useEffect(() => {
-//     const container = scrollContainerRef.current;
-//     if (container) {
-//       container.addEventListener("scroll", checkScroll);
-//       checkScroll();
-//     }
-
-//     return () => {
-//       if (container) {
-//         container.removeEventListener("scroll", checkScroll);
-//       }
-//     };
-//   }, []);
-
-//   return (
-//     <div className="w-full max-w-6xl mx-auto px-4 overflow-hidden bg-[#F7F4F1]">
-//       <div className="w-full flex justify-start ml-33 mb-4">
-//         <div className="flex gap-4">
-//           <button
-//             onClick={scrollLeft}
-//             className={`cursor-pointer p-2 transition-opacity ${
-//               showLeftArrow
-//                 ? "opacity-100 hover:opacity-80"
-//                 : "opacity-30 cursor-not-allowed"
-//             }`}
-//             title="Предыдущие"
-//             disabled={!showLeftArrow}
-//           >
-//             <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
-//           </button>
-//           <button
-//             onClick={scrollRight}
-//             className={`cursor-pointer p-2 transition-opacity ${
-//               showRightArrow
-//                 ? "opacity-100 hover:opacity-80"
-//                 : "opacity-30 cursor-not-allowed"
-//             }`}
-//             title="Следующие"
-//             disabled={!showRightArrow}
-//           >
-//             <SwarrowIconWithCircle
-//               width={50}
-//               height={13}
-//               circleSize={20}
-//               className="rotate-180"
-//             />
-//           </button>
-//           <Button radius="full" isIconOnly>
-//             -
-//           </Button>
-//         </div>
-//       </div>
-
-//       {/* Контейнер с градиентами цвета фона #F7F4F1 */}
-//       <div className="relative">
-//         {/* Левый градиент: #F7F4F1 → прозрачный */}
-//         <div className="absolute left-0 top-0 bottom-0 w-48 z-10 pointer-events-none">
-//           <div
-//             className="w-full h-full"
-//             style={{
-//               background:
-//                 "linear-gradient(90deg, #F7F4F1 0%, rgba(247, 244, 241, 0.9) 25%, rgba(247, 244, 241, 0.6) 50%, rgba(247, 244, 241, 0.3) 75%, transparent 100%)",
-//             }}
-//           ></div>
-//         </div>
-
-//         {/* Правый градиент: #F7F4F1 → прозрачный */}
-//         <div className="absolute right-0 top-0 bottom-0 w-48 z-10 pointer-events-none">
-//           <div
-//             className="w-full h-full"
-//             style={{
-//               background:
-//                 "linear-gradient(270deg, #F7F4F1 0%, rgba(247, 244, 241, 0.9) 25%, rgba(247, 244, 241, 0.6) 50%, rgba(247, 244, 241, 0.3) 75%, transparent 100%)",
-//             }}
-//           ></div>
-//         </div>
-
-//         {/* Скролл контейнер */}
-//         <div className="relative overflow-x-auto overflow-y-visible">
-//           <div
-//             ref={scrollContainerRef}
-//             className="flex gap-6 pb-4"
-//             style={{
-//               scrollbarWidth: "thin",
-//               scrollBehavior: "smooth",
-//               paddingLeft: "192px", // 192px = 12rem (48px * 4)
-//               paddingRight: "192px",
-//             }}
-//           >
-//             {categorySongs.map(
-//               (
-//                 post: { key: string; name: string; image: string },
-//                 index: number
-//               ) => (
-//                 <div
-//                   key={post.key}
-//                   className="flex-shrink-0 flex flex-col items-center"
-//                 >
-//                   <Card
-//                     onPress={() => router.push(`/playlist/${post.key}`)}
-//                     isPressable
-//                     className="w-40 h-40 rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-//                   >
-//                     <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-xl">
-//                       {post.image ? (
-//                         <img
-//                           src={post.image}
-//                           alt={post.name}
-//                           className="w-full h-full object-cover rounded-xl"
-//                         />
-//                       ) : (
-//                         <span className="text-gray-400">
-//                           {post.name.charAt(0)}
-//                         </span>
-//                       )}
-//                     </div>
-//                   </Card>
-//                   <p className="mt-3 text-center font-medium text-sm md:text-base card-header">
-//                     {post.name || `Альбом ${index + 1}`}
-//                   </p>
-//                 </div>
-//               )
-//             )}
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
 "use client";
 
-import { Card, Button, Image } from "@heroui/react";
-import { useContext } from "react";
-import { SongsLibraryContext } from "../providers";
+import { Card, Image } from "@heroui/react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { categorySongs } from "@/components/constants";
+import {
+  DndContext,
+  PointerSensor,
+  TouchSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useCategories, type SongCategory } from "@/hooks/useCategories";
+import { CategoryEditModal } from "@/components/CategoryEditModal";
+import { FolderIcon } from "@/components/icons/FolderIcon";
 
-export default function Albums() {
-  const context = useContext(SongsLibraryContext) || {};
+interface AlbumsProps {
+  /** Режим редактирования включает регент кнопкой у заголовка */
+  isEditing?: boolean;
+  /** Песни по категориям — нужны, чтобы не дать удалить непустую */
+  songsByCategory?: Record<string, number>;
+}
+
+interface CategoryTileProps {
+  category: SongCategory;
+  isEditing: boolean;
+  onOpen: () => void;
+}
+
+const CategoryTile = ({ category, isEditing, onOpen }: CategoryTileProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: category.key, disabled: !isEditing });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.4 : 1,
+        touchAction: isEditing ? "none" : undefined,
+      }}
+      className="flex flex-col items-center w-full"
+      {...attributes}
+      {...listeners}
+    >
+      <Card
+        onPress={onOpen}
+        isPressable
+        className="relative w-full aspect-square rounded-xl shadow-md hover:shadow-lg transition-shadow"
+      >
+        <Image
+          alt="Album cover"
+          className="object-cover w-full h-full"
+          shadow="md"
+          src={category.image}
+          width="100%"
+        />
+        {isEditing && (
+          <span className="main-font absolute inset-0 z-10 flex items-center justify-center bg-black/35 text-white text-sm rounded-xl">
+            Изменить
+          </span>
+        )}
+      </Card>
+
+      <p
+        onClick={onOpen}
+        className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
+      >
+        {category.name}
+      </p>
+    </div>
+  );
+};
+
+export default function Albums({ isEditing = false, songsByCategory = {} }: AlbumsProps) {
   const router = useRouter();
+  const { categories, saveCategories } = useCategories();
+
+  const [editing, setEditing] = useState<SongCategory | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Небольшой порог, иначе на телефоне обычный тап начинает перетаскивание
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const from = categories.findIndex((item) => item.key === active.id);
+    const to = categories.findIndex((item) => item.key === over.id);
+    if (from < 0 || to < 0) return;
+
+    await saveCategories(arrayMove(categories, from, to));
+  };
+
+  const handleTileOpen = (category: SongCategory) => {
+    if (isEditing) {
+      setEditing(category);
+      return;
+    }
+    router.push(`/playlist/${category.key}`);
+  };
+
+  const handleSave = async (item: SongCategory) => {
+    const exists = categories.some((c) => c.key === item.key);
+    await saveCategories(
+      exists
+        ? categories.map((c) => (c.key === item.key ? item : c))
+        : [...categories, item],
+    );
+  };
+
+  const handleDelete = async (key: string) => {
+    await saveCategories(categories.filter((c) => c.key !== key));
+  };
+
+  const grid = (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      {categories.map((category) => (
+        <CategoryTile
+          key={category.key}
+          category={category}
+          isEditing={isEditing}
+          onOpen={() => handleTileOpen(category)}
+        />
+      ))}
+
+      {isEditing && (
+        <button
+          type="button"
+          onClick={() => setIsCreating(true)}
+          className="w-full aspect-square rounded-xl border-2 border-dashed border-[#BD9673] text-[#7D5E42] flex items-center justify-center"
+          aria-label="Добавить категорию"
+        >
+          <FolderIcon className="w-10 h-10" />
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="w-full bg-[#F7F4F1]">
       <div className="m-0">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categorySongs.map((post) => (
-            <div key={post.key} className="flex flex-col items-center w-full">
-              <Card
-                onPress={() => router.push(`/playlist/${post.key}`)}
-                isPressable
-                className="w-full aspect-square rounded-xl shadow-md hover:shadow-lg transition-shadow"
-              >
-                <Image
-                  alt="Album cover"
-                  className="object-cover w-full h-full"
-                  shadow="md"
-                  src={post.image}
-                  width="100%"
-                />
-              </Card>
-
-              <p
-                onClick={() => router.push(`/playlist/${post.key}`)}
-                className="mt-2 text-center font-medium text-xs sm:text-sm card-header line-clamp-2 w-full cursor-pointer"
-              >
-                {post.name}
-              </p>
-            </div>
-          ))}
-        </div>
+        {isEditing ? (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={categories.map((c) => c.key)}
+              strategy={rectSortingStrategy}
+            >
+              {grid}
+            </SortableContext>
+          </DndContext>
+        ) : (
+          grid
+        )}
       </div>
+
+      <CategoryEditModal
+        isOpen={editing !== null || isCreating}
+        onClose={() => {
+          setEditing(null);
+          setIsCreating(false);
+        }}
+        category={editing}
+        songsCount={editing ? (songsByCategory[editing.key] ?? 0) : 0}
+        existingKeys={categories.map((c) => c.key)}
+        onSave={handleSave}
+        onDelete={handleDelete}
+      />
     </div>
   );
 }

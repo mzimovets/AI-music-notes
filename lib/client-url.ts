@@ -28,8 +28,13 @@ function replaceLocalHostname(url: URL) {
 }
 
 export function getBackendBaseUrl() {
+  // В браузере — публичный адрес бэкенда (Jino проксирует его домен на порт 4000).
+  // На сервере — напрямую в localhost:4000, чтобы не зависеть от доверия к TLS.
   const configuredUrl =
-    process.env.NEXT_PUBLIC_BASIC_BACK_URL || DEFAULT_BACKEND_URL;
+    (typeof window !== "undefined" &&
+      process.env.NEXT_PUBLIC_BROWSER_BACK_URL) ||
+    process.env.NEXT_PUBLIC_BASIC_BACK_URL ||
+    DEFAULT_BACKEND_URL;
   const fallbackBase =
     typeof window === "undefined" ? DEFAULT_BACKEND_URL : window.location.origin;
   const url = toUrl(configuredUrl, fallbackBase);

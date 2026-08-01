@@ -1,12 +1,12 @@
 import { Song } from "./types";
-import { categorySongs } from "@/components/constants";
+import { getCategories } from "./categories-store";
 import { getBackendBaseUrl } from "./client-url";
 
 export const getCategoryDisplay = (
   key: string,
   format: "short" | "full" = "short",
 ): string => {
-  const category = categorySongs.find((item) => item.key === key);
+  const category = getCategories().find((item) => item.key === key);
 
   if (!category) return key;
 

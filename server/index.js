@@ -22,6 +22,7 @@ import { usersRoutes } from "./routes/users.js";
 import { syncRoutes } from "./routes/sync.js";
 import { recommendRoutes } from "./routes/recommend.js";
 import { analyzeRoutes } from "./routes/analyze.js";
+import { categoriesRoutes } from "./routes/categories.js";
 import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
@@ -448,6 +449,7 @@ stacksRoutes(app, urlencodedParser);
 syncRoutes(app, upload);
 recommendRoutes(app);
 analyzeRoutes(app);
+categoriesRoutes(app);
 
 // Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
 startSyncScheduler();

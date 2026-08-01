@@ -6,31 +6,10 @@ import { addToast } from "@heroui/react";
 import { processOfflineQueue } from "@/lib/offline-sync";
 import { getQueue } from "@/lib/offline-queue";
 import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
+import { fetchCategories, getCategories } from "@/lib/categories-store";
 import { socket } from "@/lib/socket";
 
-const ALL_CATEGORIES = [
-  "spiritual_chants",
-  "easter",
-  "carols",
-  "folk",
-  "soviet",
-  "military",
-  "childrens",
-  "other",
-];
-
-const CATEGORY_IMAGES = [
-  "/songs/kants.jpg",
-  "/songs/pasha.jpg",
-  "/songs/carols.jpg",
-  "/songs/narod.jpg",
-  "/songs/soviet.jpg",
-  "/songs/pobeda.jpg",
-  "/songs/children.jpg",
-  "/songs/other.jpg",
-];
-
-const CACHE_STATE_KEY = "sw-cached-state-v3";
+const CACHE_STATE_KEY = "sw-cached-state-v4";
 
 /** Проверяем доступность бэкенда напрямую (не navigator.onLine —
  *  тот возвращает false на мобильных даже при подключении к RPi-хотспоту) */
@@ -60,14 +39,16 @@ interface SongEntry {
 interface CachedState {
   songs: SongEntry[];
   stacks: string[];
+  /** Ключи категорий — регент может их добавлять и удалять */
+  categories?: string[];
 }
 
 function loadCachedState(): CachedState {
   try {
     const raw = localStorage.getItem(CACHE_STATE_KEY);
-    return raw ? JSON.parse(raw) : { songs: [], stacks: [] };
+    return raw ? JSON.parse(raw) : { songs: [], stacks: [], categories: [] };
   } catch {
-    return { songs: [], stacks: [] };
+    return { songs: [], stacks: [], categories: [] };
   }
 }
 
@@ -178,9 +159,23 @@ async function syncCache(onProgress: (p: Progress) => void) {
     }
   }
 
+  // Подтягиваем свежий список, иначе только что добавленная категория
+  // не попадёт в офлайн-кэш до следующей синхронизации
+  await fetchCategories();
+  const currentCategories = getCategories();
+  const currentCategoryKeys = new Set(currentCategories.map((c) => c.key));
+  for (const key of prev.categories ?? []) {
+    if (!currentCategoryKeys.has(key)) {
+      console.log(`[Sync] Удаляем /playlist/${key}`);
+      await deleteFromAllCaches(`/playlist/${key}`);
+    }
+  }
+
   // Определяем что нужно закэшировать
   const newSongs = currentSongs.filter((s) => !prevSongIds.has(s.id));
   const newStacks = currentStacks.filter((id) => !prevStackIds.has(id));
+  const prevCategoryKeys = new Set(prev.categories ?? []);
+  const newCategories = currentCategories.filter((c) => !prevCategoryKeys.has(c.key));
 
   const pageUrls: string[] = [];
   const assetUrls: string[] = [];
@@ -188,8 +183,10 @@ async function syncCache(onProgress: (p: Progress) => void) {
   if (isFirstSync) {
     // Первый запуск: кэшируем всё
     pageUrls.push("/api/auth/session", "/");
-    for (const cat of ALL_CATEGORIES) pageUrls.push(`/playlist/${cat}`);
-    assetUrls.push(...CATEGORY_IMAGES);
+    for (const { key, image } of currentCategories) {
+      pageUrls.push(`/playlist/${key}`);
+      if (image) assetUrls.push(image);
+    }
     for (const { id } of currentSongs) pageUrls.push(`/song/${id}`, `/songRead/${id}`);
     for (const { filename } of currentSongs) {
       if (filename) assetUrls.push(getUploadPath(filename));
@@ -199,6 +196,10 @@ async function syncCache(onProgress: (p: Progress) => void) {
     }
   } else {
     // Инкрементально: только новые
+    for (const { key, image } of newCategories) {
+      pageUrls.push(`/playlist/${key}`);
+      if (image) assetUrls.push(image);
+    }
     for (const { id } of newSongs) pageUrls.push(`/song/${id}`, `/songRead/${id}`);
     for (const { filename } of newSongs) {
       if (filename) assetUrls.push(getUploadPath(filename));
@@ -212,7 +213,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
   console.log(`[Sync] Страниц: ${pageUrls.length} (×2 RSC), файлов: ${assetUrls.length}`);
 
   if (total === 0) {
-    saveCachedState({ songs: currentSongs, stacks: currentStacks });
+    saveCachedState({ songs: currentSongs, stacks: currentStacks, categories: currentCategories.map((c) => c.key) });
     return;
   }
 
@@ -255,7 +256,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
     if (done < total) await new Promise((r) => setTimeout(r, 50));
   }
 
-  saveCachedState({ songs: currentSongs, stacks: currentStacks });
+  saveCachedState({ songs: currentSongs, stacks: currentStacks, categories: currentCategories.map((c) => c.key) });
   onProgress({ current: total, total, done: true });
 }
 

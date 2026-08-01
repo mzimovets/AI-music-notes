@@ -26,16 +26,7 @@ import { useAllSongsLibraryContextProvider } from "../providers";
 import { enqueue, storeFile } from "@/lib/offline-queue";
 import { getBackendBaseUrl } from "@/lib/client-url";
 
-export const songs = [
-  { label: "Духовные канты", key: "spiritual_chants" },
-  { label: "Пасха", key: "easter" },
-  { label: "Колядки", key: "carols" },
-  { label: "Народные", key: "folk" },
-  { label: "Советские", key: "soviet" },
-  { label: "Военные", key: "military" },
-  { label: "Детские", key: "childrens" },
-  { label: "Другое", key: "other" },
-];
+import { useCategories } from "@/hooks/useCategories";
 
 export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: boolean, onOpen: () => void, onOpenChange: (open: boolean) => void}) {
   const {
@@ -44,6 +35,7 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
     onClose: onClosePreview,
   } = useDisclosure();
   const router = useRouter();
+  const { categories } = useCategories();
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSaved, setIsSaved] = useState(false);
@@ -305,13 +297,13 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                       }}
                       className="input-header mb-0 "
                     >
-                      {songs.map((song) => (
+                      {categories.map((item) => (
                         <SelectItem
                           className="input-header"
-                          key={song.key}
-                          textValue={song.label}
+                          key={item.key}
+                          textValue={item.name}
                         >
-                          {song.label}
+                          {item.name}
                         </SelectItem>
                       ))}
                     </Select>
