@@ -174,7 +174,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
           // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,
           // после чего оригинал становится detached.
-          const pdf = await (pdfjsLib as any).getDocument({ data: pdfData.slice(0) }).promise;
+          const pdf = await (pdfjsLib as any).getDocument({ data: pdfData.slice(0), wasmUrl: "/api/pdf-wasm/" }).promise;
           if (!cancelled) {
             setPdfDoc(pdf);
             setNumPages(pdf.numPages);

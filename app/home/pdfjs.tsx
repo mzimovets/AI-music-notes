@@ -48,10 +48,10 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
         let loadingTask;
         if (typeof fileUrl === "string") {
-          loadingTask = (pdfjsLib as any).getDocument({ url: fileUrl, isEvalSupported: false });
+          loadingTask = (pdfjsLib as any).getDocument({ url: fileUrl, isEvalSupported: false, wasmUrl: "/api/pdf-wasm/" });
         } else {
           const arrayBuffer = await fileUrl.arrayBuffer();
-          loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer, isEvalSupported: false });
+          loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer, isEvalSupported: false, wasmUrl: "/api/pdf-wasm/" });
         }
 
         const pdf = await loadingTask.promise;
