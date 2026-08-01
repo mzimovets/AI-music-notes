@@ -14,6 +14,11 @@ export default withSerwistConfig({
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
   allowedDevOrigins: ["192.168.1.123", "192.168.1.132", "192.168.1.*"],
+  experimental: {
+    // Ноты — это сканы PDF, легко превышают дефолтный лимит 1 МБ
+    // для Server Actions (addSong идёт через "use server")
+    serverActions: { bodySizeLimit: "50mb" },
+  },
 
   async headers() {
     return [
