@@ -22,6 +22,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [containerWidth, setContainerWidth] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [aspect, setAspect] = useState<number | null>(null);
+  const [docFailed, setDocFailed] = useState(false);
   // По умолчанию рисуем. Наблюдатель ниже сработает почти сразу и отметит
   // страницы, которые далеко, — а вот обратный порядок оставлял вечный
   // скелетон везде, где наблюдатель почему-либо не сработал
@@ -44,6 +45,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     if (typeof window === "undefined") return;
 
     let isMounted = true;
+    setDocFailed(false);
 
     const loadPdf = async () => {
       try {
@@ -63,6 +65,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         setPdfDocRef.current?.(pdf);
       } catch (err) {
         console.error("Ошибка при загрузке PDF:", err);
+        if (isMounted) setDocFailed(true);
       }
     };
 
@@ -133,15 +136,14 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   }, []);
 
   useEffect(() => {
-    if (!pdfDoc) return;
-
-    if (!canvasRef.current) return;
-
-    if (containerWidth === 0) return;
-
-    // Далеко от экрана — не рисуем, но и скелетон не оставляем висеть
-    if (!isNearViewport) {
-      onLoadEndRef.current?.();
+    // Ни один выход отсюда не должен оставить скелетон висеть: документ мог не
+    // открыться, контейнер — ещё не измериться, страница — уехать за экран.
+    // Раньше загрузка снималась только при удачной отрисовке, и страница с
+    // непрочитанным PDF оставалась под серым прямоугольником навсегда
+    if (!pdfDoc || !canvasRef.current || containerWidth === 0 || !isNearViewport) {
+      // Скелетон снимаем, только когда ждать уже нечего: файл не открылся или
+      // страница за экраном. Пока документ грузится — оставляем
+      if (docFailed || !isNearViewport) onLoadEndRef.current?.();
       return;
     }
 
@@ -185,9 +187,9 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           setRenderError(`${err?.name}: ${err?.message}`);
         }
       } finally {
-        if (isActive) {
-          onLoadEndRef.current?.();
-        }
+        // Без проверки isActive: при быстром листании эффект успевает
+        // смениться, и страница оставалась бы в загрузке навсегда
+        onLoadEndRef.current?.();
       }
     };
 
@@ -204,7 +206,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     return () => {
       isActive = false;
     };
-  }, [containerWidth, pageNum, pdfDoc, scale, docKey, isNearViewport]);
+  }, [containerWidth, pageNum, pdfDoc, scale, docKey, isNearViewport, docFailed]);
 
   return (
     <div
