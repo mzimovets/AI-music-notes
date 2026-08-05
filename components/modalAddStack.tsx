@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { saveStack } from "@/actions/actions";
 import { StackIcon } from "./icons/StackIcon";
 import { enqueue } from "@/lib/offline-queue";
+import { isBackendReachable } from "@/lib/backend-reachable";
 
 interface StackAddModalProps {
   isOpen: boolean;
@@ -75,8 +76,26 @@ const StackAddModal: React.FC<StackAddModalProps> = ({
       onConfirm(stackName);
       router.push(`/stack/${id}`);
     } catch (e) {
-      // navigator.onLine может быть true даже без интернета — сохраняем офлайн
-      console.warn("[Stack] Сеть недоступна, сохраняем офлайн:", e);
+      // Отличаем обрыв связи от ошибки сервера: иначе человек видит обещание
+      // отправить позже, хотя запись просто не прошла
+      if (await isBackendReachable()) {
+        console.error("[Stack] Сервер ответил ошибкой:", e);
+        setIsSaved(false);
+        addToast({
+          title: <span className="font-bold text-white">Не удалось создать</span>,
+          description: (
+            <span className="text-white">
+              Сервер доступен, но программа не создалась. Обновите страницу и
+              попробуйте ещё раз
+            </span>
+          ),
+          timeout: 6000,
+          classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+        });
+        return;
+      }
+
+      console.warn("[Stack] Связи нет, сохраняем офлайн:", e);
       enqueue({ type: "stack.create", id, name: stackName });
       onConfirm(stackName);
       router.push("/");
