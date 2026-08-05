@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
+import { getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
 
 interface PdfViewerProps {
   fileUrl: string | File;
@@ -12,7 +14,6 @@ interface PdfViewerProps {
 
 export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoadEnd }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const renderTaskRef = useRef<any>(null);
   const setPdfDocRef = useRef(setPdfDoc);
   const onLoadStartRef = useRef(onLoadStart);
   const onLoadEndRef = useRef(onLoadEnd);
@@ -21,6 +22,12 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [containerWidth, setContainerWidth] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Тот же ключ, под которым документ лежит в кэше документов
+  const docKey =
+    typeof fileUrl === "string"
+      ? fileUrl
+      : `file:${fileUrl.name}:${fileUrl.size}:${fileUrl.lastModified}`;
 
   useEffect(() => {
     setPdfDocRef.current = setPdfDoc;
@@ -35,26 +42,15 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     const loadPdf = async () => {
       try {
-        // Полифилл для Safari iOS — Map.getOrInsertComputed появился позже pdfjs 5.x
-        if (!("getOrInsertComputed" in Map.prototype)) {
-          (Map.prototype as any).getOrInsertComputed = function(key: any, fn: (k: any) => any) {
-            if (!this.has(key)) this.set(key, fn(key));
-            return this.get(key);
-          };
-        }
-
-        const pdfjsLib = await import("pdfjs-dist/build/pdf");
-        (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
-
-        let loadingTask;
-        if (typeof fileUrl === "string") {
-          loadingTask = (pdfjsLib as any).getDocument({ url: fileUrl, isEvalSupported: false, wasmUrl: "/api/pdf-wasm/" });
-        } else {
-          const arrayBuffer = await fileUrl.arrayBuffer();
-          loadingTask = (pdfjsLib as any).getDocument({ data: arrayBuffer, isEvalSupported: false, wasmUrl: "/api/pdf-wasm/" });
-        }
-
-        const pdf = await loadingTask.promise;
+        // Документ берётся из общего кэша: один файл разбирается один раз,
+        // сколько бы карточек страниц его ни показывали
+        const pdf =
+          typeof fileUrl === "string"
+            ? await getPdfDocument(fileUrl)
+            : await getPdfDocumentFromData(
+                `file:${fileUrl.name}:${fileUrl.size}:${fileUrl.lastModified}`,
+                await fileUrl.arrayBuffer(),
+              );
 
         if (!isMounted) return;
 
@@ -69,10 +65,8 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     return () => {
       isMounted = false;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
-      setPdfDocState(null);
+      // Документ живёт в общем кэше и переиспользуется — не сбрасываем его,
+      // иначе возврат к той же песне заставит ждать заново
     };
   }, [fileUrl]);
 
@@ -96,58 +90,38 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     let isActive = true;
 
-    const renderPage = async (num: number, userScale: number) => {
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
+    const paint = (bitmap: ImageBitmap) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+    };
 
+    const renderPage = async (num: number, userScale: number) => {
       try {
         setRenderError(null);
-        onLoadStartRef.current?.();
         if (num < 1 || num > pdfDoc.numPages) {
           console.warn(`[Pdfjs] pageNum ${num} out of range [1, ${pdfDoc.numPages}] — skipping render`);
           return;
         }
-        const page = await pdfDoc.getPage(num);
 
-        const rotation = page.rotate || 0;
-        const viewport = page.getViewport({ scale: 1, rotation });
+        const width = containerWidth * userScale;
+        const result = getRenderedPage(pdfDoc, docKey, num, width);
 
-        // Calculate scale to fit container width (fitScale)
-        const fitScale = containerWidth / viewport.width;
+        // Готовая страница рисуется сразу — без скелетона и лишнего кадра
+        if (!(result instanceof Promise)) {
+          paint(result);
+          onLoadEndRef.current?.();
+          return;
+        }
 
-        // Combine fitScale and userScale for zooming
-        const baseScale = fitScale * userScale;
-
-        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const context = canvas.getContext("2d");
-        if (!context) return;
-
-        // Set canvas width to container width * outputScale for high DPI
-        canvas.width = Math.floor(containerWidth * outputScale);
-
-        // Set canvas height to maintain aspect ratio
-        canvas.height = Math.floor(viewport.height * baseScale * outputScale);
-
-        // Set CSS width to 100% to fill container width, height auto to maintain aspect ratio
-        canvas.style.width = "100%";
-        canvas.style.height = "auto";
-
-        // Reset transform before scaling
-        context.setTransform(1, 0, 0, 1, 0, 0);
-        // Scale context to account for outputScale
-        context.scale(outputScale, outputScale);
-
-        const renderContext = {
-          canvasContext: context,
-          viewport: page.getViewport({ scale: baseScale, rotation }),
-        };
-
-        renderTaskRef.current = page.render(renderContext);
-        await renderTaskRef.current.promise;
+        onLoadStartRef.current?.();
+        const bitmap = await result;
+        if (!isActive || !bitmap) return;
+        paint(bitmap);
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") {
           console.error("Ошибка при рендеринге страницы PDF:", err);
@@ -162,13 +136,18 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     renderPage(pageNum, scale);
 
+    // Соседние страницы — чтобы перелистывание в карточке песни было мгновенным
+    prefetchPages(
+      pdfDoc,
+      docKey,
+      [pageNum + 1, pageNum - 1, pageNum + 2],
+      () => containerWidth * scale,
+    );
+
     return () => {
       isActive = false;
-      if (renderTaskRef.current) {
-        renderTaskRef.current.cancel();
-      }
     };
-  }, [containerWidth, pageNum, pdfDoc, scale]);
+  }, [containerWidth, pageNum, pdfDoc, scale, docKey]);
 
   return (
     <div

@@ -27,6 +27,7 @@ import { enqueue, storeFile } from "@/lib/offline-queue";
 import { getBackendBaseUrl } from "@/lib/client-url";
 
 import { useCategories } from "@/hooks/useCategories";
+import { getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
 
 export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: boolean, onOpen: () => void, onOpenChange: (open: boolean) => void}) {
   const {
@@ -495,10 +496,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                           setNumPages(0);
                         } else {
                           try {
-                            const pdfjsLib = await import("pdfjs-dist/build/pdf");
-                            (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
-                            const buf = await file.arrayBuffer();
-                            const pdf = await (pdfjsLib as any).getDocument({ data: buf, wasmUrl: "/api/pdf-wasm/" }).promise;
+                            const pdf = await getPdfDocumentFromData(
+                              `file:${file.name}:${file.size}:${file.lastModified}`,
+                              await file.arrayBuffer(),
+                            );
                             setNumPages(pdf.numPages);
                           } catch {}
                         }

@@ -22,6 +22,9 @@ import { Input } from "@heroui/input";
 import { useSession } from "next-auth/react";
 import { recacheSong } from "@/lib/recache-song";
 import { useParams } from "next/navigation";
+import { evictPdfDocument, getPdfDocument } from "@/lib/pdf-doc-cache";
+import { evictDocumentPages } from "@/lib/pdf-page-cache";
+import { getUploadPath } from "@/lib/client-url";
 
 export const InfoCard = () => {
   const { data: session } = useSession();
@@ -59,9 +62,7 @@ export const InfoCard = () => {
     const url = `/uploads/${song.doc.file.filename}`;
     setSelectedFile(url);
     try {
-      const pdfjsLib = await import("pdfjs-dist/build/pdf");
-      (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
-      const pdf = await (pdfjsLib as any).getDocument({ url, wasmUrl: "/api/pdf-wasm/" }).promise;
+      const pdf = await getPdfDocument(url);
       setNumPages(pdf.numPages);
     } catch {}
   };
@@ -119,6 +120,14 @@ export const InfoCard = () => {
     };
     if (selectedFile && typeof selectedFile !== "string") {
       data.file = selectedFile;
+    }
+
+    // Файл заменён — выбрасываем и документ, и отрисованные страницы,
+    // иначе на экране останется старая нота
+    if (data.file && song.doc.file?.filename) {
+      const oldUrl = getUploadPath(song.doc.file.filename);
+      evictPdfDocument(oldUrl);
+      evictDocumentPages(oldUrl);
     }
 
     await editSong(song.doc._id, data);

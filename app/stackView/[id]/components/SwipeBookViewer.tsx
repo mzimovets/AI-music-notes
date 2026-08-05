@@ -9,6 +9,8 @@ import {
   useMemo,
 } from "react";
 import { Skeleton } from "@heroui/react";
+import { getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
+import { getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
 
 // ─── Public handle (same interface as DearFlipViewerHandle) ──────────────────
 export interface SwipeBookViewerHandle {
@@ -33,6 +35,7 @@ export interface SwipeBookViewerProps {
 // ─── Single page canvas renderer ─────────────────────────────────────────────
 function PdfPage({
   pdfDoc,
+  docKey,
   pageNum,
   targetHeight,
   maxWidth,
@@ -41,6 +44,7 @@ function PdfPage({
   isSingle,
 }: {
   pdfDoc: any;
+  docKey: string;
   pageNum: number;
   targetHeight: number;
   maxWidth?: number;
@@ -49,58 +53,48 @@ function PdfPage({
   isSingle?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const renderTaskRef = useRef<any>(null);
 
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current) return;
     let cancelled = false;
 
-    (async () => {
-      if (renderTaskRef.current) {
-        try { renderTaskRef.current.cancel(); } catch (_) {}
-      }
+    const paint = (bitmap: ImageBitmap) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.style.width = `${bitmap.width / dpr}px`;
+      canvas.style.height = `${bitmap.height / dpr}px`;
+      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+    };
 
+    (async () => {
       const page = await pdfDoc.getPage(pageNum);
       if (cancelled) return;
 
-      const viewport = page.getViewport({ scale: 1 });
-      const scaleByHeight = targetHeight / viewport.height;
-      const scaleByWidth = maxWidth ? maxWidth / viewport.width : Infinity;
-      const scale = Math.min(scaleByHeight, scaleByWidth);
-      const scaledViewport = page.getViewport({ scale });
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      // Кэш работает по ширине, а книжный режим считает от высоты — переводим
+      const base = page.getViewport({ scale: 1 });
+      const byHeight = (targetHeight / base.height) * base.width;
+      const width = Math.min(byHeight, maxWidth ?? Infinity);
 
-      // Рендерим в offscreen canvas — видимый не трогаем пока не готово
-      const offscreen = document.createElement("canvas");
-      offscreen.width = Math.floor(scaledViewport.width * dpr);
-      offscreen.height = Math.floor(scaledViewport.height * dpr);
-      const ctx = offscreen.getContext("2d")!;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const result = getRenderedPage(pdfDoc, docKey, pageNum, width);
 
-      renderTaskRef.current = page.render({ canvasContext: ctx, viewport: scaledViewport });
-      try {
-        await renderTaskRef.current.promise;
-      } catch (err: any) {
-        if (err?.name !== "RenderingCancelledException") console.error(err);
+      // Уже в кэше — рисуем в этом же кадре, без промежуточной пустоты
+      if (!(result instanceof Promise)) {
+        paint(result);
         return;
       }
 
-      if (cancelled) return;
-
-      // Всё готово — копируем в видимый canvas одним синхронным drawImage (без мигания)
-      const canvas = canvasRef.current!;
-      canvas.width = offscreen.width;
-      canvas.height = offscreen.height;
-      canvas.style.width = `${scaledViewport.width}px`;
-      canvas.style.height = `${scaledViewport.height}px`;
-      canvas.getContext("2d")!.drawImage(offscreen, 0, 0);
+      const bitmap = await result;
+      if (cancelled || !bitmap) return;
+      paint(bitmap);
     })();
 
     return () => {
       cancelled = true;
-      try { renderTaskRef.current?.cancel(); } catch (_) {}
     };
-  }, [pdfDoc, pageNum, targetHeight]);
+  }, [pdfDoc, docKey, pageNum, targetHeight, maxWidth]);
 
   const borderRadius = isSingle
     ? "12px"
@@ -163,18 +157,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
       (async () => {
         try {
-          if (!("getOrInsertComputed" in Map.prototype)) {
-            (Map.prototype as any).getOrInsertComputed = function(key: any, fn: (k: any) => any) {
-              if (!this.has(key)) this.set(key, fn(key));
-              return this.get(key);
-            };
-          }
-          const pdfjsLib = await import("pdfjs-dist/build/pdf");
-          (pdfjsLib as any).GlobalWorkerOptions.workerSrc = "/api/pdf-worker";
-
-          // Копируем буфер через slice() — pdfjs передаёт его в Worker через transfer,
-          // после чего оригинал становится detached.
-          const pdf = await (pdfjsLib as any).getDocument({ data: pdfData.slice(0), wasmUrl: "/api/pdf-wasm/" }).promise;
+          // Ключ по URL склейки: при том же составе стопки документ
+          // переиспользуется, а не разбирается заново
+          const pdf = await getPdfDocumentFromData(`book:${pdfUrl}`, pdfData);
           if (!cancelled) {
             setPdfDoc(pdf);
             setNumPages(pdf.numPages);
@@ -186,7 +171,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       })();
 
       return () => { cancelled = true; };
-    }, [pdfData]);
+    }, [pdfData, pdfUrl]);
 
     // Список реальных страниц для мобайла (без пустых/разделительных)
     // Строим из contentRanges: каждый диапазон [offset, offset+count)
@@ -206,6 +191,29 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const [mobileIndex, setMobileIndex] = useState(0);
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
+
+    const docKey = `book:${pdfUrl}`;
+
+    // Готовим соседние страницы заранее — листание должно быть мгновенным
+    useEffect(() => {
+      if (!pdfDoc) return;
+
+      const around = mobilePages.length > 0
+        ? [
+            mobilePages[mobileIndex + 1],
+            mobilePages[mobileIndex - 1],
+            mobilePages[mobileIndex + 2],
+            mobilePages[mobileIndex - 2],
+          ].filter((p): p is number => typeof p === "number")
+        : [currentPage + 1, currentPage - 1, currentPage + 2, currentPage - 2];
+
+      // Та же формула, что и в PdfPage, иначе предзагрузка ляжет мимо кэша
+      const pageHeight = Math.floor(height * 0.98);
+      prefetchPages(pdfDoc, docKey, around, (page) => {
+        const base = page.getViewport({ scale: 1 });
+        return (pageHeight / base.height) * base.width;
+      });
+    }, [pdfDoc, docKey, mobilePages, mobileIndex, currentPage, height]);
 
     // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
@@ -362,6 +370,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                   <div key={idx} style={{ position: "relative", display: "flex" }}>
                     <PdfPage
                       pdfDoc={pdfDoc}
+                      docKey={docKey}
                       pageNum={pageNum}
                       targetHeight={pageHeight}
                       isLeft={isLeft}
