@@ -14,6 +14,8 @@ import {
   SwipeBookViewer,
   SwipeBookViewerHandle,
 } from "@/app/stackView/[id]/components/SwipeBookViewer";
+import { getPdfDocument } from "@/lib/pdf-doc-cache";
+import type { PlanPage } from "@/lib/stack-page-plan";
 
 export default function SongReadPage() {
   const { songResponse } = useSongContext();
@@ -34,7 +36,7 @@ export default function SongReadPage() {
   const [viewerHeight, setViewerHeight] = useState(() =>
     typeof window !== "undefined" ? Math.max(400, window.innerHeight) : 600,
   );
-  const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
+  const [plan, setPlan] = useState<PlanPage[]>([]);
 
   const startHideTimer = useCallback(() => {
     clearTimeout(hideTimer.current);
@@ -93,18 +95,26 @@ export default function SongReadPage() {
     ? getUploadPath(songResponse.doc.file.filename)
     : null;
 
+  // План для одной ноты — просто её страницы подряд. Документ берётся из
+  // общего кэша, поэтому отдельной загрузки файла здесь больше нет
   useEffect(() => {
     if (!fileUrl) return;
-    setPdfData(undefined);
     let cancelled = false;
+
     (async () => {
       try {
-        const res = await fetch(fileUrl);
-        if (!res.ok || cancelled) return;
-        const bytes = await res.arrayBuffer();
-        if (!cancelled) setPdfData(bytes);
+        const doc = await getPdfDocument(fileUrl);
+        if (cancelled) return;
+        setPlan(
+          Array.from({ length: doc.numPages }, (_, i) => ({
+            kind: "doc" as const,
+            url: fileUrl,
+            pageInDoc: i + 1,
+          })),
+        );
       } catch {}
     })();
+
     return () => {
       cancelled = true;
     };
@@ -265,8 +275,7 @@ export default function SongReadPage() {
           <div className="flex-1 overflow-hidden">
             <SwipeBookViewer
               ref={flipViewerRef}
-              pdfUrl={fileUrl}
-              pdfData={pdfData}
+              plan={plan}
               height={viewerHeight}
               onTap={handleBookTap}
               onPageChange={setCurrentPage}

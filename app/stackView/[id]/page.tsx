@@ -20,6 +20,12 @@ import { updateStack } from "@/actions/actions";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { getPdfDocument } from "@/lib/pdf-doc-cache";
+import {
+  buildStackPagePlan,
+  collectPlanUrls,
+  type PlanPage,
+} from "@/lib/stack-page-plan";
 
 type StackUpdatedPayload = {
   stackId: string;
@@ -66,7 +72,7 @@ export default function Page() {
   const [trapezaStartPageCount, setTrapezaStartPageCount] = useState<number | undefined>();
   const [trapezaEndPageCount, setTrapezaEndPageCount] = useState<number | undefined>();
   const [contentRanges, setContentRanges] = useState<{ offset: number; count: number }[]>([]);
-  const [pdfData, setPdfData] = useState<ArrayBuffer | undefined>();
+
   const [currentPage, setCurrentPage] = useState(1);
   // absoluteFromPage → { absoluteTo (для прыжка), relativeTo (для отображения внутри файла) }
   const [repriseMap, setRepriseMap] = useState<Map<number, { absoluteTo: number; relativeTo: number }>>(new Map());
@@ -222,11 +228,13 @@ export default function Page() {
 
   // Версия PDF — инициализируется из updatedAt стека, чтобы при открытии страницы
   // не использовался устаревший серверный кэш со старым порядком песен.
-  // Для старых стеков без updatedAt используем Date.now() как гарантированно уникальное значение.
-  const [pdfVersion, setPdfVersion] = useState<number>(
-    () => (stackResponse.doc as any)?.updatedAt || Date.now()
-  );
-  const mergedPdfUrl = stackId ? `/api/merge-stack/${stackId}?v=${pdfVersion}` : null;
+  // План страниц считается на месте. Раньше здесь был адрес склейки с версией:
+  // версия менялась на каждое изменение стопки, сервер пересобирал документ
+  // целиком, а клиент качал и заново разбирал его — отсюда мигание и пауза.
+  const [plan, setPlan] = useState<PlanPage[]>([]);
+  const [reprisesById, setReprisesById] = useState<
+    Map<string, { fromPage: number; toPage: number }[]>
+  >(new Map());
 
   // Следим за изменениями состава книги, автосохраняем и обновляем PDF
   const pdfUpdateKeyRef  = useRef<string>("");
@@ -253,39 +261,30 @@ export default function Page() {
     if (key === pdfUpdateKeyRef.current) return;
     pdfUpdateKeyRef.current = key;
 
+    // Певчему сохранять нечего, а план у него уже пересчитан — ждать незачем
+    if (isSingerRef.current) return;
+
     clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(async () => {
-      // Сбрасываем страничные данные непосредственно перед пересборкой PDF,
-      // чтобы при быстром добавлении нескольких песен не мигал экран загрузки.
-      setSongPageDataById(new Map());
-      setSongPageEntries([]);
-      setContentRanges([]);
-      setTrapezaStartPage(undefined);
-      setTrapezaEndPage(undefined);
-      setTrapezaStartPageCount(undefined);
-      setTrapezaEndPageCount(undefined);
-
-      if (!isSingerRef.current) {
-        // Только регент сохраняет в БД
-        try {
-          justSavedRef.current = true;
-          await updateStack({
-            stack: stackSongs,
-            mealType: mealType ?? "",
-            programSelected: programSelected as [],
-            isPublished: (stackResponse.doc as any)?.isPublished ?? false,
-            currentUrl: window.location.pathname,
-            name: stackResponse.doc?.name ?? "",
-            cover: (stackResponse.doc as any)?.cover ?? "",
-            id: stackId,
-          });
-        } catch (e) {
-          justSavedRef.current = false;
-          console.error("[book] auto-save failed:", e);
-        }
+      // Обнуления страничных данных здесь больше нет: экран показывает
+      // пересчитанный план, а запись в базу идёт фоном и его не трогает
+      try {
+        justSavedRef.current = true;
+        await updateStack({
+          stack: stackSongs,
+          mealType: mealType ?? "",
+          programSelected: programSelected as [],
+          isPublished: (stackResponse.doc as any)?.isPublished ?? false,
+          currentUrl: window.location.pathname,
+          name: stackResponse.doc?.name ?? "",
+          cover: (stackResponse.doc as any)?.cover ?? "",
+          id: stackId,
+        });
+      } catch (e) {
+        justSavedRef.current = false;
+        console.error("[book] auto-save failed:", e);
       }
-      setPdfVersion(Date.now());
-    }, isSingerRef.current ? 1200 : 800); // певчие ждут дольше, чтобы регент успел сохранить в БД
+    }, 800);
 
     return () => clearTimeout(autoSaveTimer.current);
   }, [stackSongs, mealType, programSelected, stackId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -310,53 +309,76 @@ export default function Page() {
     setContentRanges(entries.map((e) => ({ offset: e.pageOffset, count: e.pageCount })));
   }, []);
 
-  // Fetch song page offsets + кешируем байты PDF чтобы не скачивать дважды
+  // Пересчёт плана при любом изменении состава. Документы берутся из общего
+  // кэша, поэтому перестановка песни не стоит ни одного запроса: количество
+  // страниц уже известно, а сами файлы давно лежат на устройстве.
   useEffect(() => {
-    if (!mergedPdfUrl) return;
-    setPdfData(undefined);
+    if (!stackId) return;
     let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const load = async (attempt = 0) => {
-      try {
-        const res = await fetch(mergedPdfUrl);
-        if (cancelled) return;
-        if (!res.ok) {
-          if (attempt < 5) retryTimer = setTimeout(() => load(attempt + 1), 2000);
-          return;
-        }
-        const header = res.headers.get("x-song-pages");
-        const bytes = await res.arrayBuffer();
-        if (cancelled) return;
-        setPdfData(bytes);
-        if (!header) return;
-        applySongPageEntries(JSON.parse(header));
-      } catch {
-        if (!cancelled && attempt < 5) retryTimer = setTimeout(() => load(attempt + 1), 2000);
-      }
+    const input = {
+      songs: stackSongs,
+      mealType,
+      programSelected,
+      cover: (stackResponse.doc as any)?.cover ?? null,
     };
 
-    load();
-    return () => { cancelled = true; if (retryTimer) clearTimeout(retryTimer); };
-  }, [mergedPdfUrl, applySongPageEntries]);
+    (async () => {
+      const urls = collectPlanUrls(input);
+      const counts = new Map<string, number>();
 
-  // Обновляем репризы когда пользователь возвращается на вкладку
-  // (репризы могли измениться в карточке песни без изменения состава стопки)
+      await Promise.all(
+        urls.map(async (url) => {
+          try {
+            const doc = await getPdfDocument(url);
+            counts.set(url, doc.numPages);
+          } catch {
+            // Недоступный файл пропускается — ровно как его пропускала склейка
+            counts.set(url, 0);
+          }
+        }),
+      );
+      if (cancelled) return;
+
+      const built = buildStackPagePlan(
+        input,
+        (url) => counts.get(url) ?? 0,
+        reprisesById,
+      );
+      setPlan(built.pages);
+      applySongPageEntries(built.entries);
+    })();
+
+    return () => { cancelled = true; };
+  }, [stackId, stackSongs, mealType, programSelected, stackResponse, reprisesById, applySongPageEntries]);
+
+  // Репризы правятся в карточке песни, без изменения состава стопки, — поэтому
+  // подтягиваем их отдельно: при входе и при возврате на вкладку
   useEffect(() => {
-    if (!mergedPdfUrl) return;
     const refresh = async () => {
       try {
-        const res = await fetch(mergedPdfUrl, { cache: "no-store" });
-        const header = res.headers.get("x-song-pages");
-        // Отменяем тело — нам нужны только заголовки
-        res.body?.cancel().catch(() => {});
-        if (header) applySongPageEntries(JSON.parse(header));
+        const res = await fetch(`${getBackendBaseUrl()}/songs`, {
+          signal: AbortSignal.timeout(5000),
+        });
+        const data = await res.json();
+        if (data.status !== "ok" || !data.docs) return;
+
+        const map = new Map<string, { fromPage: number; toPage: number }[]>();
+        for (const song of data.docs) {
+          const reprises = song.doc?.reprises ?? song.reprises;
+          if (Array.isArray(reprises) && reprises.length > 0) {
+            map.set(song._id, reprises);
+          }
+        }
+        setReprisesById(map);
       } catch {}
     };
+
+    refresh();
     const handleVisibility = () => { if (!document.hidden) refresh(); };
     document.addEventListener("visibilitychange", handleVisibility);
     return () => document.removeEventListener("visibilitychange", handleVisibility);
-  }, [mergedPdfUrl, applySongPageEntries]);
+  }, []);
 
   // Navigate flipbook one page at a time (even in double-page spread mode)
   const scrollToPageByStep = useCallback((step: -1 | 1) => {
@@ -465,13 +487,12 @@ export default function Page() {
   return (
     <div>
       {/* Book mode overlay */}
-      {viewMode === "book" && mergedPdfUrl && (
+      {viewMode === "book" && (
         <div className="fixed inset-0 z-20 bg-[#F7F4F1] flex flex-col">
           <div className="flex-1 overflow-hidden">
             <SwipeBookViewer
               ref={flipViewerRef}
-              pdfUrl={mergedPdfUrl}
-              pdfData={pdfData}
+              plan={plan}
               height={viewerHeight}
               contentRanges={contentRanges}
               onTap={handleBookTap}

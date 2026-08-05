@@ -9,7 +9,8 @@ import {
   useMemo,
 } from "react";
 import { Skeleton } from "@heroui/react";
-import { getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
+import { getPdfDocument } from "@/lib/pdf-doc-cache";
+import type { PlanPage } from "@/lib/stack-page-plan";
 import { getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
 
 // ─── Public handle (same interface as DearFlipViewerHandle) ──────────────────
@@ -20,9 +21,12 @@ export interface SwipeBookViewerHandle {
 }
 
 export interface SwipeBookViewerProps {
-  pdfUrl: string;
-  /** Готовые байты PDF — если переданы, не скачиваем повторно */
-  pdfData?: ArrayBuffer;
+  /**
+   * План страниц: какая страница какого документа где стоит. Раньше сюда
+   * приходил один склеенный PDF, который сервер пересобирал на каждое
+   * изменение стопки; теперь перестановка песни меняет только этот массив.
+   */
+  plan: PlanPage[];
   height: number;
   /** Диапазоны страниц с реальным контентом (из X-Song-Pages). На мобайле пропускаем остальные. */
   contentRanges?: { offset: number; count: number }[];
@@ -34,18 +38,14 @@ export interface SwipeBookViewerProps {
 
 // ─── Single page canvas renderer ─────────────────────────────────────────────
 function PdfPage({
-  pdfDoc,
-  docKey,
-  pageNum,
+  page,
   targetHeight,
   maxWidth,
   isLeft,
   isRight,
   isSingle,
 }: {
-  pdfDoc: any;
-  docKey: string;
-  pageNum: number;
+  page: PlanPage;
   targetHeight: number;
   maxWidth?: number;
   isLeft?: boolean;
@@ -53,9 +53,12 @@ function PdfPage({
   isSingle?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDoc = page.kind === "doc";
+  const docKey = isDoc ? page.url : "";
+  const pageInDoc = isDoc ? page.pageInDoc : 0;
 
   useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+    if (!isDoc || !canvasRef.current) return;
     let cancelled = false;
 
     const paint = (bitmap: ImageBitmap) => {
@@ -70,15 +73,18 @@ function PdfPage({
     };
 
     (async () => {
-      const page = await pdfDoc.getPage(pageNum);
+      const doc = await getPdfDocument(docKey);
+      if (cancelled) return;
+
+      const pdfPage = await doc.getPage(pageInDoc);
       if (cancelled) return;
 
       // Кэш работает по ширине, а книжный режим считает от высоты — переводим
-      const base = page.getViewport({ scale: 1 });
+      const base = pdfPage.getViewport({ scale: 1 });
       const byHeight = (targetHeight / base.height) * base.width;
       const width = Math.min(byHeight, maxWidth ?? Infinity);
 
-      const result = getRenderedPage(pdfDoc, docKey, pageNum, width);
+      const result = getRenderedPage(doc, docKey, pageInDoc, width);
 
       // Уже в кэше — рисуем в этом же кадре, без промежуточной пустоты
       if (!(result instanceof Promise)) {
@@ -94,13 +100,47 @@ function PdfPage({
     return () => {
       cancelled = true;
     };
-  }, [pdfDoc, docKey, pageNum, targetHeight, maxWidth]);
+  }, [isDoc, docKey, pageInDoc, targetHeight, maxWidth]);
 
   const borderRadius = isSingle
     ? "12px"
     : isLeft
       ? "12px 0 0 12px"
       : "0 12px 12px 0";
+
+  // Пустые страницы и разделители раньше приходили страницами склеенного PDF.
+  // Рисовать их разметкой и быстрее, и чётче
+  if (!isDoc) {
+    const isSection = page.kind === "section";
+    // Пропорции A4 — те же, что у заглушек в склейке
+    const width = targetHeight * (595 / 842);
+
+    return (
+      <div
+        style={{
+          width,
+          height: targetHeight,
+          borderRadius,
+          background: isSection ? page.color : "#ffffff",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {isSection && (
+          <span
+            style={{
+              color: "rgba(255,255,255,0.9)",
+              fontSize: Math.round(targetHeight * 0.043),
+              fontFamily: '"Roboto Slab", serif',
+            }}
+          >
+            {page.label}
+          </span>
+        )}
+      </div>
+    );
+  }
 
   return (
     <canvas
@@ -112,10 +152,10 @@ function PdfPage({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewerProps>(
-  ({ pdfUrl, pdfData, height, contentRanges = [], onTap, onPageChange }, ref) => {
+  ({ plan, height, contentRanges = [], onTap, onPageChange }, ref) => {
     const onPageChangeRef = useRef(onPageChange);
     useEffect(() => { onPageChangeRef.current = onPageChange; }, [onPageChange]);
-    const [pdfDoc, setPdfDoc] = useState<any>(null);
+    
     const [numPages, setNumPages] = useState(0);
     const [currentPage, setCurrentPage] = useState(1);
     const [isMobile, setIsMobile] = useState(() =>
@@ -143,35 +183,15 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       return () => window.removeEventListener("resize", check);
     }, []);
 
-    // Load PDF
+    // Длина книги — это длина плана. Ни загрузки, ни разбора здесь больше нет:
+    // перестановка песни меняет массив, а текущая страница остаётся на месте
     useEffect(() => {
-      setPdfDoc(null);
-      setNumPages(0);
-      setCurrentPage(1);
-      setMobileIndex(0);
-      mobileIndexRef.current = 0;
+      setNumPages(plan.length);
+      numPagesRef.current = plan.length;
 
-      if (!pdfData) return; // ждём байты от родителя — скелетон висит, не падаем
-
-      let cancelled = false;
-
-      (async () => {
-        try {
-          // Ключ по URL склейки: при том же составе стопки документ
-          // переиспользуется, а не разбирается заново
-          const pdf = await getPdfDocumentFromData(`book:${pdfUrl}`, pdfData);
-          if (!cancelled) {
-            setPdfDoc(pdf);
-            setNumPages(pdf.numPages);
-            numPagesRef.current = pdf.numPages;
-          }
-        } catch (err) {
-          console.error("[SwipeBookViewer] PDF load error:", err);
-        }
-      })();
-
-      return () => { cancelled = true; };
-    }, [pdfData, pdfUrl]);
+      // Если страниц стало меньше, подтягиваем позицию внутрь новых границ
+      setCurrentPage((prev) => Math.min(Math.max(prev, 1), plan.length || 1));
+    }, [plan.length]);
 
     // Список реальных страниц для мобайла (без пустых/разделительных)
     // Строим из contentRanges: каждый диапазон [offset, offset+count)
@@ -192,11 +212,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
-    const docKey = `book:${pdfUrl}`;
-
     // Готовим соседние страницы заранее — листание должно быть мгновенным
     useEffect(() => {
-      if (!pdfDoc) return;
+      if (plan.length === 0) return;
 
       const around = mobilePages.length > 0
         ? [
@@ -209,11 +227,19 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
       // Та же формула, что и в PdfPage, иначе предзагрузка ляжет мимо кэша
       const pageHeight = Math.floor(height * 0.98);
-      prefetchPages(pdfDoc, docKey, around, (page) => {
-        const base = page.getViewport({ scale: 1 });
+      const sizeFor = (pdfPage: any) => {
+        const base = pdfPage.getViewport({ scale: 1 });
         return (pageHeight / base.height) * base.width;
-      });
-    }, [pdfDoc, docKey, mobilePages, mobileIndex, currentPage, height]);
+      };
+
+      for (const pageNum of around) {
+        const entry = plan[pageNum - 1];
+        if (!entry || entry.kind !== "doc") continue;
+        getPdfDocument(entry.url)
+          .then((doc) => prefetchPages(doc, entry.url, [entry.pageInDoc], sizeFor))
+          .catch(() => {});
+      }
+    }, [plan, mobilePages, mobileIndex, currentPage, height]);
 
     // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
@@ -361,17 +387,17 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
             pointerEvents: "none",
           }}
         >
-          {pdfDoc && pagesToShow.length > 0
+          {plan.length > 0 && pagesToShow.length > 0
             ? pagesToShow.map((pageNum, idx) => {
                 const isOnly = pagesToShow.length === 1;
                 const isLeft = !isOnly && idx === 0;
                 const isRight = !isOnly && idx === pagesToShow.length - 1;
+                const planPage = plan[pageNum - 1];
+                if (!planPage) return null;
                 return (
                   <div key={idx} style={{ position: "relative", display: "flex" }}>
                     <PdfPage
-                      pdfDoc={pdfDoc}
-                      docKey={docKey}
-                      pageNum={pageNum}
+                      page={planPage}
                       targetHeight={pageHeight}
                       isLeft={isLeft}
                       isRight={isRight}
