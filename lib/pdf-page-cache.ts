@@ -48,7 +48,13 @@ let usedBytes = 0;
  * сразу после касания и кнопки переставали нажиматься. Здесь всё, что нужно
  * показать сейчас, идёт вперёд, а предзагрузка ждёт и уступает между задачами.
  */
-type Task = { run: () => Promise<unknown>; urgent: boolean; gen: number };
+type Task = {
+  run: () => Promise<unknown>;
+  /** Завершает обещание задачи, если до неё так и не дошли */
+  cancel: () => void;
+  urgent: boolean;
+  gen: number;
+};
 
 const queue: Task[] = [];
 let pumping = false;
@@ -72,8 +78,13 @@ async function pump() {
     const urgentAt = queue.findIndex((t) => t.urgent);
     const task = queue.splice(urgentAt >= 0 ? urgentAt : 0, 1)[0];
 
-    // Предзагрузка, заказанная до листания, уже неактуальна
-    if (!task.urgent && task.gen !== prefetchGen) continue;
+    // Предзагрузка, заказанная до листания, уже неактуальна. Завершить её
+    // обещание обязательно: иначе оно навсегда остаётся в списке «уже
+    // рисуется», и следующий запрос этой же страницы ждёт его вечно
+    if (!task.urgent && task.gen !== prefetchGen) {
+      task.cancel();
+      continue;
+    }
 
     try {
       await task.run();
@@ -86,12 +97,16 @@ async function pump() {
   pumping = false;
 }
 
-function schedule<T>(run: () => Promise<T>, urgent: boolean): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
+function schedule<T>(
+  run: () => Promise<T>,
+  urgent: boolean,
+): Promise<T | null> {
+  return new Promise<T | null>((resolve, reject) => {
     queue.push({
       urgent,
       gen: prefetchGen,
       run: () => run().then(resolve, reject),
+      cancel: () => resolve(null),
     });
     pump();
   });
@@ -191,6 +206,14 @@ function ensureRendered(
     });
 
   inFlight.set(key, promise);
+
+  // Страховка от зависшей записи: если отрисовка почему-то не завершится,
+  // страница не должна остаться в загрузке навсегда — освобождаем ключ,
+  // чтобы следующий заход попробовал заново
+  setTimeout(() => {
+    if (inFlight.get(key) === promise) inFlight.delete(key);
+  }, 15_000);
+
   return promise;
 }
 
