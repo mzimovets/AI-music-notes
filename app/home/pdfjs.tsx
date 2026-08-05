@@ -21,6 +21,8 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [scale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
+  const [aspect, setAspect] = useState<number | null>(null);
+  const [isNearViewport, setIsNearViewport] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Тот же ключ, под которым документ лежит в кэше документов
@@ -81,12 +83,60 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     return () => ro.disconnect();
   }, []);
 
+  // Соотношение сторон нужно до отрисовки: иначе все карточки стопки имеют
+  // нулевую высоту, наблюдатель видит их все разом и рисует всё сразу
+  useEffect(() => {
+    if (!pdfDoc) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const page = await pdfDoc.getPage(
+          Math.min(Math.max(pageNum, 1), pdfDoc.numPages),
+        );
+        const v = page.getViewport({ scale: 1, rotation: page.rotate || 0 });
+        if (!cancelled) setAspect(v.width / v.height);
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [pdfDoc, pageNum]);
+
+  // Рисуем только то, что рядом с экраном. В стопке из пятнадцати песен
+  // страниц под полсотни — рисовать их все значит съесть память и уронить вкладку
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setIsNearViewport(true);
+      return;
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.some((e) => e.isIntersecting);
+        setIsNearViewport(visible);
+
+        // Ушли далеко — отпускаем пиксели canvas'а. Картинка страницы
+        // останется в кэше, поэтому возврат назад будет мгновенным
+        if (!visible && canvasRef.current) {
+          canvasRef.current.width = 0;
+          canvasRef.current.height = 0;
+        }
+      },
+      { rootMargin: "150% 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   useEffect(() => {
     if (!pdfDoc) return;
 
     if (!canvasRef.current) return;
 
     if (containerWidth === 0) return;
+
+    if (!isNearViewport) return;
 
     let isActive = true;
 
@@ -147,7 +197,7 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     return () => {
       isActive = false;
     };
-  }, [containerWidth, pageNum, pdfDoc, scale, docKey]);
+  }, [containerWidth, pageNum, pdfDoc, scale, docKey, isNearViewport]);
 
   return (
     <div
@@ -170,6 +220,9 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           width: "100%",
           height: "auto",
           display: "block",
+          // Место под страницу резервируется до отрисовки, чтобы список
+          // не схлопывался и не дёргался, когда страницы появляются
+          aspectRatio: aspect ? `${aspect}` : undefined,
         }}
       />
       {renderError && (

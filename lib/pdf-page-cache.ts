@@ -15,7 +15,17 @@
 
 type PdfDocument = any;
 
-const MEMORY_BUDGET = 96 * 1024 * 1024;
+/**
+ * Бюджет считается от памяти устройства: на телефоне картинки страниц — самый
+ * тяжёлый объект в приложении, и фиксированные сто мегабайт роняли вкладку.
+ */
+const MEMORY_BUDGET = (() => {
+  const gb =
+    typeof navigator !== "undefined" && (navigator as any).deviceMemory
+      ? (navigator as any).deviceMemory
+      : 4;
+  return Math.max(24, Math.min(64, gb * 6)) * 1024 * 1024;
+})();
 
 /** Ширина округляется вверх — иначе любое дрожание вёрстки промахивается мимо кэша. */
 const WIDTH_STEP = 64;
