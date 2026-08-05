@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
-import { getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
+
 
 interface PdfViewerProps {
   fileUrl: string | File;
@@ -21,19 +21,8 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [scale] = useState(1);
   const [containerWidth, setContainerWidth] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
-  const [aspect, setAspect] = useState<number | null>(null);
   const [docFailed, setDocFailed] = useState(false);
-  // По умолчанию рисуем. Наблюдатель ниже сработает почти сразу и отметит
-  // страницы, которые далеко, — а вот обратный порядок оставлял вечный
-  // скелетон везде, где наблюдатель почему-либо не сработал
-  const [isNearViewport, setIsNearViewport] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
-  // Тот же ключ, под которым документ лежит в кэше документов
-  const docKey =
-    typeof fileUrl === "string"
-      ? fileUrl
-      : `file:${fileUrl.name}:${fileUrl.size}:${fileUrl.lastModified}`;
 
   useEffect(() => {
     setPdfDocRef.current = setPdfDoc;
@@ -89,124 +78,71 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     return () => ro.disconnect();
   }, []);
 
-  // Соотношение сторон нужно до отрисовки: иначе все карточки стопки имеют
-  // нулевую высоту, наблюдатель видит их все разом и рисует всё сразу
-  useEffect(() => {
-    if (!pdfDoc) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const page = await pdfDoc.getPage(
-          Math.min(Math.max(pageNum, 1), pdfDoc.numPages),
-        );
-        const v = page.getViewport({ scale: 1, rotation: page.rotate || 0 });
-        if (!cancelled) setAspect(v.width / v.height);
-      } catch {}
-    })();
-    return () => { cancelled = true; };
-  }, [pdfDoc, pageNum]);
-
-  // Рисуем только то, что рядом с экраном. В стопке из пятнадцати песен
-  // страниц под полсотни — рисовать их все значит съесть память и уронить вкладку
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-
-    if (typeof IntersectionObserver === "undefined") {
-      setIsNearViewport(true);
-      return;
-    }
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries.some((e) => e.isIntersecting);
-        setIsNearViewport(visible);
-
-        // Ушли далеко — отпускаем пиксели canvas'а. Картинка страницы
-        // останется в кэше, поэтому возврат назад будет мгновенным
-        if (!visible && canvasRef.current) {
-          canvasRef.current.width = 0;
-          canvasRef.current.height = 0;
-        }
-      },
-      { rootMargin: "150% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
   useEffect(() => {
     // Ни один выход отсюда не должен оставить скелетон висеть: документ мог не
-    // открыться, контейнер — ещё не измериться, страница — уехать за экран.
-    // Раньше загрузка снималась только при удачной отрисовке, и страница с
-    // непрочитанным PDF оставалась под серым прямоугольником навсегда
-    if (!pdfDoc || !canvasRef.current || containerWidth === 0 || !isNearViewport) {
-      // Скелетон снимаем, только когда ждать уже нечего: файл не открылся или
-      // страница за экраном. Пока документ грузится — оставляем
-      if (docFailed || !isNearViewport) onLoadEndRef.current?.();
+    // открыться, а контейнер — ещё не измериться. Раньше загрузка снималась
+    // только при удачной отрисовке, и страница с непрочитанным файлом
+    // оставалась под серым прямоугольником навсегда
+    if (!pdfDoc || !canvasRef.current || containerWidth === 0) {
+      // Пока документ ещё грузится, скелетон нужен — иначе будет пустая карточка
+      if (docFailed) onLoadEndRef.current?.();
       return;
     }
 
-    let isActive = true;
-
-    const paint = (bitmap: ImageBitmap) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.style.width = "100%";
-      canvas.style.height = "auto";
-      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
-    };
+    let renderTask: any = null;
 
     const renderPage = async (num: number, userScale: number) => {
       try {
         setRenderError(null);
+        onLoadStartRef.current?.();
+
         if (num < 1 || num > pdfDoc.numPages) {
           console.warn(`[Pdfjs] pageNum ${num} out of range [1, ${pdfDoc.numPages}] — skipping render`);
           return;
         }
 
-        const width = containerWidth * userScale;
-        const result = getRenderedPage(pdfDoc, docKey, num, width);
+        const page = await pdfDoc.getPage(num);
+        const rotation = page.rotate || 0;
+        const base = page.getViewport({ scale: 1, rotation });
+        const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+        const baseScale = (containerWidth / base.width) * userScale;
 
-        // Готовая страница рисуется сразу — без скелетона и лишнего кадра
-        if (!(result instanceof Promise)) {
-          paint(result);
-          onLoadEndRef.current?.();
-          return;
-        }
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const context = canvas.getContext("2d");
+        if (!context) return;
 
-        onLoadStartRef.current?.();
-        const bitmap = await result;
-        if (!isActive || !bitmap) return;
-        paint(bitmap);
+        canvas.width = Math.floor(containerWidth * outputScale);
+        canvas.height = Math.floor(base.height * baseScale * outputScale);
+        canvas.style.width = "100%";
+        canvas.style.height = "auto";
+
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.scale(outputScale, outputScale);
+
+        renderTask = page.render({
+          canvasContext: context,
+          viewport: page.getViewport({ scale: baseScale, rotation }),
+        });
+        await renderTask.promise;
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") {
           console.error("Ошибка при рендеринге страницы PDF:", err);
           setRenderError(`${err?.name}: ${err?.message}`);
         }
       } finally {
-        // Без проверки isActive: при быстром листании эффект успевает
-        // смениться, и страница оставалась бы в загрузке навсегда
+        // Без проверки на актуальность эффекта: при быстром листании он
+        // успевает смениться, и страница осталась бы в загрузке навсегда
         onLoadEndRef.current?.();
       }
     };
 
     renderPage(pageNum, scale);
 
-    // Соседние страницы — чтобы перелистывание в карточке песни было мгновенным
-    prefetchPages(
-      pdfDoc,
-      docKey,
-      [pageNum + 1, pageNum - 1, pageNum + 2],
-      () => containerWidth * scale,
-    );
-
     return () => {
-      isActive = false;
+      try { renderTask?.cancel(); } catch {}
     };
-  }, [containerWidth, pageNum, pdfDoc, scale, docKey, isNearViewport, docFailed]);
+  }, [containerWidth, pageNum, pdfDoc, scale, docFailed]);
 
   return (
     <div
@@ -229,9 +165,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           width: "100%",
           height: "auto",
           display: "block",
-          // Место под страницу резервируется до отрисовки, чтобы список
-          // не схлопывался и не дёргался, когда страницы появляются
-          aspectRatio: aspect ? `${aspect}` : undefined,
         }}
       />
       {renderError && (

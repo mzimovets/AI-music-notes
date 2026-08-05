@@ -23,7 +23,7 @@ import { useSession } from "next-auth/react";
 import { recacheSong } from "@/lib/recache-song";
 import { useParams } from "next/navigation";
 import { evictPdfDocument, getPdfDocument } from "@/lib/pdf-doc-cache";
-import { evictDocumentPages } from "@/lib/pdf-page-cache";
+
 import { getUploadPath } from "@/lib/client-url";
 
 export const InfoCard = () => {
@@ -127,7 +127,7 @@ export const InfoCard = () => {
     if (data.file && song.doc.file?.filename) {
       const oldUrl = getUploadPath(song.doc.file.filename);
       evictPdfDocument(oldUrl);
-      evictDocumentPages(oldUrl);
+
     }
 
     await editSong(song.doc._id, data);

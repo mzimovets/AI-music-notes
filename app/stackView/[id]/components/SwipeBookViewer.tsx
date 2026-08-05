@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import type { PlanPage } from "@/lib/stack-page-plan";
-import { cancelPendingPrefetch, getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
+
 
 // ─── Public handle (same interface as DearFlipViewerHandle) ──────────────────
 export interface SwipeBookViewerHandle {
@@ -61,44 +61,54 @@ function PdfPage({
     if (!isDoc || !canvasRef.current) return;
     let cancelled = false;
 
-    const paint = (bitmap: ImageBitmap) => {
+    const paint = (source: HTMLCanvasElement, cssWidth: number, cssHeight: number) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = bitmap.width;
-      canvas.height = bitmap.height;
-      canvas.style.width = `${bitmap.width / dpr}px`;
-      canvas.style.height = `${bitmap.height / dpr}px`;
-      canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+      canvas.width = source.width;
+      canvas.height = source.height;
+      canvas.style.width = `${cssWidth}px`;
+      canvas.style.height = `${cssHeight}px`;
+      canvas.getContext("2d")!.drawImage(source, 0, 0);
     };
 
+    let renderTask: any = null;
+
     (async () => {
-      const doc = await getPdfDocument(docKey);
-      if (cancelled) return;
+      try {
+        const doc = await getPdfDocument(docKey);
+        if (cancelled) return;
 
-      const pdfPage = await doc.getPage(pageInDoc);
-      if (cancelled) return;
+        const pdfPage = await doc.getPage(pageInDoc);
+        if (cancelled) return;
 
-      // Кэш работает по ширине, а книжный режим считает от высоты — переводим
-      const base = pdfPage.getViewport({ scale: 1 });
-      const byHeight = (targetHeight / base.height) * base.width;
-      const width = Math.min(byHeight, maxWidth ?? Infinity);
+        const base = pdfPage.getViewport({ scale: 1 });
+        const scaleByHeight = targetHeight / base.height;
+        const scaleByWidth = maxWidth ? maxWidth / base.width : Infinity;
+        const viewport = pdfPage.getViewport({
+          scale: Math.min(scaleByHeight, scaleByWidth),
+        });
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      const result = getRenderedPage(doc, docKey, pageInDoc, width);
+        // Рисуем в отдельный canvas, видимый не трогаем пока не готово
+        const offscreen = document.createElement("canvas");
+        offscreen.width = Math.floor(viewport.width * dpr);
+        offscreen.height = Math.floor(viewport.height * dpr);
+        const ctx = offscreen.getContext("2d")!;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // Уже в кэше — рисуем в этом же кадре, без промежуточной пустоты
-      if (!(result instanceof Promise)) {
-        paint(result);
-        return;
+        renderTask = pdfPage.render({ canvasContext: ctx, viewport });
+        await renderTask.promise;
+        if (cancelled) return;
+
+        paint(offscreen, viewport.width, viewport.height);
+      } catch (err: any) {
+        if (err?.name !== "RenderingCancelledException") console.error(err);
       }
-
-      const bitmap = await result;
-      if (cancelled || !bitmap) return;
-      paint(bitmap);
     })();
 
     return () => {
       cancelled = true;
+      try { renderTask?.cancel(); } catch {}
     };
   }, [isDoc, docKey, pageInDoc, targetHeight, maxWidth]);
 
@@ -212,42 +222,23 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
-    // Состав стопки изменился — заказы под старый порядок больше не нужны.
-    // Отменять при обычном листании нельзя: так отменяется подготовка ровно
-    // той страницы, на которую человек сейчас перейдёт, и на свайпе начинается
-    // отрисовка с нуля — она занимает поток, а iOS в это время гасит жест
-    useEffect(() => {
-      cancelPendingPrefetch();
-    }, [plan]);
-
-    // Готовим соседние страницы заранее — листание должно быть мгновенным
+    // Документы соседних страниц открываем заранее — это дёшево и безопасно.
+    // Предварительной отрисовки здесь намеренно нет: она занимала главный
+    // поток ровно в момент касания, из-за чего iOS гасил жесты
     useEffect(() => {
       if (plan.length === 0) return;
 
       const around = mobilePages.length > 0
-        ? [
-            mobilePages[mobileIndex + 1],
-            mobilePages[mobileIndex - 1],
-            mobilePages[mobileIndex + 2],
-            mobilePages[mobileIndex - 2],
-          ].filter((p): p is number => typeof p === "number")
-        : [currentPage + 1, currentPage - 1, currentPage + 2, currentPage - 2];
-
-      // Та же формула, что и в PdfPage, иначе предзагрузка ляжет мимо кэша
-      const pageHeight = Math.floor(height * 0.98);
-      const sizeFor = (pdfPage: any) => {
-        const base = pdfPage.getViewport({ scale: 1 });
-        return (pageHeight / base.height) * base.width;
-      };
+        ? [mobilePages[mobileIndex + 1], mobilePages[mobileIndex - 1]]
+            .filter((p): p is number => typeof p === "number")
+        : [currentPage + 1, currentPage - 1];
 
       for (const pageNum of around) {
         const entry = plan[pageNum - 1];
         if (!entry || entry.kind !== "doc") continue;
-        getPdfDocument(entry.url)
-          .then((doc) => prefetchPages(doc, entry.url, [entry.pageInDoc], sizeFor))
-          .catch(() => {});
+        getPdfDocument(entry.url).catch(() => {});
       }
-    }, [plan, mobilePages, mobileIndex, currentPage, height]);
+    }, [plan, mobilePages, mobileIndex, currentPage]);
 
     // Navigation — всегда ±1 страница (объявляем ДО useImperativeHandle чтобы избежать TDZ)
     const navigate = useCallback((dir: -1 | 1) => {
