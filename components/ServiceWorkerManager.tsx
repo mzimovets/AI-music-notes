@@ -326,7 +326,21 @@ export function ServiceWorkerManager() {
     };
 
     window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
+
+    // Пробуем отправить и при обычном запуске. Раньше очередь ждала события
+    // «сеть восстановилась», и запись, попавшая туда при живом интернете,
+    // не уходила никогда: событие просто не наступало
+    const flushOnStart = async () => {
+      if (getQueue().length === 0) return;
+      if (!(await canReachBackend())) return;
+      handleOnline();
+    };
+    const startTimer = setTimeout(flushOnStart, 3000);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      clearTimeout(startTimer);
+    };
   }, []);
 
   // Сервер сообщает что сделал sync с мастером → обновляем SW-кеш

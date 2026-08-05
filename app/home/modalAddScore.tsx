@@ -28,6 +28,7 @@ import { getBackendBaseUrl } from "@/lib/client-url";
 
 import { useCategories } from "@/hooks/useCategories";
 import { getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
+import { isBackendReachable } from "@/lib/backend-reachable";
 
 export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: boolean, onOpen: () => void, onOpenChange: (open: boolean) => void}) {
   const {
@@ -193,8 +194,27 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
       await fetchAllSongs();
       window.dispatchEvent(new CustomEvent("sw-sync-needed"));
     } catch (e) {
-      // navigator.onLine может быть true даже без интернета — сохраняем офлайн
-      console.warn("[Song] Сеть недоступна, сохраняем офлайн:", e);
+      // Отличаем настоящий обрыв связи от ошибки сервера: раньше любая
+      // неудача выдавалась как «сохранено офлайн», и человек ждал отправки
+      // записи, которая на самом деле просто не прошла
+      if (await isBackendReachable()) {
+        console.error("[Song] Сервер ответил ошибкой:", e);
+        setIsSaved(false);
+        addToast({
+          title: <span className="font-bold text-white">Не удалось добавить</span>,
+          description: (
+            <span className="text-white">
+              Сервер доступен, но запись не прошла. Обновите страницу и
+              попробуйте ещё раз
+            </span>
+          ),
+          timeout: 6000,
+          classNames: { base: "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white" },
+        });
+        return;
+      }
+
+      console.warn("[Song] Связи нет, сохраняем офлайн:", e);
       const fileDbKey = await storeFile(selectedFile as File);
       const tempId = Math.random().toString();
       enqueue({
