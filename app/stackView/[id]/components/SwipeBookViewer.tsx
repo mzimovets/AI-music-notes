@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import type { PlanPage } from "@/lib/stack-page-plan";
-import { getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
+import { cancelPendingPrefetch, getRenderedPage, prefetchPages } from "@/lib/pdf-page-cache";
 
 // ─── Public handle (same interface as DearFlipViewerHandle) ──────────────────
 export interface SwipeBookViewerHandle {
@@ -215,6 +215,10 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     // Готовим соседние страницы заранее — листание должно быть мгновенным
     useEffect(() => {
       if (plan.length === 0) return;
+
+      // Страницы, заказанные для прошлого разворота, уже не нужны — иначе они
+      // займут главный поток и следующее касание не отработает вовремя
+      cancelPendingPrefetch();
 
       const around = mobilePages.length > 0
         ? [

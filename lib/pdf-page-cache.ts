@@ -40,6 +40,68 @@ const cache = new Map<string, Entry>();
 const inFlight = new Map<string, Promise<ImageBitmap | null>>();
 let usedBytes = 0;
 
+/**
+ * Очередь отрисовки.
+ *
+ * pdf.js растеризует на главном потоке, и страница нот занимает его на сотни
+ * миллисекунд. Без очереди предзагрузка соседних страниц запускалась пачкой
+ * сразу после касания и кнопки переставали нажиматься. Здесь всё, что нужно
+ * показать сейчас, идёт вперёд, а предзагрузка ждёт и уступает между задачами.
+ */
+type Task = { run: () => Promise<unknown>; urgent: boolean; gen: number };
+
+const queue: Task[] = [];
+let pumping = false;
+/** Поколение предзагрузки: листнули — всё запланированное ранее уже не нужно */
+let prefetchGen = 0;
+
+const yieldToBrowser = () =>
+  new Promise<void>((resolve) => {
+    if (typeof requestAnimationFrame === "function") {
+      requestAnimationFrame(() => resolve());
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+
+async function pump() {
+  if (pumping) return;
+  pumping = true;
+
+  while (queue.length > 0) {
+    const urgentAt = queue.findIndex((t) => t.urgent);
+    const task = queue.splice(urgentAt >= 0 ? urgentAt : 0, 1)[0];
+
+    // Предзагрузка, заказанная до листания, уже неактуальна
+    if (!task.urgent && task.gen !== prefetchGen) continue;
+
+    try {
+      await task.run();
+    } catch {}
+
+    // Отдаём кадр браузеру — иначе касания ждут конца всей очереди
+    await yieldToBrowser();
+  }
+
+  pumping = false;
+}
+
+function schedule<T>(run: () => Promise<T>, urgent: boolean): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    queue.push({
+      urgent,
+      gen: prefetchGen,
+      run: () => run().then(resolve, reject),
+    });
+    pump();
+  });
+}
+
+/** Отменяет предзагрузку, заказанную раньше: пользователь ушёл на другие страницы. */
+export function cancelPendingPrefetch() {
+  prefetchGen += 1;
+}
+
 const keyOf = (docKey: string, pageNum: number, width: number) =>
   `${docKey}|${pageNum}|${width}`;
 
@@ -98,13 +160,13 @@ async function render(
  * Отдаёт готовую картинку страницы. Если её уже рисуют — дожидается той же
  * отрисовки, а не запускает вторую.
  */
-export function getRenderedPage(
+function ensureRendered(
   doc: PdfDocument,
   docKey: string,
   pageNum: number,
-  width: number,
+  bucketed: number,
+  urgent: boolean,
 ): ImageBitmap | Promise<ImageBitmap | null> {
-  const bucketed = bucketWidth(width);
   const key = keyOf(docKey, pageNum, bucketed);
 
   const hit = cache.get(key);
@@ -113,11 +175,12 @@ export function getRenderedPage(
     return hit.bitmap;
   }
 
+  // Уже рисуется — ждём ту же отрисовку, второй раз не запускаем
   const pending = inFlight.get(key);
   if (pending) return pending;
 
-  const promise = render(doc, docKey, pageNum, bucketed)
-    .catch((err) => {
+  const promise = schedule(() => render(doc, docKey, pageNum, bucketed), urgent)
+    .catch((err: any) => {
       if (err?.name !== "RenderingCancelledException") {
         console.error("[pdf-page-cache] render failed:", err);
       }
@@ -129,6 +192,15 @@ export function getRenderedPage(
 
   inFlight.set(key, promise);
   return promise;
+}
+
+export function getRenderedPage(
+  doc: PdfDocument,
+  docKey: string,
+  pageNum: number,
+  width: number,
+): ImageBitmap | Promise<ImageBitmap | null> {
+  return ensureRendered(doc, docKey, pageNum, bucketWidth(width), true);
 }
 
 /** Синхронная проверка — чтобы нарисовать без единого кадра пустоты. */
@@ -172,9 +244,8 @@ export function prefetchPages(
       try {
         const page = await doc.getPage(pageNum);
         const bucketed = bucketWidth(resolveWidth(page));
-        const key = keyOf(docKey, pageNum, bucketed);
-        if (cache.has(key) || inFlight.has(key)) return;
-        getRenderedPage(doc, docKey, pageNum, bucketed);
+        // Низкий приоритет: пропустит вперёд всё, что нужно показать сейчас
+        ensureRendered(doc, docKey, pageNum, bucketed, false);
       } catch {}
     });
   }
