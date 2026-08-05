@@ -22,7 +22,10 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   const [containerWidth, setContainerWidth] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const [aspect, setAspect] = useState<number | null>(null);
-  const [isNearViewport, setIsNearViewport] = useState(false);
+  // По умолчанию рисуем. Наблюдатель ниже сработает почти сразу и отметит
+  // страницы, которые далеко, — а вот обратный порядок оставлял вечный
+  // скелетон везде, где наблюдатель почему-либо не сработал
+  const [isNearViewport, setIsNearViewport] = useState(true);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   // Тот же ключ, под которым документ лежит в кэше документов
@@ -136,7 +139,11 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
 
     if (containerWidth === 0) return;
 
-    if (!isNearViewport) return;
+    // Далеко от экрана — не рисуем, но и скелетон не оставляем висеть
+    if (!isNearViewport) {
+      onLoadEndRef.current?.();
+      return;
+    }
 
     let isActive = true;
 

@@ -212,13 +212,17 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
+    // Состав стопки изменился — заказы под старый порядок больше не нужны.
+    // Отменять при обычном листании нельзя: так отменяется подготовка ровно
+    // той страницы, на которую человек сейчас перейдёт, и на свайпе начинается
+    // отрисовка с нуля — она занимает поток, а iOS в это время гасит жест
+    useEffect(() => {
+      cancelPendingPrefetch();
+    }, [plan]);
+
     // Готовим соседние страницы заранее — листание должно быть мгновенным
     useEffect(() => {
       if (plan.length === 0) return;
-
-      // Страницы, заказанные для прошлого разворота, уже не нужны — иначе они
-      // займут главный поток и следующее касание не отработает вовремя
-      cancelPendingPrefetch();
 
       const around = mobilePages.length > 0
         ? [
@@ -313,11 +317,21 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         }
       };
 
+      // Если поток занят отрисовкой, iOS гасит жест и шлёт touchcancel.
+      // Без сброса начальная точка оставалась от погашенного касания, и
+      // следующий свайп считался от неё — палец приходилось вести дважды
+      const onTouchCancel = () => {
+        touchStartX.current = null;
+        touchStartY.current = null;
+      };
+
       el.addEventListener("touchstart", onTouchStart, { passive: true });
       el.addEventListener("touchend", onTouchEnd, { passive: true });
+      el.addEventListener("touchcancel", onTouchCancel, { passive: true });
       return () => {
         el.removeEventListener("touchstart", onTouchStart);
         el.removeEventListener("touchend", onTouchEnd);
+        el.removeEventListener("touchcancel", onTouchCancel);
       };
     }, [navigate]);
 
