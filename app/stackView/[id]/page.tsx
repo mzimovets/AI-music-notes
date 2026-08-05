@@ -50,11 +50,11 @@ export default function Page() {
   const isSingerRef = useRef(isSinger);
   isSingerRef.current = isSinger;
 
-  const [viewMode, setViewMode] = useState<"scroll" | "book">("scroll");
+  const [viewMode, setViewMode] = useState<"scroll" | "book">("book");
   const [viewerHeight, setViewerHeight] = useState(() =>
     typeof window !== "undefined" ? Math.max(400, window.innerHeight) : 600
   );
-  const viewModeRef = useRef<"scroll" | "book">("scroll");
+  const viewModeRef = useRef<"scroll" | "book">("book");
 
   // SwipeBook viewer ref — lets us call goToPage / getActivePage
   const flipViewerRef = useRef<SwipeBookViewerHandle>(null);
@@ -390,20 +390,26 @@ export default function Page() {
     if (direction === "up") scrollToPageByStep(-1);
   }, [scrollToPageByStep]));
 
-  // Читаем сохранённый режим из localStorage только после монтирования на клиенте
+  // Режим прокрутки убран в резерв — остался только книжный.
+  // Чтобы вернуть, раскомментируйте чтение сохранённого режима ниже,
+  // разметку списка страниц в конце файла и кнопку переключения в SideBarStack.
   useEffect(() => {
-    const saved = localStorage.getItem("stackViewMode");
-    if (saved === "book" || saved === "scroll") {
-      setViewMode(saved);
-      viewModeRef.current = saved;
-    }
+    setViewMode("book");
+    viewModeRef.current = "book";
   }, []);
 
-  // Сохраняем выбранный режим при каждом изменении
-  useEffect(() => {
-    viewModeRef.current = viewMode;
-    localStorage.setItem("stackViewMode", viewMode);
-  }, [viewMode]);
+  // useEffect(() => {
+  //   const saved = localStorage.getItem("stackViewMode");
+  //   if (saved === "book" || saved === "scroll") {
+  //     setViewMode(saved);
+  //     viewModeRef.current = saved;
+  //   }
+  // }, []);
+
+  // useEffect(() => {
+  //   viewModeRef.current = viewMode;
+  //   localStorage.setItem("stackViewMode", viewMode);
+  // }, [viewMode]);
 
   // Measure available height for the DearFlip viewer (full screen height)
   useEffect(() => {
@@ -534,7 +540,9 @@ export default function Page() {
       </div>
 
       <div ref={viewerContainerRef} data-viewer-container>
-      {/* Тропарь */}
+      {/* Режим прокрутки — в резерве, показывается только книжный.
+          Чтобы вернуть, раскомментируйте блок и чтение stackViewMode выше.
+
       <SongsList
         songs={mainSongs}
         isReserved={false}
@@ -569,6 +577,7 @@ export default function Page() {
           </div>
         </>
       )}
+      */}
       </div>
 
       <ModalFilePreviewer

@@ -578,7 +578,10 @@ export const SideBarStack = ({
                     </Button>
                   )}
                 </div>
-                {/* View mode toggle */}
+                {/* Переключатель режимов — в резерве вместе с прокруткой.
+                    Чтобы вернуть, раскомментируйте блок и правки в
+                    app/stackView/[id]/page.tsx
+
                 <div className="flex shrink-0 gap-0.5 items-center p-0.5 bg-default-100 rounded-lg mx-1">
                   <button
                     title="Листание"
@@ -628,6 +631,7 @@ export const SideBarStack = ({
                     </svg>
                   </button>
                 </div>
+                */}
 
                 <div className="flex shrink-0 gap-1 items-center">
                   {session?.user?.role === "регент" && (
