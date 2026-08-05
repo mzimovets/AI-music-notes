@@ -9,7 +9,7 @@ import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
 import { fetchCategories, getCategories } from "@/lib/categories-store";
 import { socket } from "@/lib/socket";
 
-const CACHE_STATE_KEY = "sw-cached-state-v4";
+const CACHE_STATE_KEY = "sw-cached-state-v5";
 
 /** Проверяем доступность бэкенда напрямую (не navigator.onLine —
  *  тот возвращает false на мобильных даже при подключении к RPi-хотспоту) */
@@ -183,6 +183,17 @@ async function syncCache(onProgress: (p: Progress) => void) {
   if (isFirstSync) {
     // Первый запуск: кэшируем всё
     pageUrls.push("/api/auth/session", "/");
+
+    // Декодеры pdf.js лежат за API-маршрутом, а не в статике, поэтому сами в
+    // кэш не попадают. Без них сканы с JPEG2000-страницами офлайн не откроются
+    assetUrls.push(
+      "/api/pdf-worker",
+      "/api/pdf-wasm/openjpeg.wasm",
+      "/api/pdf-wasm/openjpeg_nowasm_fallback.js",
+      "/api/pdf-wasm/jbig2.wasm",
+      "/api/pdf-wasm/qcms_bg.wasm",
+    );
+
     for (const { key, image } of currentCategories) {
       pageUrls.push(`/playlist/${key}`);
       if (image) assetUrls.push(image);
@@ -249,7 +260,13 @@ async function syncCache(onProgress: (p: Progress) => void) {
 
   // Кэшируем ассеты напрямую в нужные бакеты
   for (const url of assetUrls) {
-    const cacheName = url.startsWith("/uploads/") ? "uploads-cache" : "category-images";
+    // Имя кэша должно совпадать с тем, что задано в правиле service worker'а,
+    // иначе положенный файл потом не найдётся
+    const cacheName = url.startsWith("/uploads/")
+      ? "uploads-cache"
+      : url.startsWith("/api/pdf-w")
+        ? "pdfjs-assets"
+        : "category-images";
     const ok = await fetchAndCache(url, cacheName);
     console.log(`[Sync] ${ok ? "✓" : "✗"} asset ${url}`);
     onProgress({ current: ++done, total, done: false });

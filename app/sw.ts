@@ -52,6 +52,25 @@ const serwist = new Serwist({
         ],
       }),
     },
+    // Движок pdf.js и его декодеры. Лежат за API-маршрутами, поэтому под
+    // общее правило для статики не попадают, а без них без интернета не
+    // открывается ни одна нота
+    {
+      matcher: ({ request }: { request: Request }) => {
+        const path = new URL(request.url).pathname;
+        return path === "/api/pdf-worker" || path.startsWith("/api/pdf-wasm/");
+      },
+      handler: new CacheFirst({
+        cacheName: "pdfjs-assets",
+        plugins: [
+          new ExpirationPlugin({
+            maxEntries: 10,
+            maxAgeSeconds: 30 * 24 * 60 * 60,
+          }),
+          new CacheableResponsePlugin({ statuses: [0, 200] }),
+        ],
+      }),
+    },
     // Кэшируем статические картинки категорий из public/songs/
     {
       matcher: ({ request }: { request: Request }) => {

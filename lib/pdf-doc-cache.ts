@@ -48,8 +48,16 @@ export function getPdfDocument(url: string): Promise<PdfDocument> {
 
   const promise = (async () => {
     const pdfjsLib = await loadPdfjsLib();
+
+    // Файл забираем обычным запросом, а не отдаём URL в pdf.js. Тот качает
+    // документ диапазонами, а service worker хранит целые ответы и такие
+    // запросы обслужить не может — без интернета ноты не открывались вовсе.
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Не удалось загрузить ${url}: ${res.status}`);
+    const data = await res.arrayBuffer();
+
     return (pdfjsLib as any).getDocument({
-      url,
+      data,
       isEvalSupported: false,
       wasmUrl: "/api/pdf-wasm/",
     }).promise;
