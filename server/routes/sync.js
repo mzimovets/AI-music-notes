@@ -40,7 +40,9 @@ export const syncRoutes = (app, upload) => {
 
     database.find(
       {
-        docType: { $in: ["song", "stack"] },
+        // Категории тоже переносим: без них у платы остаётся стартовый список,
+        // и переименованные или добавленные регентом категории туда не доедут
+        docType: { $in: ["song", "stack", "categories"] },
         updatedAt: { $gt: since },
       },
       (err, docs) => {
@@ -48,6 +50,7 @@ export const syncRoutes = (app, upload) => {
 
         const songs = docs.filter((d) => d.docType === "song");
         const stacks = docs.filter((d) => d.docType === "stack");
+        const categories = docs.find((d) => d.docType === "categories") ?? null;
 
         const deletedSongIds = songs
           .filter((d) => d.deletedAt && d.deletedAt > since)
@@ -63,6 +66,7 @@ export const syncRoutes = (app, upload) => {
           timestamp: Date.now(),
           songs: liveSongs,
           stacks: liveStacks,
+          categories,
           deletedSongIds,
           deletedStackIds,
         });

@@ -289,6 +289,7 @@ export async function syncFromInternet() {
     timestamp,
     songs = [],
     stacks = [],
+    categories = null,
     deletedSongIds = [],
     deletedStackIds = [],
   } = data;
@@ -325,6 +326,11 @@ export async function syncFromInternet() {
     const title = stack.title || stack.name || stack._id;
     if (existing) changeUpdated.push({ title, type: "stack" });
     else changeAdded.push({ title, type: "stack" });
+  }
+
+  // Категории — один документ на всю библиотеку, просто перезаписываем
+  if (categories?._id) {
+    await dbUpdate({ _id: categories._id }, categories);
   }
 
   // Физически удаляем soft-deleted записи у реплики вместе с файлами
