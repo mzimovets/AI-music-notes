@@ -48,3 +48,6 @@ bun.lockb
 
 # environment variables
 .env*
+# Генерируется сборкой (serwist) — в репозитории только мешает:
+# на плате и на сервере он всегда изменён и блокирует git pull
+/public/sw.js

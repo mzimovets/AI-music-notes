@@ -131,6 +131,7 @@ export async function POST() {
 echo "START $(date)" > ${LOG_FILE} && \
 cd ${APP_DIR} && \
 echo "PULLING" >> ${LOG_FILE} && \
+git checkout -- package-lock.json public/sw.js server/package-lock.json server/node_modules/.package-lock.json 2>/dev/null; \
 git pull origin main >> ${LOG_FILE} 2>&1 && \
 echo "INSTALLING" >> ${LOG_FILE} && \
 NODE_ENV=development npm install >> ${LOG_FILE} 2>&1 && \
