@@ -5,6 +5,7 @@ import {
   CacheableResponsePlugin,
   ExpirationPlugin,
   NetworkFirst,
+  NetworkOnly,
   Serwist,
 } from "serwist";
 
@@ -22,6 +23,23 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // Живое состояние платы кэшировать нельзя по смыслу. Общее правило Serwist
+    // для /api/* отдавало вчерашний ответ, когда плата выключена, — приложение
+    // показывало её в сети, а индикатор мигал на чередовании удачных и
+    // неудачных попыток
+    {
+      matcher: ({ request }: { request: Request }) => {
+        const path = new URL(request.url).pathname;
+        return (
+          path === "/api/local-server" ||
+          path === "/api/system-status" ||
+          path === "/api/git-update" ||
+          path === "/api/ping" ||
+          path.startsWith("/api/device-battery")
+        );
+      },
+      handler: new NetworkOnly(),
+    },
     // Кэшируем сессию NextAuth — без этого оффлайн видно "не авторизован"
     // (defaultCache ставит /api/auth/* как NetworkOnly — переопределяем ДО него)
     {
