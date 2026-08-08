@@ -1241,6 +1241,21 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                               </span>
                             </div>
 
+                            {/* Здесь, а не в диагностике: та показывает снимок на
+                                момент запуска, а число планшетов нужно видеть
+                                постоянно — оно меняется по ходу службы */}
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
+                                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2" strokeLinecap="round">
+                                  <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="10" y1="18" x2="14" y2="18"/>
+                                </svg>
+                              </div>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Планшетов</span>
+                              <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
+                                {typeof sysData?.clientsCount === "number" ? sysData.clientsCount : "—"}
+                              </span>
+                            </div>
+
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="2" strokeLinecap="round">
