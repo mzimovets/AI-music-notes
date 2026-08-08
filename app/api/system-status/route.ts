@@ -165,11 +165,23 @@ export async function GET() {
 
   const cpuGovernor = governorStr.trim() || "unknown";
 
+  // Число планшетов на связи знает Express, а панель ходит только сюда —
+  // спрашиваем у него сами, чтобы не заводить отдельный запрос из браузера
+  let clients = null;
+  try {
+    const res = await fetch("http://localhost:4000/api/clients", {
+      signal: AbortSignal.timeout(2000),
+      cache: "no-store",
+    });
+    if (res.ok) clients = await res.json();
+  } catch {}
+
   return NextResponse.json({
     temp, fanRpm, cpuPercent, ramUsed, ramTotal: memTotal, uptime,
     wlan1Signal, throttled, throttleFlags, wlan1LinkMbps,
     wlan0RxBps, wlan0TxBps, wlan1RxBps, wlan1TxBps,
     voltageCore, voltageSdram, clockArmMhz, cpuGovernor,
+    clientsCount: clients?.count ?? null,
     ...diskInfo,
   });
 }

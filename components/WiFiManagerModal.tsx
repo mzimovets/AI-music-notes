@@ -31,6 +31,8 @@ interface SysData {
   wlan1RxBps: number; wlan1TxBps: number;
   voltageCore?: number; voltageSdram?: number;
   clockArmMhz?: number; cpuGovernor?: string;
+  /** Сколько устройств держат соединение с платой прямо сейчас */
+  clientsCount?: number | null;
   throttleFlags?: number;
   // Диск
   diskMounted?: boolean;
@@ -1890,6 +1892,14 @@ function buildDiagGroups(
         {
           id: "board-uptime", label: "Время работы",
           detail: sysData?.uptime ?? "—",
+          status: "ok",
+        },
+        {
+          id: "board-clients", label: "Планшетов на связи",
+          detail:
+            typeof sysData?.clientsCount === "number"
+              ? String(sysData.clientsCount)
+              : "—",
           status: "ok",
         },
       ],

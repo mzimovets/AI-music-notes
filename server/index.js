@@ -417,6 +417,22 @@ app.get("/api/ping", (req, res) => {
   res.json({ ok: true, local: true, ts: Date.now() });
 });
 
+// Сколько устройств сейчас на связи и по каким программам они разошлись.
+// Нужно, чтобы во время службы было видно реальное число планшетов, а не
+// приходилось судить по косвенным признакам
+app.get("/api/clients", (req, res) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
+  const byStack = {};
+  for (const [room, members] of io.sockets.adapter.rooms) {
+    // В rooms попадают и личные комнаты сокетов — у них имя совпадает с id
+    if (io.sockets.sockets.has(room)) continue;
+    byStack[room] = members.size;
+  }
+
+  res.json({ count: io.engine.clientsCount, byStack });
+});
+
 app.post("/api/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ status: "error", message: "Файл не загружен" });
