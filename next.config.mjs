@@ -9,7 +9,14 @@ const withSerwistConfig = withSerwist({
   exclude: [/app-build-manifest\.json$/],
 });
 
+// Идентификатор сборки. Попадает и в клиент, и в серверный маршрут, поэтому
+// вкладка может заметить, что на сервере уже другая версия, и предложить
+// обновиться — вместо того чтобы молча ломаться на серверных действиях
+const BUILD_ID = process.env.BUILD_ID || String(Date.now());
+
 export default withSerwistConfig({
+  generateBuildId: () => BUILD_ID,
+  env: { NEXT_PUBLIC_BUILD_ID: BUILD_ID },
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },

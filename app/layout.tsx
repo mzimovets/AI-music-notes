@@ -13,6 +13,7 @@ import { fontSans } from "@/config/fonts";
 import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
 import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
+import { UpdateNotifier } from "@/components/UpdateNotifier";
 
 
 export default function RootLayout({
@@ -69,6 +70,7 @@ export default function RootLayout({
       >
         <SessionProvider>
           <ServiceWorkerManager />
+          <UpdateNotifier />
           <Providers themeProps={{ attribute: "class", defaultTheme: "light" }}>
             <div className="relative flex flex-col">
               <AllSongsLibraryContextProvider>

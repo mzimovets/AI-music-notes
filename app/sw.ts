@@ -31,6 +31,7 @@ const serwist = new Serwist({
       matcher: ({ request }: { request: Request }) => {
         const path = new URL(request.url).pathname;
         return (
+          path === "/api/build-id" ||
           path === "/api/local-server" ||
           path === "/api/system-status" ||
           path === "/api/git-update" ||
