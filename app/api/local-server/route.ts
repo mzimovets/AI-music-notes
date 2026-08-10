@@ -7,8 +7,15 @@ import { NextResponse } from "next/server";
  */
 export async function GET() {
   const isLocal = process.env.IS_LOCAL_SERVER === "true";
-  return NextResponse.json({
-    isLocal,
-    hostname: isLocal ? (process.env.LOCAL_HOSTNAME || "raspberrypi-songs.local") : null,
-  });
+  return NextResponse.json(
+    {
+      isLocal,
+      hostname: isLocal ? (process.env.LOCAL_HOSTNAME || "raspberrypi-songs.local") : null,
+    },
+    // Приложение обычно загружено с songs.nevsky-sobor.ru, а этот запрос
+    // идёт на raspberrypi-songs.local — с точки зрения браузера это разные
+    // источники (CORS). Без заголовка ниже прямой заход в браузере работал,
+    // а из приложения ответ браузер тихо отбрасывал.
+    { headers: { "Access-Control-Allow-Origin": "*" } },
+  );
 }
