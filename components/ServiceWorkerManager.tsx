@@ -400,10 +400,26 @@ export function ServiceWorkerManager() {
     }
   };
 
-  // Синхронизация при авторизации
+  // Синхронизация при авторизации.
+  // Несколько попыток вместо одной фиксированной задержки — из-за гонки с
+  // useLocalServer (он смонтирован отдельно, в навбаре): пока его проверка
+  // платы через mDNS не завершится и не запишет рабочий адрес,
+  // canReachBackend() может использовать старую догадку по адресной строке,
+  // которая на стороннем роутере ведёт в никуда. Пинг тогда молча падает, а
+  // runSync ничего не повторяет сам — единственный шанс был бы упущен.
   useEffect(() => {
     if (status !== "authenticated") return;
-    runSync();
+    let cancelled = false;
+    const delays = [0, 2000, 5000, 10000];
+    const timers = delays.map((delay) =>
+      setTimeout(() => {
+        if (!cancelled) runSync();
+      }, delay),
+    );
+    return () => {
+      cancelled = true;
+      timers.forEach(clearTimeout);
+    };
   }, [status]);
 
   // Синхронизация по событию (новая песня/стопка добавлена)
