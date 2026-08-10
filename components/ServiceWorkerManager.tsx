@@ -230,36 +230,44 @@ async function syncCache(onProgress: (p: Progress) => void) {
 
   onProgress({ current: 0, total, done: false });
   let done = 0;
+  const tick = () => onProgress({ current: ++done, total, done: false });
 
-  // Кэшируем страницы через SW (HTML + RSC пейлоад)
-  for (const url of pageUrls) {
-    // HTML
-    try {
-      const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
-      console.log(`[Sync] ${res.ok ? "✓" : "✗"} html ${url}`);
-    } catch (e) {
-      console.warn(`[Sync] ✗ html ${url}`, e);
-    }
-    onProgress({ current: ++done, total, done: false });
-    if (done < total) await new Promise((r) => setTimeout(r, 30));
+  // Каждый запрос платит секундной задержкой соединения через Jino сам по
+  // себе (проверено — сервер отвечает за 7мс, а через прокси 1–1.7с), и при
+  // сотнях запросов строго по одному это складывалось в единицы минут.
+  // Ограниченный параллелизм переносит эту задержку на всю пачку разом,
+  // вместо того чтобы платить её за каждый файл отдельно.
+  const CONCURRENCY = 6;
 
-    // RSC payload — для клиентской навигации Next.js App Router
-    try {
-      const res = await fetch(url, {
-        credentials: "same-origin",
-        cache: "reload",
-        headers: { "RSC": "1" },
-      });
-      console.log(`[Sync] ${res.ok ? "✓" : "✗"} rsc  ${url}`);
-    } catch (e) {
-      console.warn(`[Sync] ✗ rsc ${url}`, e);
-    }
-    onProgress({ current: ++done, total, done: false });
-    if (done < total) await new Promise((r) => setTimeout(r, 30));
+  async function runBatched<T>(items: T[], worker: (item: T) => Promise<void>) {
+    let index = 0;
+    const runners = Array.from({ length: Math.min(CONCURRENCY, items.length) }, async () => {
+      while (index < items.length) {
+        const item = items[index++];
+        await worker(item);
+      }
+    });
+    await Promise.all(runners);
   }
 
+  // Кэшируем страницы через SW (HTML + RSC пейлоад) — оба запроса одной
+  // страницы независимы, поэтому идут вместе
+  await runBatched(pageUrls, async (url) => {
+    await Promise.all([
+      fetch(url, { credentials: "same-origin", cache: "reload" })
+        .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} html ${url}`))
+        .catch((e) => console.warn(`[Sync] ✗ html ${url}`, e))
+        .finally(tick),
+      // RSC payload — для клиентской навигации Next.js App Router
+      fetch(url, { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" } })
+        .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} rsc  ${url}`))
+        .catch((e) => console.warn(`[Sync] ✗ rsc ${url}`, e))
+        .finally(tick),
+    ]);
+  });
+
   // Кэшируем ассеты напрямую в нужные бакеты
-  for (const url of assetUrls) {
+  await runBatched(assetUrls, async (url) => {
     // Имя кэша должно совпадать с тем, что задано в правиле service worker'а,
     // иначе положенный файл потом не найдётся
     const cacheName = url.startsWith("/uploads/")
@@ -269,9 +277,8 @@ async function syncCache(onProgress: (p: Progress) => void) {
         : "category-images";
     const ok = await fetchAndCache(url, cacheName);
     console.log(`[Sync] ${ok ? "✓" : "✗"} asset ${url}`);
-    onProgress({ current: ++done, total, done: false });
-    if (done < total) await new Promise((r) => setTimeout(r, 50));
-  }
+    tick();
+  });
 
   saveCachedState({ songs: currentSongs, stacks: currentStacks, categories: currentCategories.map((c) => c.key) });
   onProgress({ current: total, total, done: true });
