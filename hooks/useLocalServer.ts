@@ -16,14 +16,24 @@ export interface LocalServerInfo {
 const RECHECK_INTERVAL_MS = 10_000;
 const RPI_LOCAL_DOMAIN = "https://local.nevsky-sobor.ru";
 const RPI_DYNAMIC_DOMAIN = "https://rpi.nevsky-sobor.ru";
+/**
+ * mDNS-имя платы. На её собственной точке доступа плата подменяет DNS-ответ
+ * для songs.nevsky-sobor.ru на себя же — поэтому same-origin находит её сама.
+ * Через сторонний роутер (тестировали на Keenetic) подмены нет: DNS-запросы
+ * идут через роутер как обычно, а mDNS при этом работает нормально — значит
+ * плату можно найти напрямую по этому имени.
+ */
+const RPI_MDNS_DOMAIN = "https://raspberrypi-songs.local";
 
 async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
-  const [sameOrigin, localDomain, dynamicDomain] = await Promise.allSettled([
+  const [sameOrigin, localDomain, dynamicDomain, mdnsDomain] = await Promise.allSettled([
     fetch("/api/local-server", { signal: AbortSignal.timeout(1500) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
     fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
     fetch(`${RPI_DYNAMIC_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
+      .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
+    fetch(`${RPI_MDNS_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
   ]);
 
@@ -35,6 +45,9 @@ async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
   }
   if (dynamicDomain.status === "fulfilled" && dynamicDomain.value.isLocal) {
     return { isLocal: true, hostname: dynamicDomain.value.hostname, rpiBaseUrl: RPI_DYNAMIC_DOMAIN, loading: false };
+  }
+  if (mdnsDomain.status === "fulfilled" && mdnsDomain.value.isLocal) {
+    return { isLocal: true, hostname: mdnsDomain.value.hostname, rpiBaseUrl: RPI_MDNS_DOMAIN, loading: false };
   }
   return { isLocal: false, hostname: null, rpiBaseUrl: "", loading: false };
 }
