@@ -29,6 +29,13 @@ interface Progress {
   current: number;
   total: number;
   done: boolean;
+  /**
+   * Service worker скачивает свой набор файлов (193 штуки) до того, как
+   * передаст управление нашему коду, и всё это время полосы не было видно
+   * вовсе — со стороны выглядело, будто кэширование не начинается минутами.
+   * На этой стадии считать проценты нечего, показываем только подпись.
+   */
+  preparing?: boolean;
 }
 
 interface SongEntry {
@@ -395,6 +402,9 @@ export function ServiceWorkerManager() {
 
     syncing.current = true;
     try {
+      // Показываем полосу до ожидания service worker'а: именно здесь уходят
+      // минуты на первой установке, и раньше это время выглядело как простой
+      setProgress({ current: 0, total: 1, done: false, preparing: true });
       await waitForSWController();
       await syncCache((p) => {
         setProgress(p);
@@ -633,7 +643,9 @@ export function ServiceWorkerManager() {
       >
         {progress.done
           ? "Готово к офлайн-работе"
-          : <>{displayText}<span style={{ opacity: cursorOn ? 1 : 0, transition: "opacity 0.1s" }}>|</span></>
+          : progress.preparing
+            ? "Подготовка приложения…"
+            : <>{displayText}<span style={{ opacity: cursorOn ? 1 : 0, transition: "opacity 0.1s" }}>|</span></>
         }
       </span>
 
