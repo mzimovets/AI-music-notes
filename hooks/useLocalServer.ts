@@ -34,7 +34,12 @@ async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
     fetch(`${RPI_DYNAMIC_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
-    fetch(`${RPI_MDNS_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
+    // Таймаут заметно больше, чем у обычных доменов: для .local-адреса
+    // сначала идёт разрешение имени через mDNS (на iOS это само по себе
+    // секунда-две), и только потом установка защищённого соединения. С общими
+    // 1,2 секунды запрос обрывался по таймауту, хотя вручную в браузере тот
+    // же адрес открывался — там лимита нет
+    fetch(`${RPI_MDNS_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(5000) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
   ]);
 
