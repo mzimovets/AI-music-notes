@@ -189,11 +189,26 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
   // TODO: выенсти
   const getSongs = async () => {
     try {
-      const response = await fetch(`${getBackendBaseUrl()}/songs`);
+      const response = await fetch(`${getBackendBaseUrl()}/songs`, {
+        signal: AbortSignal.timeout(5000),
+      });
       const data = await response.json();
       setSongsList(data.docs || []);
+      // Свой ключ, а не offline-songs-v1: тот хранит уже приведённый к
+      // плоскому виду список для главной страницы, а здесь сырые документы
+      // с сервера — разный формат под одним ключом испортил бы оба кэша
+      try {
+        localStorage.setItem("offline-songs-raw-v1", JSON.stringify(data.docs || []));
+      } catch {}
     } catch (e) {
       console.error(e);
+      // Без этой подстраховки список для добавления в программу оставался
+      // пустым при любой заминке с сетью — даже если ноты уже когда-то
+      // были получены и лежат локально
+      try {
+        const cached = localStorage.getItem("offline-songs-raw-v1");
+        if (cached) setSongsList(JSON.parse(cached));
+      } catch {}
     }
   };
 

@@ -1,3 +1,5 @@
+import { getResolvedBackendOverride } from "./resolved-backend";
+
 const LOCAL_HOSTNAMES = new Set([
   "localhost",
   "127.0.0.1",
@@ -28,6 +30,15 @@ function replaceLocalHostname(url: URL) {
 }
 
 export function getBackendBaseUrl() {
+  // Адрес, который реально ответил на пробный запрос (см. resolved-backend.ts),
+  // важнее любой догадки: замена хоста ниже предполагает, что плата подменяет
+  // DNS для songs.nevsky-sobor.ru на своей точке доступа — на стороннем
+  // роутере такой подмены нет, и догадка ведёт в никуда
+  if (typeof window !== "undefined") {
+    const override = getResolvedBackendOverride();
+    if (override) return override;
+  }
+
   // В браузере — публичный адрес бэкенда (Jino проксирует его домен на порт 4000).
   // На сервере — напрямую в localhost:4000, чтобы не зависеть от доверия к TLS.
   const configuredUrl =
