@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { setResolvedBackendOverride } from "@/lib/resolved-backend";
 
 export interface LocalServerInfo {
@@ -27,12 +27,18 @@ const RPI_DYNAMIC_DOMAIN = "https://rpi.nevsky-sobor.ru";
 const RPI_MDNS_DOMAIN = "https://raspberrypi-songs.local";
 
 async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
+  // Таймауты увеличены с 1200-1500 до 4000: через сторонние роутеры (TP-Link,
+  // Keenetic) изредка (замерено — 2 из 20 запросов) новое TLS-соединение
+  // подвисает на 6-7с при полностью свободном CPU на плате — похоже на
+  // сетевую заминку самого роутера/Wi-Fi при установлении соединения, а не
+  // на проблему приложения. Короткий таймаут превращал эту заминку в
+  // ложное "плата не в сети".
   const [sameOrigin, localDomain, dynamicDomain, mdnsDomain] = await Promise.allSettled([
-    fetch("/api/local-server", { signal: AbortSignal.timeout(1500) })
+    fetch("/api/local-server", { signal: AbortSignal.timeout(4000) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
-    fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
+    fetch(`${RPI_LOCAL_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(4000) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
-    fetch(`${RPI_DYNAMIC_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(1200) })
+    fetch(`${RPI_DYNAMIC_DOMAIN}/api/local-server`, { signal: AbortSignal.timeout(4000) })
       .then((r) => r.json() as Promise<{ isLocal: boolean; hostname: string | null }>),
     // Таймаут заметно больше, чем у обычных доменов: для .local-адреса
     // сначала идёт разрешение имени через mDNS (на iOS это само по себе
@@ -72,10 +78,27 @@ export function useLocalServer(): LocalServerInfo {
   const [state, setState] = useState<LocalServerInfo>({
     isLocal: false, hostname: null, rpiBaseUrl: "", loading: true,
   });
+  // Гасим только "мигание" уже найденной платы: если её теряем один раз
+  // подряд (см. комментарий в fetchLocalServerInfo про заминки роутера),
+  // не сбрасываем статус сразу, а ждём повторного подтверждения потери.
+  // Для тех, кто вообще не на локальной сети, статус (и loading) выставляется
+  // сразу же — иначе спиннер завис бы на лишние 10с у всех остальных.
+  const wasLocal = useRef(false);
+  const consecutiveFailures = useRef(0);
 
   const check = useCallback(async () => {
     const info = await fetchLocalServerInfo();
-    setState(info);
+    if (info.isLocal) {
+      consecutiveFailures.current = 0;
+      wasLocal.current = true;
+      setState(info);
+      return;
+    }
+    consecutiveFailures.current += 1;
+    if (!wasLocal.current || consecutiveFailures.current >= 2) {
+      wasLocal.current = false;
+      setState(info);
+    }
   }, []);
 
   useEffect(() => {
