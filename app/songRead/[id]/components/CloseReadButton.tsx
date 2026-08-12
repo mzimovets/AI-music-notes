@@ -19,25 +19,31 @@ export const CloseReadButton = () => {
 
   return (
     <>
+      {/* Нажимаемая область больше видимого кружка — см. пояснение в
+          stackView/components/CloseButton.tsx */}
       <Button
         onPress={() => setIsOpen(true)}
         isIconOnly
         type="button"
-        className="
-  group
+        disableRipple
+        className="group w-14 h-14 min-w-0 p-0 bg-transparent shadow-none border-0 data-[hover=true]:bg-transparent flex items-center justify-center"
+      >
+        <span
+          className="
   flex items-center justify-center
   w-10 h-10
   rounded-full
   bg-red-50 text-red-400
   border border-red-200
 shadow-[0_4px_12px_rgba(0,0,0,0.18)]
-  hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+  group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
   transition-all duration-200
-  hover:bg-red-100 hover:border-red-300
-  active:scale-95
+  group-hover:bg-red-100 group-hover:border-red-300
+  group-active:scale-95
 "
-      >
-        <CloseIcon className="w-5 h-5 text-red-400 group-hover:text-red-700 transition-colors" />
+        >
+          <CloseIcon className="w-5 h-5 text-red-400 group-hover:text-red-700 transition-colors" />
+        </span>
       </Button>
 
       <Modal
@@ -46,6 +52,8 @@ shadow-[0_4px_12px_rgba(0,0,0,0.18)]
         placement="center"
         backdrop="blur"
         size="lg"
+        // Своя кнопка закрытия в углу не нужна: внизу уже есть «Отмена»
+        hideCloseButton
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl">
           {(onClose) => (

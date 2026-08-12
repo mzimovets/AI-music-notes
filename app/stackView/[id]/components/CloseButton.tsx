@@ -77,6 +77,8 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
         placement="center"
         backdrop="blur"
         size="lg"
+        // Своя кнопка закрытия в углу не нужна: внизу уже есть «Отмена»
+        hideCloseButton
         classNames={{ backdrop: "bg-black/40" }}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
