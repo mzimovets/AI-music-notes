@@ -29,10 +29,13 @@ export default function SongReadPage() {
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
   const flipViewerRef = useRef<SwipeBookViewerHandle>(null);
   const hideTimer = useRef<ReturnType<typeof setTimeout>>();
-  const viewModeRef = useRef<"scroll" | "book">("scroll");
+  // Режим листания убран — остался только книжный. Код не удалён, чтобы
+  // при необходимости вернуть: ниже закомментированы переключатель режимов
+  // и разметка листания, а сам режим жёстко зафиксирован на "book"
+  const viewModeRef = useRef<"scroll" | "book">("book");
 
   // Режим просмотра — общий с /stackView через localStorage
-  const [viewMode, setViewMode] = useState<"scroll" | "book">("scroll");
+  const [viewMode] = useState<"scroll" | "book">("book");
   const [viewerHeight, setViewerHeight] = useState(() =>
     typeof window !== "undefined" ? Math.max(400, window.innerHeight) : 600,
   );
@@ -43,14 +46,10 @@ export default function SongReadPage() {
     hideTimer.current = setTimeout(() => setShowButton(false), 3000);
   }, []);
 
-  // Читаем сохранённый режим из localStorage после монтирования
+  // Режим всегда книжный, читать сохранённый из localStorage больше незачем —
+  // остался только запуск таймера скрытия кнопок
   useEffect(() => {
-    const saved = localStorage.getItem("stackViewMode");
-    if (saved === "book" || saved === "scroll") {
-      setViewMode(saved);
-      viewModeRef.current = saved;
-      if (saved === "book") startHideTimer();
-    }
+    startHideTimer();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Сохраняем режим при изменении
@@ -284,7 +283,8 @@ export default function SongReadPage() {
         </div>
       )}
 
-      {viewMode === "scroll" && <ScrollToTop />}
+      {/* Кнопка «наверх» нужна была только в режиме листания:
+      {viewMode === "scroll" && <ScrollToTop />} */}
 
       {!isSinger && (
         <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
@@ -321,6 +321,8 @@ export default function SongReadPage() {
         className={`fixed bottom-6 left-0 right-0 z-50 flex justify-center pointer-events-none transition-all duration-200 ${visible}`}
       >
         <div className="flex gap-1 items-center px-1.5 py-1.5 bg-default-100 rounded-xl shadow-md pointer-events-auto">
+          {/* Переключатель режимов убран — остался только книжный режим.
+              Сохранён на случай возврата:
           <button
             title="Листание"
             onClick={() => setViewMode("scroll")}
@@ -330,16 +332,7 @@ export default function SongReadPage() {
                 : "text-default-400 hover:text-default-600"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6" x2="21" y2="6" />
               <line x1="3" y1="12" x2="21" y2="12" />
               <line x1="3" y1="18" x2="21" y2="18" />
@@ -354,20 +347,12 @@ export default function SongReadPage() {
                 : "text-default-400 hover:text-default-600"
             }`}
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
               <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
           </button>
+          */}
           {viewMode === "book" && (
             <button
               title="На первую страницу"
@@ -392,15 +377,15 @@ export default function SongReadPage() {
         </div>
       </div>
 
-      {/* Режим пролистывания */}
+      {/* Режим пролистывания убран, разметка сохранена на случай возврата:
       {viewMode === "scroll" && (
         <div ref={viewerContainerRef} className="flex justify-center mb-2">
-          {/* noPaddingTopMobile noLastMargin */}
           <StackViewer
             fileUrl={getUploadPath(songResponse.doc.file.filename)}
           />
         </div>
       )}
+      */}
     </div>
   );
 }

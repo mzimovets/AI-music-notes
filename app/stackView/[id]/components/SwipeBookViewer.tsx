@@ -151,14 +151,18 @@ function PdfPage({
   // Рисовать их разметкой и быстрее, и чётче
   if (!isDoc) {
     const isSection = page.kind === "section";
-    // Пропорции A4 — те же, что у заглушек в склейке
-    const width = targetHeight * (595 / 842);
+    // Пропорции A4 — те же, что у заглушек в склейке. Ограничение по ширине
+    // учитывается так же, как у страниц документа, иначе на телефоне пустые
+    // страницы и разделители оказывались шире соседних
+    const widthByHeight = targetHeight * (595 / 842);
+    const width = maxWidth ? Math.min(widthByHeight, maxWidth) : widthByHeight;
+    const height = width * (842 / 595);
 
     return (
       <div
         style={{
           width,
-          height: targetHeight,
+          height,
           borderRadius,
           background: isSection ? page.color : "#ffffff",
           display: "flex",
@@ -200,6 +204,9 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const [isMobile, setIsMobile] = useState(() =>
       typeof window !== "undefined" && window.innerWidth < 1024
     );
+    const [viewportWidth, setViewportWidth] = useState(() =>
+      typeof window !== "undefined" ? window.innerWidth : 0
+    );
 
     // live refs so handlers don't go stale
     const currentPageRef = useRef(1);
@@ -217,6 +224,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         const m = window.innerWidth < 1024;
         isMobileRef.current = m;
         setIsMobile(m);
+        setViewportWidth(window.innerWidth);
       };
       window.addEventListener("resize", check);
       return () => window.removeEventListener("resize", check);
@@ -399,6 +407,15 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const heightFactor = !isMobile ? 0.98 : 0.98;
     const pageHeight = Math.floor(height * heightFactor);
 
+    // Ограничение по ширине. Без него страница масштабировалась только по
+    // высоте и на узком экране (телефон) вылезала за его края — нотный лист
+    // был обрезан слева и справа. Там, где страница и так упирается в высоту
+    // раньше, чем в ширину (планшет, ноутбук), это ограничение не действует:
+    // в PdfPage берётся меньший из двух масштабов
+    const pageMaxWidth = viewportWidth
+      ? Math.floor((viewportWidth - 12) / pagesToShow.length)
+      : undefined;
+
     return (
       <div
         ref={containerRef}
@@ -437,6 +454,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
                     <PdfPage
                       page={planPage}
                       targetHeight={pageHeight}
+                      maxWidth={pageMaxWidth}
                       isLeft={isLeft}
                       isRight={isRight}
                       isSingle={isOnly}
