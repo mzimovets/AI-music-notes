@@ -74,16 +74,27 @@ async function fetchLocalServerInfo(): Promise<LocalServerInfo> {
   return { isLocal: false, hostname: null, rpiBaseUrl: "", loading: false };
 }
 
+/**
+ * Последний известный результат, общий для всех вызовов хука.
+ *
+ * Навбар пересоздаётся при переходах между экранами, а состояние внутри
+ * компонента при этом начинается заново с "платы нет" — значок пропадал и
+ * возвращался лишь через несколько секунд, когда доходила очередная проверка.
+ * Плата за это время никуда не девается, поэтому новый навбар начинает с уже
+ * известного ответа, а проверка идёт своим чередом и уточняет его.
+ */
+let lastKnown: LocalServerInfo | null = null;
+
 export function useLocalServer(): LocalServerInfo {
-  const [state, setState] = useState<LocalServerInfo>({
-    isLocal: false, hostname: null, rpiBaseUrl: "", loading: true,
-  });
+  const [state, setState] = useState<LocalServerInfo>(
+    () => lastKnown ?? { isLocal: false, hostname: null, rpiBaseUrl: "", loading: true },
+  );
   // Гасим только "мигание" уже найденной платы: если её теряем один раз
   // подряд (см. комментарий в fetchLocalServerInfo про заминки роутера),
   // не сбрасываем статус сразу, а ждём повторного подтверждения потери.
   // Для тех, кто вообще не на локальной сети, статус (и loading) выставляется
   // сразу же — иначе спиннер завис бы на лишние 10с у всех остальных.
-  const wasLocal = useRef(false);
+  const wasLocal = useRef(lastKnown?.isLocal ?? false);
   const consecutiveFailures = useRef(0);
 
   const check = useCallback(async () => {
@@ -91,12 +102,14 @@ export function useLocalServer(): LocalServerInfo {
     if (info.isLocal) {
       consecutiveFailures.current = 0;
       wasLocal.current = true;
+      lastKnown = info;
       setState(info);
       return;
     }
     consecutiveFailures.current += 1;
     if (!wasLocal.current || consecutiveFailures.current >= 2) {
       wasLocal.current = false;
+      lastKnown = info;
       setState(info);
     }
   }, []);
