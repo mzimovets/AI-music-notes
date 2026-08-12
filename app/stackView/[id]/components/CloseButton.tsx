@@ -36,12 +36,23 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
           forceVisible ? "scale-100 opacity-100" : "scale-0 opacity-0"
         }`}
       >
+        {/*
+          Нажимаемая область (56px) намеренно больше видимого кружка (40px).
+          Кнопки построены на react-aria: если палец в момент отпускания
+          оказался за границей элемента, нажатие отменяется — а по краю
+          небольшой кнопки палец соскакивал наружу постоянно, и закрыть
+          программу с первого раза не получалось. Запас по 8px с каждой
+          стороны прозрачный, внешне ничего не меняется
+        */}
         <Button
           onPress={() => setIsOpen(true)}
           isIconOnly
           type="button"
-          className="
-        group
+          disableRipple
+          className="group w-14 h-14 min-w-0 p-0 bg-transparent shadow-none border-0 data-[hover=true]:bg-transparent flex items-center justify-center"
+        >
+          <span
+            className="
         flex items-center justify-center
         w-10 h-10
         rounded-full
@@ -50,12 +61,13 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
         border border-white/40
         shadow-[0_4px_12px_rgba(0,0,0,0.18)]
         transition-all duration-200
-        hover:bg-white/40
-        hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
-        active:scale-95
+        group-hover:bg-white/40
+        group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+        group-active:scale-95
       "
-        >
-          <CloseIcon className="w-5 h-5 text-red/70 group-hover:text-red transition-colors" />
+          >
+            <CloseIcon className="w-5 h-5 text-red/70 group-hover:text-red transition-colors" />
+          </span>
         </Button>
       </div>
 
