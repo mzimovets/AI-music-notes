@@ -133,6 +133,48 @@ img {
   pointer-events: none;
 }
 
+/* Заставка при запуске установленного приложения (см. SplashScreen.tsx).
+   Цвет фона совпадает с background_color в манифесте — иначе при запуске
+   мигает другим цветом */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #f7f4f1;
+  /* В обычной вкладке браузера заставка не нужна */
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.4s ease;
+}
+
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .splash {
+    display: flex;
+  }
+}
+
+.splash-hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-icon {
+  width: 112px;
+  height: 112px;
+  border-radius: 26px;
+  /* Начинаем именно с scale(1) и с задержкой: iOS до страницы показывает свою
+     системную заставку с иконкой, и при старте с меньшего масштаба на стыке
+     виден рывок */
+  animation: splash-grow 1s cubic-bezier(0.33, 0, 0.2, 1) 0.5s both;
+  will-change: transform;
+}
+
+@keyframes splash-grow {
+  from { transform: scale(1); }
+  to { transform: scale(1.07); }
+}
+
 @keyframes ping {
   75%, 100% { transform: scale(2); opacity: 0; }
 }

@@ -14,6 +14,7 @@ import { NavbarWrapper } from "./NavbarWrapper";
 import { MainWrapper } from "./MainWrapper";
 import { ServiceWorkerManager } from "@/components/ServiceWorkerManager";
 import { UpdateNotifier } from "@/components/UpdateNotifier";
+import { SplashScreen } from "@/components/SplashScreen";
 
 
 export default function RootLayout({
@@ -68,6 +69,7 @@ export default function RootLayout({
       <body
         className={clsx("text-foreground font-sans bg-page", fontSans.variable)}
       >
+        <SplashScreen />
         <SessionProvider>
           <ServiceWorkerManager />
           <UpdateNotifier />
