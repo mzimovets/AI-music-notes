@@ -21,6 +21,7 @@ import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
+import { markStackFromRemote } from "@/lib/stack-sync-echo";
 import {
   buildStackPagePlan,
   collectPlanUrls,
@@ -115,6 +116,9 @@ export default function Page() {
 
     const handleUpdate = (payload: StackUpdatedPayload) => {
       if (!payload || payload.stackId !== stackId) return;
+      // Помечаем состояние как пришедшее по сети, чтобы боковая панель не
+      // отправила его обратно: двое регентов на этом зацикливались
+      markStackFromRemote(payload.songs || [], payload.mealType || null);
       setStackSongs(payload.songs || []);
       setMealType(payload.mealType || null);
       if (payload.programSelected) setProgramSelected(payload.programSelected);

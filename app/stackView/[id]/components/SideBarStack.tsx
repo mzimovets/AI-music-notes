@@ -120,6 +120,7 @@ import { UnpublishIcon } from "@/app/stack/[id]/components/icons/UnpublishIcon";
 import { DeleteModal } from "./DeleteModal";
 import { SidebarButton } from "./SidebarButton";
 import { socket } from "@/lib/socket";
+import { isStackEcho } from "@/lib/stack-sync-echo";
 import { useRouter } from "next/navigation";
 import { getBackendBaseUrl } from "@/lib/client-url";
 // Removed unused import: DownloadIcon
@@ -208,6 +209,11 @@ export const SideBarStack = ({
       isInitialSyncSkippedRef.current = true;
       return;
     }
+
+    // Состояние, только что пришедшее по сети, обратно не отправляем: для
+    // собеседника это ничего не меняет, а двух регентов вгоняет в бесконечный
+    // обмен одинаковыми событиями (см. lib/stack-sync-echo.ts)
+    if (isStackEcho(stackSongs, mealType)) return;
 
     socket.emit("stack-updated", {
       stackId,
