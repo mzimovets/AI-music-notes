@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
-import { queuePageRender } from "@/lib/pdf-render-queue";
+import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -90,20 +90,45 @@ function PdfPage({
         });
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-        // Рисуем в отдельный canvas, видимый не трогаем пока не готово
-        const offscreen = document.createElement("canvas");
-        offscreen.width = Math.floor(viewport.width * dpr);
-        offscreen.height = Math.floor(viewport.height * dpr);
-        const ctx = offscreen.getContext("2d")!;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
         await queuePageRender(`${docKey}#${pageInDoc}`, async () => {
-          if (cancelled) return;
-          renderTask = pdfPage.render({ canvasContext: ctx, viewport });
-          await renderTask.promise;
-          if (cancelled) return;
+          // Показать страницу можно только убедившись, что она нарисована до
+          // самого низа. Причина обрыва до конца не ясна, воспроизвести её на
+          // машине разработчика не удалось — поэтому проверяется не причина, а
+          // результат: холст заранее заливается белым, и если нижняя строка
+          // пикселей осталась прозрачной, значит рисование оборвалось на
+          // середине. Такую страницу не показываем, а рисуем заново в том же
+          // разрешении. Половина нотного листа на службе недопустима
+          for (let attempt = 0; attempt < 3; attempt++) {
+            if (cancelled) return;
 
-          paint(offscreen, viewport.width, viewport.height);
+            // Рисуем в отдельный canvas, видимый не трогаем пока не готово
+            const offscreen = document.createElement("canvas");
+            offscreen.width = Math.floor(viewport.width * dpr);
+            offscreen.height = Math.floor(viewport.height * dpr);
+            const ctx = offscreen.getContext("2d")!;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, viewport.width, viewport.height);
+
+            renderTask = pdfPage.render({ canvasContext: ctx, viewport });
+            await renderTask.promise;
+            if (cancelled) return;
+
+            const isLastAttempt = attempt === 2;
+            if (isBottomDrawn(offscreen) || isLastAttempt) {
+              paint(offscreen, viewport.width, viewport.height);
+              // Проверяем уже то, что видит человек: копирование на видимый
+              // холст — отдельное выделение памяти и тоже может оборваться
+              const canvas = canvasRef.current;
+              if (!canvas || isBottomDrawn(canvas) || isLastAttempt) return;
+            }
+
+            // Список команд рисования, разобранный с обрывом, остаётся в
+            // объекте страницы и проигрывается снова при каждой следующей
+            // отрисовке — потому обрезанная страница и держалась до перезапуска
+            // приложения. cleanup() выбрасывает его, и разбор идёт заново
+            try { pdfPage.cleanup(); } catch {}
+          }
         });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);

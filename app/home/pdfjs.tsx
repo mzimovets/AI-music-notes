@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
-import { queuePageRender } from "@/lib/pdf-render-queue";
+import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 
 
 interface PdfViewerProps {
@@ -122,11 +122,29 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         context.scale(outputScale, outputScale);
 
         await queuePageRender(`${pdfDoc.fingerprints?.[0] ?? "doc"}#${num}`, async () => {
-          renderTask = page.render({
-            canvasContext: context,
-            viewport: page.getViewport({ scale: baseScale, rotation }),
-          });
-          await renderTask.promise;
+          // Заливка белым и проверка нижней строки: страница, нарисованная
+          // наполовину, не должна остаться на экране. Подробности — в
+          // pdf-render-queue.ts
+          for (let attempt = 0; attempt < 3; attempt++) {
+            context.setTransform(1, 0, 0, 1, 0, 0);
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+
+            renderTask = page.render({
+              canvasContext: context,
+              viewport: page.getViewport({ scale: baseScale, rotation }),
+            });
+            await renderTask.promise;
+
+            if (isBottomDrawn(canvas)) return;
+
+            // Список команд рисования, разобранный с обрывом, остаётся в
+            // объекте страницы и проигрывается снова при каждой следующей
+            // отрисовке — потому обрезанная страница и держалась до перезапуска
+            // приложения. cleanup() выбрасывает его, и разбор идёт заново
+            try { page.cleanup(); } catch {}
+          }
         });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") {

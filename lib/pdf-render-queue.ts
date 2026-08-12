@@ -15,6 +15,31 @@
  * Ключ — документ и номер страницы: параллельно разные страницы рисуются
  * по-прежнему свободно, ждут только отрисовки одной и той же.
  */
+/**
+ * Дорисована ли страница до низа.
+ *
+ * Перед отрисовкой холст заливается непрозрачным белым. Если рисование
+ * оборвалось на середине или память под холст выделилась не полностью,
+ * нижние строки пикселей остаются прозрачными — по ним это и видно.
+ * Проверяется одна строка, так что стоит это доли миллисекунды.
+ */
+export function isBottomDrawn(canvas: HTMLCanvasElement): boolean {
+  if (!canvas.width || !canvas.height) return false;
+  try {
+    const row = canvas
+      .getContext("2d")!
+      .getImageData(0, canvas.height - 1, canvas.width, 1).data;
+    for (let i = 3; i < row.length; i += 4) {
+      if (row[i] !== 0) return true;
+    }
+    return false;
+  } catch {
+    // Прочитать не удалось — считаем страницу годной, иначе рискуем
+    // зациклиться на перерисовке и не показать вообще ничего
+    return true;
+  }
+}
+
 const queues = new Map<string, Promise<unknown>>();
 
 export function queuePageRender<T>(
