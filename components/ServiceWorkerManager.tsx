@@ -405,11 +405,24 @@ export function ServiceWorkerManager() {
       // Показываем полосу до ожидания service worker'а: именно здесь уходят
       // минуты на первой установке, и раньше это время выглядело как простой
       setProgress({ current: 0, total: 1, done: false, preparing: true });
+
+      // Но висеть на нуле бесконечно она не должна: если за это время не
+      // случилось ни одного реального шага, значит что-то не задалось
+      // (не отвечает бэкенд, не встал service worker) — полосу убираем,
+      // синхронизация всё равно повторится по расписанию, но уже молча
+      let started = false;
+      const stallGuard = setTimeout(() => {
+        if (!started) setProgress(null);
+      }, 25_000);
+
       await waitForSWController();
       await syncCache((p) => {
+        started = true;
+        clearTimeout(stallGuard);
         setProgress(p);
         if (p.done) setTimeout(() => setProgress(null), 3000);
       });
+      clearTimeout(stallGuard);
     } catch (e) {
       console.error("[Sync] Ошибка:", e);
     } finally {
