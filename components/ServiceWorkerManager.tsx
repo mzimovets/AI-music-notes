@@ -232,6 +232,11 @@ async function syncCache(onProgress: (p: Progress) => void) {
 
   if (total === 0) {
     saveCachedState({ songs: currentSongs, stacks: currentStacks, categories: currentCategories.map((c) => c.key) });
+    // Кешировать нечего — но полоса к этому моменту уже показана и ждёт
+    // новостей. Без этой строки она навсегда оставалась висеть на нуле:
+    // именно так выглядел «0% и ничего не происходит» при каждом запуске,
+    // когда всё уже было закешировано раньше
+    onProgress({ current: 1, total: 1, done: true });
     return;
   }
 
