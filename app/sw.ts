@@ -36,7 +36,15 @@ const serwist = new Serwist({
           path === "/api/system-status" ||
           path === "/api/git-update" ||
           path === "/api/ping" ||
-          path.startsWith("/api/device-battery")
+          path.startsWith("/api/device-battery") ||
+          // Соединение реального времени. Socket.IO держит запрос открытым,
+          // пока не придёт событие; проходя через service worker, запрос
+          // завершался сразу, соединение тут же переустанавливалось — и так
+          // тысячи раз подряд (замерено: 2826 запросов за 50 секунд).
+          // Заодно события приходили по нескольким соединениям сразу, из-за
+          // чего порядок песен дёргался туда-сюда после перестановки
+          path.startsWith("/socket.io") ||
+          path === "/ws-clicker"
         );
       },
       handler: new NetworkOnly(),
