@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
+import { queuePageRender } from "@/lib/pdf-render-queue";
 
 
 interface PdfViewerProps {
@@ -120,11 +121,13 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.scale(outputScale, outputScale);
 
-        renderTask = page.render({
-          canvasContext: context,
-          viewport: page.getViewport({ scale: baseScale, rotation }),
+        await queuePageRender(`${pdfDoc.fingerprints?.[0] ?? "doc"}#${num}`, async () => {
+          renderTask = page.render({
+            canvasContext: context,
+            viewport: page.getViewport({ scale: baseScale, rotation }),
+          });
+          await renderTask.promise;
         });
-        await renderTask.promise;
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") {
           console.error("Ошибка при рендеринге страницы PDF:", err);

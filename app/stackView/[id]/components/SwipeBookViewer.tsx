@@ -10,6 +10,7 @@ import {
 } from "react";
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
+import { queuePageRender } from "@/lib/pdf-render-queue";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -87,17 +88,7 @@ function PdfPage({
         const viewport = pdfPage.getViewport({
           scale: Math.min(scaleByHeight, scaleByWidth),
         });
-        // Плотность пикселей ограничена не только сверху двойкой, но и общей
-        // площадью холста. Когда браузеру не хватает памяти (а на плате это
-        // обычное дело: параллельно идёт наполнение кеша), он не сообщает об
-        // ошибке — он молча выделяет холст меньше запрошенного, и низ страницы
-        // оказывается обрезан. Меньшая площадь выделяется надёжно
-        const MAX_CANVAS_PIXELS = 4_000_000;
-        let dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const pixelsAtDpr = viewport.width * viewport.height * dpr * dpr;
-        if (pixelsAtDpr > MAX_CANVAS_PIXELS) {
-          dpr = Math.sqrt(MAX_CANVAS_PIXELS / (viewport.width * viewport.height));
-        }
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
         // Рисуем в отдельный canvas, видимый не трогаем пока не готово
         const offscreen = document.createElement("canvas");
@@ -106,15 +97,14 @@ function PdfPage({
         const ctx = offscreen.getContext("2d")!;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        renderTask = pdfPage.render({ canvasContext: ctx, viewport });
-        await renderTask.promise;
-        if (cancelled) return;
+        await queuePageRender(`${docKey}#${pageInDoc}`, async () => {
+          if (cancelled) return;
+          renderTask = pdfPage.render({ canvasContext: ctx, viewport });
+          await renderTask.promise;
+          if (cancelled) return;
 
-        paint(offscreen, viewport.width, viewport.height);
-        // Освобождаем буфер сразу: Safari держит его до сборки мусора, а
-        // страниц за сеанс рисуется много — память кончается именно так
-        offscreen.width = 0;
-        offscreen.height = 0;
+          paint(offscreen, viewport.width, viewport.height);
+        });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);
       }
