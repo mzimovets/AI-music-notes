@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
-import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
+import { queuePageRender } from "@/lib/pdf-render-queue";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -53,24 +53,14 @@ function PdfPage({
   isRight?: boolean;
   isSingle?: boolean;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const isDoc = page.kind === "doc";
   const docKey = isDoc ? page.url : "";
   const pageInDoc = isDoc ? page.pageInDoc : 0;
 
   useEffect(() => {
-    if (!isDoc || !canvasRef.current) return;
+    if (!isDoc || !containerRef.current) return;
     let cancelled = false;
-
-    const paint = (source: HTMLCanvasElement, cssWidth: number, cssHeight: number) => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = source.width;
-      canvas.height = source.height;
-      canvas.style.width = `${cssWidth}px`;
-      canvas.style.height = `${cssHeight}px`;
-      canvas.getContext("2d")!.drawImage(source, 0, 0);
-    };
 
     let renderTask: any = null;
 
@@ -91,44 +81,67 @@ function PdfPage({
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
         await queuePageRender(`${docKey}#${pageInDoc}`, async () => {
-          // Показать страницу можно только убедившись, что она нарисована до
-          // самого низа. Причина обрыва до конца не ясна, воспроизвести её на
-          // машине разработчика не удалось — поэтому проверяется не причина, а
-          // результат: холст заранее заливается белым, и если нижняя строка
-          // пикселей осталась прозрачной, значит рисование оборвалось на
-          // середине. Такую страницу не показываем, а рисуем заново в том же
-          // разрешении. Половина нотного листа на службе недопустима
-          for (let attempt = 0; attempt < 3; attempt++) {
+          if (cancelled) return;
+
+          /**
+           * Страница рисуется горизонтальными полосами, каждая в своём
+           * небольшом холсте.
+           *
+           * Раньше на всю страницу выделялся один большой холст, и когда
+           * браузеру не хватало памяти, он молча отдавал буфер меньше
+           * запрошенного: лист обрывался на середине и оставался таким до
+           * перезапуска приложения. Поймать это постфактум не выходит —
+           * у обрезанного холста нижняя строка пикселей выглядит нормально.
+           *
+           * Небольшие буферы выделяются надёжно даже под нагрузкой, поэтому
+           * сам сценарий исчезает, а не отлавливается. Разрешение прежнее:
+           * полосы рисуются с тем же масштабом и стыкуются без швов.
+           */
+          const STRIPE_MAX_PIXELS = 1_500_000;
+          const stripeCssHeight = Math.max(
+            64,
+            Math.floor(STRIPE_MAX_PIXELS / (viewport.width * dpr * dpr)),
+          );
+          const stripeCount = Math.ceil(viewport.height / stripeCssHeight);
+
+          const fragment = document.createDocumentFragment();
+
+          for (let i = 0; i < stripeCount; i++) {
             if (cancelled) return;
 
-            // Рисуем в отдельный canvas, видимый не трогаем пока не готово
-            const offscreen = document.createElement("canvas");
-            offscreen.width = Math.floor(viewport.width * dpr);
-            offscreen.height = Math.floor(viewport.height * dpr);
-            const ctx = offscreen.getContext("2d")!;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, viewport.width, viewport.height);
+            const top = i * stripeCssHeight;
+            const height = Math.min(stripeCssHeight, viewport.height - top);
 
-            renderTask = pdfPage.render({ canvasContext: ctx, viewport });
+            const canvas = document.createElement("canvas");
+            canvas.width = Math.floor(viewport.width * dpr);
+            canvas.height = Math.floor(height * dpr);
+            canvas.style.display = "block";
+            canvas.style.width = `${viewport.width}px`;
+            canvas.style.height = `${height}px`;
+
+            const ctx = canvas.getContext("2d")!;
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Сдвиг по вертикали задаётся преобразованием: страница рисуется
+            // целиком, но в холст попадает только своя полоса
+            renderTask = pdfPage.render({
+              canvasContext: ctx,
+              viewport,
+              transform: [dpr, 0, 0, dpr, 0, -top * dpr],
+            });
             await renderTask.promise;
             if (cancelled) return;
 
-            const isLastAttempt = attempt === 2;
-            if (isBottomDrawn(offscreen) || isLastAttempt) {
-              paint(offscreen, viewport.width, viewport.height);
-              // Проверяем уже то, что видит человек: копирование на видимый
-              // холст — отдельное выделение памяти и тоже может оборваться
-              const canvas = canvasRef.current;
-              if (!canvas || isBottomDrawn(canvas) || isLastAttempt) return;
-            }
-
-            // Список команд рисования, разобранный с обрывом, остаётся в
-            // объекте страницы и проигрывается снова при каждой следующей
-            // отрисовке — потому обрезанная страница и держалась до перезапуска
-            // приложения. cleanup() выбрасывает его, и разбор идёт заново
-            try { pdfPage.cleanup(); } catch {}
+            fragment.appendChild(canvas);
           }
+
+          // Показываем страницу целиком и разом, когда готовы все полосы
+          const container = containerRef.current;
+          if (!container) return;
+          container.style.width = `${viewport.width}px`;
+          container.style.height = `${viewport.height}px`;
+          container.replaceChildren(fragment);
         });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);
@@ -186,9 +199,9 @@ function PdfPage({
   }
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{ display: "block", borderRadius }}
+    <div
+      ref={containerRef}
+      style={{ display: "block", borderRadius, overflow: "hidden", background: "#ffffff" }}
     />
   );
 }
