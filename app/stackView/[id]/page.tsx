@@ -461,7 +461,10 @@ export default function Page() {
     }
     if (knownIsLocalServerRef.current !== isLocalServer) {
       knownIsLocalServerRef.current = isLocalServer;
-      window.location.href = "/";
+      // Полная перезагрузка, а не переход внутри приложения: только она
+      // очищает кэш pdf.js-документов, где и оседают испорченные страницы.
+      // Заставка при этом покажется сама — она монтируется на загрузку документа
+      window.location.reload();
     }
   }, [isLocalServer, isLocalServerLoading]);
 

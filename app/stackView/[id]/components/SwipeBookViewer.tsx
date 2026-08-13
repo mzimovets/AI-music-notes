@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
-import { queuePageRender } from "@/lib/pdf-render-queue";
+import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -63,6 +63,9 @@ function PdfPage({
     let cancelled = false;
 
     let renderTask: any = null;
+    // Нужна в очистке эффекта: у оборванной отрисовки список команд остаётся
+    // в объекте страницы, и его нужно выбросить — см. комментарий там же
+    let activePage: any = null;
 
     (async () => {
       try {
@@ -70,6 +73,7 @@ function PdfPage({
         if (cancelled) return;
 
         const pdfPage = await doc.getPage(pageInDoc);
+        activePage = pdfPage;
         if (cancelled) return;
 
         const base = pdfPage.getViewport({ scale: 1 });
@@ -104,44 +108,61 @@ function PdfPage({
           );
           const stripeCount = Math.ceil(viewport.height / stripeCssHeight);
 
-          const fragment = document.createDocumentFragment();
+          // Если полоса всё же вышла недорисованной, повторяем разбор заново.
+          // Между попытками обязателен cleanup(): список команд, разобранный
+          // с обрывом, кэшируется в объекте страницы и сам по себе не чинится
+          for (let attempt = 0; attempt < 3; attempt++) {
+            const fragment = document.createDocumentFragment();
+            let truncated = false;
 
-          for (let i = 0; i < stripeCount; i++) {
-            if (cancelled) return;
+            for (let i = 0; i < stripeCount; i++) {
+              if (cancelled) return;
 
-            const top = i * stripeCssHeight;
-            const height = Math.min(stripeCssHeight, viewport.height - top);
+              const top = i * stripeCssHeight;
+              const height = Math.min(stripeCssHeight, viewport.height - top);
 
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.floor(viewport.width * dpr);
-            canvas.height = Math.floor(height * dpr);
-            canvas.style.display = "block";
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${height}px`;
+              const canvas = document.createElement("canvas");
+              canvas.width = Math.floor(viewport.width * dpr);
+              canvas.height = Math.floor(height * dpr);
+              canvas.style.display = "block";
+              canvas.style.width = `${viewport.width}px`;
+              canvas.style.height = `${height}px`;
 
-            const ctx = canvas.getContext("2d")!;
-            ctx.fillStyle = "#ffffff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+              const ctx = canvas.getContext("2d")!;
+              ctx.fillStyle = "#ffffff";
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Сдвиг по вертикали задаётся преобразованием: страница рисуется
-            // целиком, но в холст попадает только своя полоса
-            renderTask = pdfPage.render({
-              canvasContext: ctx,
-              viewport,
-              transform: [dpr, 0, 0, dpr, 0, -top * dpr],
-            });
-            await renderTask.promise;
-            if (cancelled) return;
+              // Сдвиг по вертикали задаётся преобразованием: страница рисуется
+              // целиком, но в холст попадает только своя полоса
+              renderTask = pdfPage.render({
+                canvasContext: ctx,
+                viewport,
+                transform: [dpr, 0, 0, dpr, 0, -top * dpr],
+              });
+              await renderTask.promise;
+              if (cancelled) return;
 
-            fragment.appendChild(canvas);
+              if (!isBottomDrawn(canvas)) {
+                truncated = true;
+                break;
+              }
+
+              fragment.appendChild(canvas);
+            }
+
+            if (truncated) {
+              try { pdfPage.cleanup(); } catch {}
+              continue;
+            }
+
+            // Показываем страницу целиком и разом, когда готовы все полосы
+            const container = containerRef.current;
+            if (!container) return;
+            container.style.width = `${viewport.width}px`;
+            container.style.height = `${viewport.height}px`;
+            container.replaceChildren(fragment);
+            return;
           }
-
-          // Показываем страницу целиком и разом, когда готовы все полосы
-          const container = containerRef.current;
-          if (!container) return;
-          container.style.width = `${viewport.width}px`;
-          container.style.height = `${viewport.height}px`;
-          container.replaceChildren(fragment);
         });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);
@@ -151,6 +172,12 @@ function PdfPage({
     return () => {
       cancelled = true;
       try { renderTask?.cancel(); } catch {}
+      // Отменённая отрисовка оставляет в объекте страницы список команд,
+      // разобранный с обрывом. pdf.js кэширует его и проигрывает при каждой
+      // следующей отрисовке — страница остаётся обрезанной до перезапуска
+      // приложения. cleanup() выбрасывает его, и разбор идёт заново.
+      // Смена сети как раз вызывает шквал перерисовок с отменами
+      try { activePage?.cleanup(); } catch {}
     };
   }, [isDoc, docKey, pageInDoc, targetHeight, maxWidth]);
 
