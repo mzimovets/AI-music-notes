@@ -10,33 +10,51 @@
 # сборка не прошла: лучше остаться на старой версии, чем на сломанной.
 #
 # Запуск:
-#   на сервере — bash deploy.sh
-#   на плате    — bash deploy.sh board
+#   на сервере            — bash deploy.sh
+#   на плате              — bash deploy.sh board
+#   на плате без интернета — bash deploy.sh board-offline
+#
+# Режим board-offline нужен, когда файлы принесли на плату вручную (tar/scp):
+# получать код и зависимости неоткуда, но собрать, перезапустить и — главное —
+# показать айди сборки надо так же. Без этой проверки легко решить, что
+# обновление приехало, хотя на плате осталась прежняя версия.
 
 set -e
 
 MODE="${1:-server}"
 
-if [ "$MODE" = "board" ]; then
-  APP_DIR="/mnt/ssd/AI-music-notes"
-  RESTART='sudo systemctl restart music-backend && sudo systemctl restart music-frontend'
-  HEALTH_URL="http://localhost:3000/api/build-id"
-else
-  APP_DIR="/home/AI-music-notes"
-  RESTART='pm2 restart ai-music-back ai-music-front'
-  HEALTH_URL="http://127.0.0.1:3000/api/build-id"
-fi
+FETCH=1
+
+case "$MODE" in
+  board|board-offline)
+    APP_DIR="/mnt/ssd/AI-music-notes"
+    RESTART='sudo systemctl restart music-backend && sudo systemctl restart music-frontend'
+    HEALTH_URL="http://localhost:3000/api/build-id"
+    [ "$MODE" = "board-offline" ] && FETCH=0
+    ;;
+  *)
+    APP_DIR="/home/AI-music-notes"
+    RESTART='pm2 restart ai-music-back ai-music-front'
+    HEALTH_URL="http://127.0.0.1:3000/api/build-id"
+    ;;
+esac
 
 cd "$APP_DIR"
 
-echo "=== Получаю изменения"
-# Файлы блокировок переписывает npm install, и они блокируют получение кода
-git checkout -- package-lock.json server/package-lock.json 2>/dev/null || true
-git pull
+echo "=== Сборка сейчас: $(curl -s "$HEALTH_URL" || echo "не отвечает")"
 
-echo "=== Устанавливаю зависимости"
-npm install --no-audit --no-fund
-[ -d server ] && (cd server && npm install --no-audit --no-fund)
+if [ "$FETCH" = "1" ]; then
+  echo "=== Получаю изменения"
+  # Файлы блокировок переписывает npm install, и они блокируют получение кода
+  git checkout -- package-lock.json server/package-lock.json 2>/dev/null || true
+  git pull
+
+  echo "=== Устанавливаю зависимости"
+  npm install --no-audit --no-fund
+  [ -d server ] && (cd server && npm install --no-audit --no-fund)
+else
+  echo "=== Код принесён вручную, получение пропускаю"
+fi
 
 echo "=== Собираю"
 npm run build
