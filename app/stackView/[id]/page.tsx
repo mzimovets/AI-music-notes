@@ -20,6 +20,7 @@ import { updateStack } from "@/actions/actions";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useLocalServer } from "@/hooks/useLocalServer";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { markStackFromRemote } from "@/lib/stack-sync-echo";
 import {
@@ -445,14 +446,24 @@ export default function Page() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  // При переподключении к сети (например, роутер перезагрузился и устройство
-  // перескочило на другую сеть) вёрстка вьюера может остаться сломанной —
-  // возвращаемся на главную, чтобы страница открылась заново с чистого листа
+  // При переключении между платой и интернет-сервером (в любую сторону)
+  // отрисовка PDF-канваса остаётся сломанной до перезапуска приложения —
+  // навигация внутри SPA этого не чинит, нужна настоящая перезагрузка.
+  // navigator.onLine/событие "online" здесь ненадёжны (см. lib/backend-reachable.ts),
+  // поэтому используем isLocal из useLocalServer — он основан на реальном опросе бэкенда
+  const { isLocal: isLocalServer, loading: isLocalServerLoading } = useLocalServer();
+  const knownIsLocalServerRef = useRef<boolean | null>(null);
   useEffect(() => {
-    const handleOnline = () => router.push("/");
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [router]);
+    if (isLocalServerLoading) return;
+    if (knownIsLocalServerRef.current === null) {
+      knownIsLocalServerRef.current = isLocalServer;
+      return;
+    }
+    if (knownIsLocalServerRef.current !== isLocalServer) {
+      knownIsLocalServerRef.current = isLocalServer;
+      window.location.href = "/";
+    }
+  }, [isLocalServer, isLocalServerLoading]);
 
   // Prevent window scroll in book mode; also block iOS Safari edge-swipe navigation
   useEffect(() => {
