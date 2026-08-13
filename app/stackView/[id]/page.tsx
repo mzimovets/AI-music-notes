@@ -445,6 +445,15 @@ export default function Page() {
     return () => window.removeEventListener("resize", update);
   }, []);
 
+  // При переподключении к сети (например, роутер перезагрузился и устройство
+  // перескочило на другую сеть) вёрстка вьюера может остаться сломанной —
+  // возвращаемся на главную, чтобы страница открылась заново с чистого листа
+  useEffect(() => {
+    const handleOnline = () => router.push("/");
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [router]);
+
   // Prevent window scroll in book mode; also block iOS Safari edge-swipe navigation
   useEffect(() => {
     const inBook = viewMode === "book";
