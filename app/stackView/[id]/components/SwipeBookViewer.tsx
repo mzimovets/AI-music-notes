@@ -10,7 +10,7 @@ import {
 } from "react";
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
-import { queuePageRender } from "@/lib/pdf-render-queue";
+import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -128,81 +128,66 @@ function PdfPage({
           }
 
           /**
-           * Страница рисуется горизонтальными полосами, каждая в своём
-           * небольшом холсте.
+           * Страница рисуется одним холстом за один вызов отрисовки.
            *
-           * Раньше на всю страницу выделялся один большой холст, и когда
-           * браузеру не хватало памяти, он молча отдавал буфер меньше
-           * запрошенного: лист обрывался на середине и оставался таким до
-           * перезапуска приложения. Поймать это постфактум не выходит —
-           * у обрезанного холста нижняя строка пикселей выглядит нормально.
+           * Раньше она собиралась из горизонтальных полос, и каждая полоса была
+           * отдельным вызовом render() по одному и тому же объекту страницы.
+           * На планшете часть полос возвращалась пустой: сверху ноты, ниже —
+           * белое поле, обрыв ровно по границе полосы. Держалось до перезапуска
+           * приложения. Один вызов на страницу такой возможности не оставляет:
+           * либо страница нарисована, либо нет. Так же рисует и обычная читалка
+           * (app/home/pdfjs.tsx), где этой беды никогда и не было.
            *
-           * Небольшие буферы выделяются надёжно даже под нагрузкой, поэтому
-           * сам сценарий исчезает, а не отлавливается. Разрешение прежнее:
-           * полосы рисуются с тем же масштабом и стыкуются без швов.
+           * По памяти это безопасно: на экране всегда ровно одна страница, а
+           * её холст освобождается сразу, как только она уходит.
            */
-          const STRIPE_MAX_PIXELS = 1_500_000;
-          const stripeCssHeight = Math.max(
-            64,
-            Math.floor(STRIPE_MAX_PIXELS / (viewport.width * dpr * dpr)),
-          );
-          const stripeCount = Math.ceil(viewport.height / stripeCssHeight);
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.display = "block";
+          canvas.style.width = `${viewport.width}px`;
+          canvas.style.height = `${viewport.height}px`;
 
-          const fragment = document.createDocumentFragment();
-          // Отрисовку могут оборвать на любой полосе, а уже нарисованные к тому
-          // моменту на экран не попадут — держим их, чтобы освободить
-          const stripes: HTMLCanvasElement[] = [];
+          const ctx = canvas.getContext("2d")!;
 
-          for (let i = 0; i < stripeCount; i++) {
+          for (let attempt = 0; attempt < 3; attempt++) {
             if (cancelled) {
-              releaseCanvases(stripes);
+              releaseCanvases([canvas]);
               return;
             }
 
-            const top = i * stripeCssHeight;
-            const height = Math.min(stripeCssHeight, viewport.height - top);
-
-            const canvas = document.createElement("canvas");
-            canvas.width = Math.floor(viewport.width * dpr);
-            canvas.height = Math.floor(height * dpr);
-            canvas.style.display = "block";
-            canvas.style.width = `${viewport.width}px`;
-            canvas.style.height = `${height}px`;
-
-            stripes.push(canvas);
-
-            const ctx = canvas.getContext("2d")!;
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Сдвиг по вертикали задаётся преобразованием: страница рисуется
-            // целиком, но в холст попадает только своя полоса
             renderTask = pdfPage.render({
               canvasContext: ctx,
               viewport,
-              transform: [dpr, 0, 0, dpr, 0, -top * dpr],
+              transform: [dpr, 0, 0, dpr, 0, 0],
             });
             await renderTask.promise;
             if (cancelled) {
-              releaseCanvases(stripes);
+              releaseCanvases([canvas]);
               return;
             }
 
-            fragment.appendChild(canvas);
+            // Холст залит непрозрачным белым, поэтому прозрачные пиксели внизу
+            // означают, что память под него выделилась не полностью
+            if (isBottomDrawn(canvas)) break;
+            try { pdfPage.cleanup(); } catch {}
           }
 
-          // Показываем страницу целиком и разом, когда готовы все полосы
           const container = containerRef.current;
           if (!container) {
-            releaseCanvases(stripes);
+            releaseCanvases([canvas]);
             return;
           }
-          // Полосы предыдущей страницы уходят с экрана — освобождаем их сразу,
+          // Холст предыдущей страницы уходит с экрана — освобождаем его сразу,
           // не дожидаясь сборки мусора, иначе предел памяти выедается листанием
           releaseCanvases(container.querySelectorAll("canvas"));
           container.style.width = `${viewport.width}px`;
           container.style.height = `${viewport.height}px`;
-          container.replaceChildren(fragment);
+          container.replaceChildren(canvas);
         });
       } catch (err: any) {
         if (err?.name !== "RenderingCancelledException") console.error(err);
