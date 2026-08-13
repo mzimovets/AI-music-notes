@@ -106,6 +106,9 @@ export default function Page() {
   const BACKEND_URL = getBackendBaseUrl();
 
   const viewerContainerRef = useRef<HTMLDivElement | null>(null);
+  // Коробка книжного режима — по ней меряется высота страницы (см. эффект ниже).
+  // Отдельно от viewerContainerRef: тот указывает на блок режима прокрутки
+  const bookViewportRef = useRef<HTMLDivElement | null>(null);
   const stackId = stackResponse?.doc?._id;
 
   useEffect(() => {
@@ -438,13 +441,40 @@ export default function Page() {
   //   localStorage.setItem("stackViewMode", viewMode);
   // }, [viewMode]);
 
-  // Measure available height for the DearFlip viewer (full screen height)
+  /**
+   * Высота просмотрщика — по реальной коробке на экране, а не по window.innerHeight.
+   *
+   * Раньше бралось окно и обновлялось только по событию resize. На iOS при
+   * смене сети и возврате приложения из фона окно успевает сообщить неверную
+   * высоту, а resize после этого не приходит — просмотрщик оставался с чужим
+   * размером: ноты рисовались вполовину экрана, прижатые к верху, и держались
+   * так до перезапуска приложения.
+   *
+   * ResizeObserver следит за самим контейнером, поэтому размер всегда совпадает
+   * с тем, что видно, независимо от того, что говорит окно.
+   */
   useEffect(() => {
-    const update = () => setViewerHeight(window.innerHeight);
+    if (viewMode !== "book") return;
+    const node = bookViewportRef.current;
+    if (!node) return;
+
+    const update = () => {
+      const height = node.getBoundingClientRect().height;
+      // Ноль приходит, когда контейнер скрыт — прежнее значение вернее
+      if (height > 0) setViewerHeight(height);
+    };
     update();
+
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
+    window.visualViewport?.addEventListener("resize", update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", update);
+      window.visualViewport?.removeEventListener("resize", update);
+    };
+  }, [viewMode]);
 
   // При переключении между платой и интернет-сервером (в любую сторону)
   // отрисовка PDF-канваса остаётся сломанной до перезапуска приложения —
@@ -516,7 +546,7 @@ export default function Page() {
       {/* Book mode overlay */}
       {viewMode === "book" && (
         <div className="fixed inset-0 z-20 bg-[#F7F4F1] flex flex-col">
-          <div className="flex-1 overflow-hidden">
+          <div ref={bookViewportRef} className="flex-1 overflow-hidden">
             <SwipeBookViewer
               ref={flipViewerRef}
               plan={plan}
