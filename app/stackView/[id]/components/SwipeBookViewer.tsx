@@ -50,6 +50,26 @@ export interface SwipeBookViewerProps {
  */
 const pagesNeedingReparse = new WeakSet<object>();
 
+/**
+ * Освобождает память под холстами.
+ *
+ * У Safari на iOS предел памяти под холсты один на весь процесс приложения.
+ * Убрать холст из DOM недостаточно: его буфер держится до сборки мусора и всё
+ * это время занимает общий предел. Когда предел исчерпан, Safari не падает, а
+ * молча отдаёт недорисованные холсты — лист выходит обрезанным, и чинит это
+ * только перезапуск приложения, потому что пул обнуляется вместе с процессом.
+ *
+ * Обнуление размеров освобождает буфер сразу же. Особенно это важно при
+ * отменённых отрисовках: их полосы не попадают на экран вовсе и утекли бы
+ * целиком, а смена сети вызывает как раз шквал перерисовок с отменами.
+ */
+function releaseCanvases(canvases: Iterable<HTMLCanvasElement>) {
+  for (const canvas of canvases) {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
 // ─── Single page canvas renderer ─────────────────────────────────────────────
 function PdfPage({
   page,
@@ -129,9 +149,15 @@ function PdfPage({
           const stripeCount = Math.ceil(viewport.height / stripeCssHeight);
 
           const fragment = document.createDocumentFragment();
+          // Отрисовку могут оборвать на любой полосе, а уже нарисованные к тому
+          // моменту на экран не попадут — держим их, чтобы освободить
+          const stripes: HTMLCanvasElement[] = [];
 
           for (let i = 0; i < stripeCount; i++) {
-            if (cancelled) return;
+            if (cancelled) {
+              releaseCanvases(stripes);
+              return;
+            }
 
             const top = i * stripeCssHeight;
             const height = Math.min(stripeCssHeight, viewport.height - top);
@@ -142,6 +168,8 @@ function PdfPage({
             canvas.style.display = "block";
             canvas.style.width = `${viewport.width}px`;
             canvas.style.height = `${height}px`;
+
+            stripes.push(canvas);
 
             const ctx = canvas.getContext("2d")!;
             ctx.fillStyle = "#ffffff";
@@ -155,14 +183,23 @@ function PdfPage({
               transform: [dpr, 0, 0, dpr, 0, -top * dpr],
             });
             await renderTask.promise;
-            if (cancelled) return;
+            if (cancelled) {
+              releaseCanvases(stripes);
+              return;
+            }
 
             fragment.appendChild(canvas);
           }
 
           // Показываем страницу целиком и разом, когда готовы все полосы
           const container = containerRef.current;
-          if (!container) return;
+          if (!container) {
+            releaseCanvases(stripes);
+            return;
+          }
+          // Полосы предыдущей страницы уходят с экрана — освобождаем их сразу,
+          // не дожидаясь сборки мусора, иначе предел памяти выедается листанием
+          releaseCanvases(container.querySelectorAll("canvas"));
           container.style.width = `${viewport.width}px`;
           container.style.height = `${viewport.height}px`;
           container.replaceChildren(fragment);
@@ -182,6 +219,15 @@ function PdfPage({
       try { renderTask?.cancel(); } catch {}
     };
   }, [isDoc, docKey, pageInDoc, targetHeight, maxWidth]);
+
+  // Отдельно от отрисовки: при перерисовке полосы заменяются на месте, а вот
+  // при уходе страницы с экрана их память надо вернуть, не дожидаясь сборки мусора
+  useEffect(() => {
+    const node = containerRef.current;
+    return () => {
+      if (node) releaseCanvases(node.querySelectorAll("canvas"));
+    };
+  }, []);
 
   const borderRadius = isSingle
     ? "12px"
