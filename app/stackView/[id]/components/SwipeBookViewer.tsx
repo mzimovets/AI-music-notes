@@ -470,42 +470,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       };
     }, [navigate]);
 
-    /**
-     * ВРЕМЕННО: строка с настоящими размерами для разбора обрезанных нот.
-     * Убрать, как только причина подтвердится.
-     *
-     * Смотрим одновременно на коробку просмотрщика, на холст страницы и на то,
-     * что сообщает окно: если ноты обрезаны, числа сразу покажут, где расхождение —
-     * коробка не с экран, холст не с коробку или страница нарисована не вся.
-     */
-    const [debugLine, setDebugLine] = useState("");
-    useEffect(() => {
-      const tick = () => {
-        const box = containerRef.current?.getBoundingClientRect();
-        const canvas = containerRef.current?.querySelector("canvas");
-        const vv = window.visualViewport;
-        setDebugLine(
-          [
-            `окно ${window.innerHeight}`,
-            vv ? `видимое ${Math.round(vv.height)}` : "",
-            box ? `коробка ${Math.round(box.height)}` : "коробка —",
-            canvas
-              ? `холст ${Math.round(canvas.getBoundingClientRect().height)}/${canvas.height}px`
-              : "холст —",
-            `задано ${height}`,
-            `замер ${Math.round(measuredHeight)}`,
-            `dpr ${window.devicePixelRatio}`,
-            `перезагрузок ${sessionStorage.getItem("viewerReloads") || 0}`,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        );
-      };
-      tick();
-      const timer = setInterval(tick, 500);
-      return () => clearInterval(timer);
-    }, [height]);
-
     // ── Mouse events for desktop ──────────────────────────────────────────────
     const mouseStartX = useRef<number | null>(null);
     const mouseStartY = useRef<number | null>(null);
@@ -583,25 +547,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           justifyContent: "center",
         }}
       >
-        {/* ВРЕМЕННО: числа для разбора обрезанных нот, убрать после проверки */}
-        <div
-          style={{
-            position: "absolute",
-            left: 4,
-            bottom: 4,
-            zIndex: 5,
-            font: "11px ui-monospace, monospace",
-            color: "#111",
-            background: "rgba(255,255,255,0.85)",
-            padding: "2px 5px",
-            borderRadius: 4,
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {debugLine}
-        </div>
-
         {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{

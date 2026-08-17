@@ -1,8 +1,6 @@
 "use client";
 
 import { Modal, ModalContent } from "@heroui/modal";
-import { Chip } from "@heroui/chip";
-import { Table, TableHeader, TableColumn, TableBody, TableRow, TableCell } from "@heroui/table";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
@@ -50,7 +48,78 @@ interface UpdateInfo {
   remote?: { sha: string; message: string; date: string };
   localSha?: string;
   recentCommits?: { sha: string; message: string; date: string }[];
+  /** Человеческая причина остановки — вместо застрявшего процента */
+  updateError?: string;
+  /** Что с этой бедой делать */
+  updateFix?: string;
+  /** Последние строки вывода git и npm с платы */
+  logTail?: string[];
 }
+/**
+ * Живой вывод обновления с платы.
+ *
+ * Раньше на экране был только процент, и застрявшие «5%» ничего не объясняли:
+ * так выглядит и отсутствие интернета, и нехватка места на диске. Здесь видно
+ * то же, что человек увидел бы в терминале платы.
+ */
+function UpdateLog({ lines }: { lines?: string[] }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  // Держим последнюю строку на виду: смотрят всегда на конец вывода
+  useEffect(() => {
+    if (open && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
+  }, [lines, open]);
+
+  if (!lines || lines.length === 0) return null;
+
+  const isBad = (line: string) => /fatal|error|ERR!|not found|denied|Could not/i.test(line);
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="input-header"
+        style={{
+          display: "flex", alignItems: "center", gap: 5, padding: 0,
+          background: "none", border: "none", cursor: "pointer",
+          fontSize: 11, color: "rgba(0,0,0,0.4)", fontWeight: 600,
+        }}
+      >
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
+          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+        {open ? "Скрыть подробности" : "Показать подробности"}
+      </button>
+
+      {open && (
+        <div
+          ref={boxRef}
+          style={{
+            marginTop: 5, maxHeight: 150, overflowY: "auto",
+            background: "rgba(20,16,12,0.9)", borderRadius: 8, padding: "7px 9px",
+            font: "10px ui-monospace, SFMono-Regular, Menlo, monospace", lineHeight: 1.5,
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {lines.map((line, i) => (
+            <div
+              key={i}
+              style={{
+                color: isBad(line) ? "#fca5a5" : "rgba(255,255,255,0.72)",
+                whiteSpace: "pre-wrap", wordBreak: "break-word",
+              }}
+            >
+              {line}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface SyncHistoryEntry {
   timestamp: number;
   added: { title: string; type: string }[];
@@ -1419,6 +1488,36 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                             transition: "width 0.8s ease",
                           }} />
                         </div>
+
+                        <UpdateLog lines={updateInfo?.logTail} />
+                      </div>
+                    )}
+
+                    {!updating && updateInfo?.updateError && (
+                      <div style={{
+                        marginBottom: 10, padding: "8px 10px", borderRadius: 10,
+                        background: "rgba(255,235,235,0.75)", border: "1px solid rgba(190,18,60,0.18)",
+                        display: "flex", flexDirection: "column", gap: 6,
+                      }}>
+                        <span className="input-header" style={{ fontSize: 12, color: "#be123c", fontWeight: 700 }}>
+                          Обновление не прошло
+                        </span>
+                        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.6)", lineHeight: 1.35 }}>
+                          {updateInfo.updateError}
+                        </span>
+                        {updateInfo.updateFix && (
+                          <div style={{
+                            display: "flex", gap: 6, alignItems: "flex-start",
+                            padding: "7px 9px", borderRadius: 8,
+                            background: "rgba(255,255,255,0.75)",
+                          }}>
+                            <span style={{ fontSize: 12, lineHeight: 1.2, flexShrink: 0 }}>💡</span>
+                            <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.68)", lineHeight: 1.4 }}>
+                              {updateInfo.updateFix}
+                            </span>
+                          </div>
+                        )}
+                        <UpdateLog lines={updateInfo.logTail} />
                       </div>
                     )}
 
@@ -1571,39 +1670,48 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                                       )}
                                     </div>
                                   </div>
-                                  {/* Таблица HeroUI */}
-                                  <Table
-                                    aria-label="Изменения синхронизации"
-                                    removeWrapper
-                                    isStriped
-                                    classNames={{
-                                      th: "input-header text-[9px] uppercase tracking-wide bg-black/[0.025] text-black/40 h-6 py-0",
-                                      td: "input-header text-[12px] py-1",
-                                      tr: "border-t border-black/[0.04]",
-                                    }}
-                                  >
-                                    <TableHeader>
-                                      <TableColumn>Название</TableColumn>
-                                      <TableColumn align="center">Статус</TableColumn>
-                                      <TableColumn align="center">Тип</TableColumn>
-                                    </TableHeader>
-                                    <TableBody emptyContent="Изменений нет">
-                                      {allChanges.map((c, j) => (
-                                        <TableRow key={j}>
-                                          <TableCell>{c.title}</TableCell>
-                                          <TableCell className="text-center">
-                                            <Chip size="sm" variant="flat"
-                                              color={c.action === "added" ? "success" : c.action === "updated" ? "warning" : "danger"}
-                                              classNames={{ content: "input-header font-bold text-[10px]" }}
-                                            >
-                                              {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
-                                            </Chip>
-                                          </TableCell>
-                                          <TableCell className="text-center text-black/40">{c.type === "song" ? "Песня" : "Программа"}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
+                                  {/* Простые строки вместо таблицы HeroUI.
+                                      Раньше на каждую запись журнала строилась
+                                      своя таблица, и десять таких таблиц
+                                      раскрывались с заметной задержкой: они
+                                      тянут за собой сортировку, выбор строк и
+                                      прочее, чего здесь не нужно вовсе */}
+                                  {allChanges.length === 0 ? (
+                                    <div style={{ padding: "8px 12px" }}>
+                                      <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.3)" }}>
+                                        Изменений нет
+                                      </span>
+                                    </div>
+                                  ) : (
+                                    allChanges.map((c, j) => (
+                                      <div key={j} style={{
+                                        display: "grid", gridTemplateColumns: "1fr auto auto",
+                                        gap: 8, alignItems: "center", padding: "5px 12px",
+                                        borderTop: j === 0 ? "none" : "1px solid rgba(0,0,0,0.04)",
+                                        background: j % 2 ? "rgba(0,0,0,0.015)" : "transparent",
+                                      }}>
+                                        <span className="input-header" style={{
+                                          fontSize: 12, color: "#2d2015",
+                                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                        }}>
+                                          {c.title}
+                                        </span>
+                                        <span className="input-header" style={{
+                                          fontSize: 10, fontWeight: 700, padding: "1px 7px", borderRadius: 6, letterSpacing: 0.2,
+                                          color: c.action === "added" ? "#166534" : c.action === "updated" ? "#92400e" : "#991b1b",
+                                          background: c.action === "added" ? "rgba(74,222,128,0.18)"
+                                            : c.action === "updated" ? "rgba(251,191,36,0.22)" : "rgba(248,113,113,0.18)",
+                                        }}>
+                                          {c.action === "added" ? "Добавлено" : c.action === "updated" ? "Изменено" : "Удалено"}
+                                        </span>
+                                        <span className="input-header" style={{
+                                          fontSize: 11, color: "rgba(0,0,0,0.4)", minWidth: 62, textAlign: "right",
+                                        }}>
+                                          {c.type === "song" ? "Песня" : "Программа"}
+                                        </span>
+                                      </div>
+                                    ))
+                                  )}
                                 </div>
                               );
                             })}
