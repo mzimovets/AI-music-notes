@@ -491,6 +491,12 @@ export default function Page() {
     }
     if (knownIsLocalServerRef.current !== isLocalServer) {
       knownIsLocalServerRef.current = isLocalServer;
+      // ВРЕМЕННО: считаем срабатывания, чтобы понять, доходит ли дело до
+      // перезагрузки вообще. Число видно в отладочной строке просмотрщика
+      try {
+        const was = Number(sessionStorage.getItem("viewerReloads") || 0);
+        sessionStorage.setItem("viewerReloads", String(was + 1));
+      } catch {}
       // Полная перезагрузка, а не переход внутри приложения: только она
       // очищает кэш pdf.js-документов, где и оседают испорченные страницы.
       // Заставка при этом покажется сама — она монтируется на загрузку документа
