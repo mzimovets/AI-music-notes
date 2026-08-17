@@ -62,16 +62,19 @@ interface UpdateInfo {
  * так выглядит и отсутствие интернета, и нехватка места на диске. Здесь видно
  * то же, что человек увидел бы в терминале платы.
  */
-function UpdateLog({ lines }: { lines?: string[] }) {
+function UpdateLog({ lines, defaultOpen = false }: { lines?: string[]; defaultOpen?: boolean }) {
   const boxRef = useRef<HTMLDivElement>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
 
   // Держим последнюю строку на виду: смотрят всегда на конец вывода
   useEffect(() => {
     if (open && boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight;
   }, [lines, open]);
 
-  if (!lines || lines.length === 0) return null;
+  // Первые секунды журнала ещё нет. Пока обновление идёт, пустота выглядит как
+  // «ничего не происходит», поэтому вместо неё — прямая надпись об ожидании
+  const shown = lines?.length ? lines : defaultOpen ? ["Жду ответа платы…"] : [];
+  if (shown.length === 0) return null;
 
   const isBad = (line: string) => /fatal|error|ERR!|not found|denied|Could not/i.test(line);
 
@@ -103,7 +106,7 @@ function UpdateLog({ lines }: { lines?: string[] }) {
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {lines.map((line, i) => (
+          {shown.map((line, i) => (
             <div
               key={i}
               style={{
@@ -648,14 +651,22 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const handleGitUpdate = async () => {
     if (updating) return;
     setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
+    // Чистим вывод прошлой попытки: иначе первые секунды на экране висят
+    // строки от предыдущего обновления, будто это происходит прямо сейчас
+    setUpdateInfo((prev) => (prev ? { ...prev, logTail: [], updateError: "", updateFix: "" } : prev));
     try {
       await fetch(`${rpiBaseUrlRef.current}/api/git-update`, { method: "POST" });
       let failures = 0;
       const poll = setInterval(async () => {
         try {
           const res = await fetch(`${rpiBaseUrlRef.current}/api/git-update`);
-          if (res.ok) {
-            const data = await res.json();
+          // Разбираем ответ и при ошибке тоже: вывод обновления там есть, а
+          // git fetch на плате мог не пройти — из-за этого журнал замирал
+          const data = await res.json().catch(() => null);
+          if (data) {
+            // Ответ сохраняем целиком — из него берётся живой вывод git и npm.
+            // Без этого на экране крутился процент, а журнал оставался пустым
+            setUpdateInfo(data);
             if (data.updateProgress) setUpdateProgress(data.updateProgress);
             if (data.updateStage) setUpdateStage(data.updateStage);
             if (data.processStatus === "done") {
@@ -669,7 +680,8 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
           failures++;
           if (failures > 40) { clearInterval(poll); setUpdating(false); }
         }
-      }, 5_000);
+      // Раз в две секунды: вывод должен идти живо, иначе кажется, что всё встало
+      }, 2_000);
     } catch { setUpdating(false); showToast("Ошибка запуска обновления", false); }
   };
 
@@ -1489,7 +1501,8 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                           }} />
                         </div>
 
-                        <UpdateLog lines={updateInfo?.logTail} />
+                        {/* Раскрыт сразу: пока обновление идёт, на него и смотрят */}
+                        <UpdateLog lines={updateInfo?.logTail} defaultOpen />
                       </div>
                     )}
 
