@@ -291,6 +291,40 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     useEffect(() => { currentPageRef.current = currentPage; }, [currentPage]);
     useEffect(() => { numPagesRef.current = numPages; }, [numPages]);
 
+    /**
+     * Высота — по замеру самой коробки просмотрщика.
+     *
+     * Свойству height доверять нельзя: оно приходит из window.innerHeight, а на
+     * iOS после смены сети окно сообщает высоту всего экрана, когда места на
+     * деле вдвое меньше (замерено на планшете: окно 1148, коробка 600). Страница
+     * строилась по 1148 и не влезала — низ срезался, и держалось это до
+     * перезапуска приложения.
+     *
+     * Здесь меряется тот самый узел, в котором страница и показывается, поэтому
+     * размер страницы и место под неё разойтись уже не могут.
+     */
+    const [measuredHeight, setMeasuredHeight] = useState(0);
+    useEffect(() => {
+      const node = containerRef.current;
+      if (!node) return;
+
+      const update = () => {
+        const height = node.getBoundingClientRect().height;
+        if (height > 0) setMeasuredHeight(height);
+      };
+      update();
+
+      const observer = new ResizeObserver(update);
+      observer.observe(node);
+      window.addEventListener("resize", update);
+      window.visualViewport?.addEventListener("resize", update);
+      return () => {
+        observer.disconnect();
+        window.removeEventListener("resize", update);
+        window.visualViewport?.removeEventListener("resize", update);
+      };
+    }, []);
+
     // Detect mobile / resize
     useEffect(() => {
       const check = () => {
@@ -459,6 +493,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
               ? `холст ${Math.round(canvas.getBoundingClientRect().height)}/${canvas.height}px`
               : "холст —",
             `задано ${height}`,
+            `замер ${Math.round(measuredHeight)}`,
             `dpr ${window.devicePixelRatio}`,
             `перезагрузок ${sessionStorage.getItem("viewerReloads") || 0}`,
           ]
@@ -513,7 +548,11 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
 
     // Target page height: на большом экране (iPad 13+) чуть меньше
     const heightFactor = !isMobile ? 0.98 : 0.98;
-    const pageHeight = Math.floor(height * heightFactor);
+    // Высота берётся с замера самой коробки, а не из свойства height.
+    // Замер сделан по тому же узлу, в котором страница и показывается, поэтому
+    // разойтись они не могут. Свойство остаётся запасным значением на первый
+    // кадр, пока замер ещё не сделан
+    const pageHeight = Math.floor((measuredHeight || height) * heightFactor);
 
     // Ограничение по ширине. Без него страница масштабировалась только по
     // высоте и на узком экране (телефон) вылезала за его края — нотный лист
@@ -528,7 +567,10 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       <div
         ref={containerRef}
         style={{
-          height,
+          // Не height из свойства: оно приходит из окна, а окно на iOS завышает
+          // высоту после смены сети. Коробка занимает то место, что есть на
+          // самом деле, и по нему же меряется (см. measuredHeight)
+          height: "100%",
           width: "100%",
           background: "#F7F4F1",
           overflow: "hidden",
