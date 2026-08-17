@@ -86,18 +86,39 @@ export default function Home() {
     typeof window !== "undefined" && sessionStorage.getItem("board-offline-v1") === "1"
   );
 
-  // Background firmware check every 30 min
+  /**
+   * Фоновая проверка обновлений прошивки.
+   *
+   * Раз в полчаса отметка появлялась слишком поздно: обновление уже вышло, а на
+   * кнопке платы ничего. Проверяем чаще и вдобавок при возвращении в приложение
+   * и при появлении связи — тогда отметка видна почти сразу, а не спустя полчаса.
+   */
   useEffect(() => {
     if (!isLocal) return;
+
+    let lastCheck = 0;
     const check = async () => {
+      // Возвращаются в приложение часто, а проверка дёргает git fetch на плате —
+      // чаще раза в полминуты смысла нет
+      if (Date.now() - lastCheck < 30_000) return;
+      lastCheck = Date.now();
       try {
         const res = await fetch(`${rpiBaseUrl}/api/git-update`);
         if (res.ok) { const d = await res.json(); setHasFirmwareUpdate(!!d.hasUpdate); }
       } catch {}
     };
+
     check();
-    const t = setInterval(check, 30 * 60_000);
-    return () => clearInterval(t);
+    const t = setInterval(check, 5 * 60_000);
+    const onVisible = () => { if (document.visibilityState === "visible") check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", check);
+
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", check);
+    };
   }, [isLocal, rpiBaseUrl]);
 
   // Фоновый опрос опасных состояний платы (undervoltage / thermal throttle прямо сейчас)
