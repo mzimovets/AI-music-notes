@@ -328,6 +328,9 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const syncPollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const checkTimer = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Слежение за обновлением живёт отдельно от модалки: обновление идёт на плате
+  // и не прерывается, когда её закрыли или планшет ушёл в сон
+  const updatePollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Toast
   const [toast, setToast] = useState<{ text: string; ok: boolean } | null>(null);
@@ -442,6 +445,19 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       const data = await res.json();
       setUpdateInfo(data);
       setCommitOpen(false);
+
+      // Обновление идёт на плате и переживает сон планшета, блокировку экрана
+      // и закрытие приложения. Если оно ещё работает — подхватываем, иначе
+      // человек возвращается и видит «обновление в процессе» без процента
+      if (data.processStatus === "running" || data.processStatus === "restarting") {
+        setUpdating(true);
+        if (data.updateProgress) setUpdateProgress(data.updateProgress);
+        if (data.updateStage) setUpdateStage(data.updateStage);
+        // Ход времени берём от начала слежения: когда обновление началось,
+        // мы не знаем, а оценка «осталось» без этого посчиталась бы от нуля
+        setUpdateStartedAt((was) => was || Date.now());
+        startUpdateWatch();
+      }
     } catch { setUpdateInfo({ error: "Нет соединения" }); }
     finally { setChecking(false); }
   }, []);
@@ -696,16 +712,25 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     window.location.reload();
   };
 
-  const handleGitUpdate = async () => {
-    if (updating) return;
-    setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
-    // Чистим вывод прошлой попытки: иначе первые секунды на экране висят
-    // строки от предыдущего обновления, будто это происходит прямо сейчас
-    setUpdateInfo((prev) => (prev ? { ...prev, logTail: [], updateError: "", updateFix: "" } : prev));
-    try {
-      await fetch(`${rpiBaseUrlRef.current}/api/git-update`, { method: "POST" });
-      let failures = 0;
-      const poll = setInterval(async () => {
+  /**
+   * Следит за идущим обновлением.
+   *
+   * Отдельно от кнопки, потому что обновление идёт на плате и переживает всё,
+   * что происходит на планшете: сон, блокировку экрана, закрытие модалки и
+   * самого приложения. Раньше слежение начиналось только по нажатию, и после
+   * возвращения человек видел «обновление в процессе» без процента и вывода —
+   * плата работала, а показать было нечего.
+   */
+  const startUpdateWatch = useCallback(() => {
+    if (updatePollRef.current) return;
+
+    let failures = 0;
+    const stop = () => {
+      if (updatePollRef.current) clearInterval(updatePollRef.current);
+      updatePollRef.current = null;
+    };
+
+    updatePollRef.current = setInterval(async () => {
         try {
           const res = await fetch(`${rpiBaseUrlRef.current}/api/git-update`);
           // Разбираем ответ и при ошибке тоже: вывод обновления там есть, а
@@ -718,7 +743,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             if (data.updateProgress) setUpdateProgress(data.updateProgress);
             if (data.updateStage) setUpdateStage(data.updateStage);
             if (data.processStatus === "done") {
-              clearInterval(poll); setUpdateProgress(100);
+              stop(); setUpdateProgress(100);
               setUpdateDone(true);
               // Перезагружаемся не по таймеру, а когда плата действительно
               // поднялась с новой сборкой: отметка о готовности пишется до
@@ -728,7 +753,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             } else if (data.processStatus === "idle" && data.updateError) {
               // Процесс встал. Раньше опрос этого не замечал, и на экране
               // навсегда оставался последний процент без всякого объяснения
-              clearInterval(poll);
+              stop();
               setUpdating(false); setUpdateProgress(0); setUpdateStage("");
             }
           }
@@ -738,10 +763,21 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
           // Пока службы перезапускаются, плата не отвечает — это нормально.
           // Порога хватает на три минуты молчания: столько занимает подъём
           // приложения на плате в худшем случае
-          if (failures > 90) { clearInterval(poll); setUpdating(false); }
+          if (failures > 90) { stop(); setUpdating(false); }
         }
       // Раз в две секунды: вывод должен идти живо, иначе кажется, что всё встало
       }, 2_000);
+  }, []);
+
+  const handleGitUpdate = async () => {
+    if (updating) return;
+    setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
+    // Чистим вывод прошлой попытки: иначе первые секунды на экране висят
+    // строки от предыдущего обновления, будто это происходит прямо сейчас
+    setUpdateInfo((prev) => (prev ? { ...prev, logTail: [], updateError: "", updateFix: "" } : prev));
+    try {
+      await fetch(`${rpiBaseUrlRef.current}/api/git-update`, { method: "POST" });
+      startUpdateWatch();
     } catch { setUpdating(false); showToast("Ошибка запуска обновления", false); }
   };
 
