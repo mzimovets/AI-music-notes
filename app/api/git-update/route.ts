@@ -1,7 +1,7 @@
 // v2026-05-29e
 import { NextResponse } from "next/server";
 import { spawn, execSync } from "child_process";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, unlinkSync } from "fs";
 
 const LOG_FILE = "/tmp/git-update.log";
 ;
@@ -199,9 +199,30 @@ export async function GET() {
       return { sha: s ?? "", message: m ?? "", date: d ?? "" };
     });
 
+    const hasUpdate = !!remoteSha && remoteSha !== sha;
+
+    /**
+     * Прошлая неудача перестаёт что-либо значить, когда обновлять уже нечего.
+     *
+     * Журнал обновления лежит в файле и переживает любое успешное обновление,
+     * сделанное в обход кнопки — через deploy.sh или git pull руками. Без этой
+     * проверки старая запись висела бы на экране и после того, как плата уже
+     * догнала репозиторий: человек всё исправил, а приложение продолжает
+     * жаловаться. Заодно убираем сам файл, чтобы запись не всплыла снова.
+     *
+     * Отметку об успехе не трогаем: её ждёт опрос после нажатия кнопки, и
+     * стоит убрать файл раньше времени — опрос не дождётся и зациклится.
+     */
+    if (!hasUpdate && updateError) {
+      updateError = "";
+      updateFix = "";
+      logTail.length = 0;
+      try { unlinkSync(LOG_FILE); } catch {}
+    }
+
     return NextResponse.json({
       processStatus, updateProgress, updateStage, updateError, updateFix, logTail,
-      hasUpdate: !!remoteSha && remoteSha !== sha,
+      hasUpdate,
       remote: { sha: remoteSha.slice(0, 7), message, date },
       localSha: sha.slice(0, 7),
       recentCommits,
