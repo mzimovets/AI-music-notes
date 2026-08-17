@@ -648,6 +648,44 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   };
 
   // ── Firmware update ──────────────────────────────────────────────────────────
+
+  /**
+   * Ждёт, пока плата поднимется с новой сборкой, и только потом перезагружает.
+   *
+   * Отметка о готовности пишется до перезапуска фронтенда — иначе никак:
+   * systemctl гасит всю группу процессов службы, вместе с самим сценарием
+   * обновления, так что дописать что-либо после перезапуска он не успевает.
+   * Поэтому ждать подъёма приходится здесь, на стороне приложения.
+   *
+   * Ориентируемся на номер сборки: он меняется только после пересборки и
+   * перезапуска. Просто дождаться ответа мало — первые секунды отвечает ещё
+   * старый сервер, и перезагрузка попала бы в промежуток, когда служба уже
+   * погашена, а новая не поднялась. Тогда и появлялся 502 от nginx.
+   */
+  const reloadWhenBoardIsBack = async () => {
+    setUpdateStage("Жду, пока приложение поднимется");
+
+    const buildId = async () => {
+      try {
+        const res = await fetch(`${rpiBaseUrlRef.current}/api/build-id`, { cache: "no-store" });
+        return res.ok ? (await res.json())?.buildId ?? null : null;
+      } catch { return null; }
+    };
+
+    const before = await buildId();
+
+    for (let i = 0; i < 90; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const now = await buildId();
+      // Сборка сменилась — новый сервер уже отвечает, можно перезагружаться
+      if (now && now !== before) break;
+    }
+
+    setUpdateStage("Готово");
+    setUpdating(false);
+    window.location.reload();
+  };
+
   const handleGitUpdate = async () => {
     if (updating) return;
     setUpdating(true); setUpdateDone(false); setUpdateProgress(5); setUpdateStage("Запуск"); setUpdateStartedAt(Date.now());
@@ -670,9 +708,18 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             if (data.updateProgress) setUpdateProgress(data.updateProgress);
             if (data.updateStage) setUpdateStage(data.updateStage);
             if (data.processStatus === "done") {
-              clearInterval(poll); setUpdateProgress(100); setUpdateStage("Готово");
-              setUpdateDone(true); setUpdating(false);
-              setTimeout(() => window.location.reload(), 1500);
+              clearInterval(poll); setUpdateProgress(100);
+              setUpdateDone(true);
+              // Перезагружаемся не по таймеру, а когда плата действительно
+              // поднялась с новой сборкой: отметка о готовности пишется до
+              // перезапуска фронтенда, и перезагрузка вслепую попадала ровно
+              // в тот промежуток, когда nginx проксировать ещё некуда — 502
+              reloadWhenBoardIsBack();
+            } else if (data.processStatus === "idle" && data.updateError) {
+              // Процесс встал. Раньше опрос этого не замечал, и на экране
+              // навсегда оставался последний процент без всякого объяснения
+              clearInterval(poll);
+              setUpdating(false); setUpdateProgress(0); setUpdateStage("");
             }
           }
           failures = 0;
