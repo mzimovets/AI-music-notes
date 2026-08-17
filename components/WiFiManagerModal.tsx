@@ -683,6 +683,16 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
 
     setUpdateStage("Готово");
     setUpdating(false);
+
+    // Обновляем сервис-воркер до перезагрузки. После обновления на плате
+    // появляются файлы сборки с новыми именами, а старый воркер о них не знает
+    // и отдаёт из кеша то, чего уже нет: приложение падало на экран «ещё не
+    // загрузилось полностью» и не поднималось, пока его не закроют совсем
+    try {
+      const registration = await navigator.serviceWorker?.getRegistration();
+      await registration?.update();
+    } catch {}
+
     window.location.reload();
   };
 

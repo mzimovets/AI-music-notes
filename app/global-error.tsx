@@ -25,10 +25,38 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
     return () => window.removeEventListener("online", onOnline);
   }, []);
 
-  const retry = () => {
+  /**
+   * Повтор с нарастающей силой.
+   *
+   * Простая перезагрузка тут не спасала: страницу отдаёт тот же сервис-воркер,
+   * который и привёл к беде, — после обновления платы он держит в кеше файлы
+   * сборки со старыми именами. Человек жал «Попробовать снова» по кругу, и
+   * помогало только закрыть приложение целиком, потому что при новом запуске
+   * воркер успевает обновиться.
+   *
+   * Поэтому сначала обновляем воркер, а если и это не помогло — сбрасываем его
+   * вместе с кешем. Сброс делаем только вторым заходом: он стирает скачанные
+   * ноты, и они закачаются заново, так что зря к нему прибегать не стоит.
+   */
+  const retry = async () => {
     setRetrying(true);
-    // Полная перезагрузка, а не reset(): дело не в состоянии приложения,
-    // а в недокачанных файлах — их нужно запросить заново
+
+    try {
+      const attempts = Number(sessionStorage.getItem("startupRetries") || 0);
+      sessionStorage.setItem("startupRetries", String(attempts + 1));
+
+      const registration = await navigator.serviceWorker?.getRegistration();
+      if (attempts === 0) {
+        await registration?.update();
+      } else {
+        await registration?.unregister();
+        if (window.caches) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map((key) => caches.delete(key)));
+        }
+      }
+    } catch {}
+
     window.location.reload();
   };
 

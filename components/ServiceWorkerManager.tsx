@@ -377,6 +377,11 @@ export function ServiceWorkerManager() {
 
   // SW регистрируется всегда
   useEffect(() => {
+    // Приложение дошло до этого места, значит запустилось. Счёт неудачных
+    // попыток с экрана восстановления обнуляем, иначе следующая заминка сразу
+    // привела бы к полному сбросу кеша (см. app/global-error.tsx)
+    try { sessionStorage.removeItem("startupRetries"); } catch {}
+
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker
       .register("/sw.js")
