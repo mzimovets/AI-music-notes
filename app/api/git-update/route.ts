@@ -135,6 +135,11 @@ export async function GET() {
       // Устаревший лог без DONE — считаем idle
     } else if (log.includes("DONE")) {
       processStatus = "done"; updateProgress = 100; updateStage = "Готово";
+    } else if (log.includes("VERIFYING")) {
+      // Службы перезапущены, но приложение ещё поднимается. Раньше отметка о
+      // готовности стояла здесь, приложение перезагружалось на полуслове и
+      // ловило 502 от nginx — проксировать было ещё некуда
+      processStatus = "restarting"; updateProgress = 95; updateStage = "Жду, пока приложение поднимется";
     } else if (log.includes("RESTARTING")) {
       processStatus = "restarting"; updateProgress = 90; updateStage = "Перезапуск сервисов";
     } else if (log.includes("BUILDING")) {
@@ -256,9 +261,14 @@ export NVM_DIR="/home/pi/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
   npm run build >> ${LOG_FILE} 2>&1 &&
   echo "RESTARTING" >> ${LOG_FILE} &&
   sudo systemctl restart music-backend >> ${LOG_FILE} 2>&1 &&
-  echo "DONE" >> ${LOG_FILE} &&
   sleep 2 &&
-  sudo systemctl restart music-frontend >> ${LOG_FILE} 2>&1
+  sudo systemctl restart music-frontend >> ${LOG_FILE} 2>&1 &&
+  echo "VERIFYING" >> ${LOG_FILE} &&
+  { for i in $(seq 1 60); do
+      sleep 2
+      curl -sf -o /dev/null http://localhost:3000/api/build-id && break
+    done; } &&
+  echo "DONE" >> ${LOG_FILE}
 } || echo "FAILED" >> ${LOG_FILE}`,
     ],
     { detached: true, stdio: "ignore" }

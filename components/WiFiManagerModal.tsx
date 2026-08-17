@@ -678,7 +678,10 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
           failures = 0;
         } catch {
           failures++;
-          if (failures > 40) { clearInterval(poll); setUpdating(false); }
+          // Пока службы перезапускаются, плата не отвечает — это нормально.
+          // Порога хватает на три минуты молчания: столько занимает подъём
+          // приложения на плате в худшем случае
+          if (failures > 90) { clearInterval(poll); setUpdating(false); }
         }
       // Раз в две секунды: вывод должен идти живо, иначе кажется, что всё встало
       }, 2_000);
