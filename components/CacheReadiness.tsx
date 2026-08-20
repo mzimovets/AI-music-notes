@@ -2,9 +2,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, ModalContent } from "@heroui/modal";
 import { socket } from "@/lib/socket";
-import { recacheStack } from "@/lib/recache";
 import {
   checkReadiness,
+  repairReadiness,
   readinessPercent,
   type Readiness,
   type ReadinessItem,
@@ -91,17 +91,15 @@ export function CacheReadiness() {
    * поэтому их перекачиваем поимённо.
    */
   const fillGaps = useCallback(async () => {
-    if (busy) return;
+    if (busy || !readiness) return;
     setBusy(true);
     try {
-      const stale = missing.filter((i) => i.kind === "stack" && i.state === "stale");
-      for (const item of stale) await recacheStack(item.id);
-      window.dispatchEvent(new Event("sw-sync-needed"));
+      await repairReadiness(readiness);
     } finally {
       setBusy(false);
-      setTimeout(refresh, 1500);
+      await refresh();
     }
-  }, [busy, missing, refresh]);
+  }, [busy, readiness, refresh]);
 
   // Само по себе, без нажатий: увидели нехватку и есть связь — докачиваем.
   // Ровно тот случай, когда кеширование прервали, закрыв приложение
@@ -202,19 +200,22 @@ export function CacheReadiness() {
               </div>
             )}
 
+            {/* Нажимается всегда: без связи попытка просто ничего не найдёт
+                и проверка честно покажет это заново. Заблокированная кнопка
+                выглядела как поломка */}
             {missing.length > 0 && (
               <button
                 onClick={fillGaps}
-                disabled={busy || !readiness.fresh}
+                disabled={busy}
                 className="input-header"
                 style={{
                   padding: "10px 14px", borderRadius: 12, border: "none", fontSize: 13, fontWeight: 700,
-                  color: "#fff", cursor: busy || !readiness.fresh ? "default" : "pointer",
-                  opacity: busy || !readiness.fresh ? 0.55 : 1,
+                  color: "#fff", cursor: busy ? "default" : "pointer",
+                  opacity: busy ? 0.55 : 1,
                   background: "linear-gradient(to right, #BD9673, #7D5E42)",
                 }}
               >
-                {busy ? "Догружаю…" : readiness.fresh ? "Догрузить недостающее" : "Нужна связь с сервером"}
+                {busy ? "Догружаю…" : "Догрузить недостающее"}
               </button>
             )}
 

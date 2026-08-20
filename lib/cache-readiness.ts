@@ -93,7 +93,14 @@ function saveSnapshot(snapshot: Snapshot) {
 async function cachedAt(url: string): Promise<number | null> {
   if (typeof caches === "undefined") return null;
   try {
-    const res = await caches.match(url, { ignoreSearch: true });
+    /**
+     * ignoreVary обязателен. Next.js отдаёт страницы с заголовком Vary, где
+     * перечислены служебные заголовки навигации, а хранилище кеша учитывает
+     * его при поиске: простой запрос по адресу не совпадает с записью,
+     * сохранённой вместе с этими заголовками. Без этого проверка объявляла
+     * ненайденным почти всё, что на самом деле было скачано.
+     */
+    const res = await caches.match(url, { ignoreSearch: true, ignoreVary: true });
     if (!res) return null;
     const date = res.headers.get("date");
     return date ? Date.parse(date) || 0 : 0;
@@ -190,6 +197,58 @@ export async function checkReadiness(): Promise<Readiness> {
     ready: ready + (engineOk ? 1 : 0) + (homeOk ? 1 : 0),
     total,
   };
+}
+
+/**
+ * Докачивает то, чего не хватает, — сам, не полагаясь ни на чьи записи.
+ *
+ * Обычный проход кеширования смотрит только на новые записи и сверяется с
+ * собственным списком уже скачанного. Если файл пропал из хранилища или запись
+ * поправили, для него ничего нового нет — и кнопка «догрузить» не делала
+ * ничего. Здесь адреса берутся прямо из проверки и запрашиваются заново.
+ *
+ * Возвращает, сколько удалось починить.
+ */
+export async function repairReadiness(readiness: Readiness): Promise<number> {
+  const snapshot = loadSnapshot();
+  const byId = new Map(snapshot.songs.map((s) => [s.id, s]));
+
+  const urls: string[] = [];
+
+  for (const item of readiness.stacks) {
+    if (item.state !== "ok") urls.push(`/stackView/${item.id}`, `/stack/${item.id}`);
+  }
+  for (const item of readiness.songs) {
+    if (item.state === "ok") continue;
+    urls.push(`/songRead/${item.id}`, `/song/${item.id}`);
+    const filename = byId.get(item.id)?.filename;
+    if (filename) urls.push(getUploadPath(filename));
+  }
+  if (!readiness.engineOk) urls.push(...ENGINE_URLS);
+  if (!readiness.homeOk) urls.push("/");
+  urls.push("/offline.html");
+
+  let fixed = 0;
+  // По шесть за раз: по одному это складывалось в минуты на сотнях адресов,
+  // а без ограничения планшет захлёбывается
+  const CONCURRENCY = 6;
+  let index = 0;
+
+  await Promise.all(
+    Array.from({ length: Math.min(CONCURRENCY, urls.length) }, async () => {
+      while (index < urls.length) {
+        const url = urls[index++];
+        try {
+          // cache: "reload" — берём с сервера, а не из кеша браузера, иначе
+          // устаревшая страница так и осталась бы устаревшей
+          const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
+          if (res.ok) fixed++;
+        } catch {}
+      }
+    }),
+  );
+
+  return fixed;
 }
 
 /** Всё ли на месте — коротко, для маленькой полосы на главной */

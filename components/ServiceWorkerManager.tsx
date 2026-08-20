@@ -412,9 +412,20 @@ export function ServiceWorkerManager() {
 
     syncing.current = true;
     try {
-      // Показываем полосу до ожидания service worker'а: именно здесь уходят
-      // минуты на первой установке, и раньше это время выглядело как простой
-      setProgress({ current: 0, total: 1, done: false, preparing: true });
+      /**
+       * Полосу показываем не сразу, а если работа затянулась.
+       *
+       * На первой установке здесь уходят минуты, и без полосы это выглядит как
+       * простой — потому она и появлялась заранее. Но когда качать нечего (а
+       * это обычный случай при каждом запуске), она мигала на секунду и
+       * пропадала, будто что-то скачалось. Полутора секунд хватает, чтобы
+       * отличить одно от другого.
+       */
+      let shown = false;
+      const showTimer = setTimeout(() => {
+        shown = true;
+        setProgress({ current: 0, total: 1, done: false, preparing: true });
+      }, 1500);
 
       // Но висеть на нуле бесконечно она не должна: если за это время не
       // случилось ни одного реального шага, значит что-то не задалось
@@ -429,10 +440,22 @@ export function ServiceWorkerManager() {
       await syncCache((p) => {
         started = true;
         clearTimeout(stallGuard);
+
+        // Качать было нечего, и показать мы ещё ничего не успели — значит и
+        // мигать незачем
+        if (p.done && !shown && p.total <= 1) {
+          clearTimeout(showTimer);
+          return;
+        }
+
+        clearTimeout(showTimer);
+        shown = true;
         setProgress(p);
         if (p.done) setTimeout(() => setProgress(null), 3000);
       });
       clearTimeout(stallGuard);
+      clearTimeout(showTimer);
+      if (!shown) setProgress(null);
     } catch (e) {
       console.error("[Sync] Ошибка:", e);
     } finally {

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Страница не скачана</title>
+<!--
+  Показывается, когда связи нет, а этой страницы нет в памяти устройства.
+
+  Отдельная простая страница, а не главная: если подсунуть браузеру разметку
+  одной страницы по адресу другой, приложение оживает наполовину — кнопки и
+  боковое меню перестают работать, а иногда на экран попадает служебный текст.
+  Здесь нет ни сценариев, ни внешних файлов, поэтому показать её можно всегда.
+-->
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #F7F4F1;
+    color: #5A4636;
+    font-family: "Roboto Slab", Georgia, serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px; text-align: center;
+  }
+  .box { max-width: 420px; }
+  h1 { font-size: 22px; margin: 0 0 12px; }
+  p { font-size: 16px; line-height: 1.5; margin: 0 0 8px; color: #7D5E42; }
+  .hint { font-size: 15px; color: #9A8878; margin-bottom: 28px; }
+  button {
+    appearance: none; border: none; border-radius: 14px;
+    padding: 14px 28px; font: inherit; font-size: 16px; color: #fff;
+    background: linear-gradient(to right, #BD9673, #7D5E42);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+  }
+</style>
+</head>
+<body>
+  <div class="box">
+    <h1>Эта страница не скачана</h1>
+    <p>Связи сейчас нет, а на устройстве её нет в памяти.</p>
+    <p class="hint">
+      Подключитесь к интернету или к плате — страница откроется и останется
+      доступной дальше. Уже скачанные ноты работают без связи.
+    </p>
+    <button onclick="history.back()">Назад</button>
+  </div>
+</body>
+</html>
