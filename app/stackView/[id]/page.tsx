@@ -21,6 +21,7 @@ import { smoothScrollTo } from "@/lib/smooth-scroll";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useLocalServer } from "@/hooks/useLocalServer";
+import { SPLASH_FORCE_KEY } from "@/components/SplashScreen";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { markStackFromRemote } from "@/lib/stack-sync-echo";
 import {
@@ -493,7 +494,9 @@ export default function Page() {
       knownIsLocalServerRef.current = isLocalServer;
       // Полная перезагрузка, а не переход внутри приложения: только она
       // очищает кэш pdf.js-документов, где и оседают испорченные страницы.
-      // Заставка при этом покажется сама — она монтируется на загрузку документа
+      // Заставку показываем намеренно: перезагрузка не своя, и без неё экран
+      // просто мигнёт, будто что-то сломалось
+      try { sessionStorage.setItem(SPLASH_FORCE_KEY, "1"); } catch {}
       window.location.reload();
     }
   }, [isLocalServer, isLocalServerLoading]);
