@@ -257,8 +257,16 @@ async function main() {
           /песн|программ/i.test(document.body.innerText),
         );
         report(opened, "Без связи список песен открывается");
-        await page.keyboard.press("Escape").catch(() => {});
-        await page.waitForTimeout(500);
+
+        /**
+         * Возвращаем страницу в чистое состояние, открыв её заново.
+         *
+         * Escape список не закрывал, а пока он открыт, всё под ним помечается
+         * скрытым для программ чтения — и кнопка закрытия переставала
+         * находиться. Проверка объявляла поломкой собственный недосмотр.
+         */
+        await page.goto(BASE + stackPath, { waitUntil: "domcontentloaded" }).catch(() => {});
+        await page.waitForTimeout(2000);
       }
 
       /**
