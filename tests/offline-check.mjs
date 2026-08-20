@@ -267,9 +267,19 @@ async function main() {
        * считалось бы неудачным просто потому, что адрес не сменился сразу.
        */
       const before = page.url();
-      const close = page.getByRole("button", { name: "Закрыть программу" });
+      const close = page.getByRole("button", { name: /Закрыть/ });
       const hasClose = (await close.count()) > 0;
-      report(hasClose, "Кнопка закрытия программы найдена");
+
+      // Если не нашлась — показываем, что вообще есть на странице. Молчаливая
+      // неудача заставляет гадать, а гадание нас сюда и привело
+      const seen = hasClose
+        ? ""
+        : await page.evaluate(() =>
+            Array.from(document.querySelectorAll("button"))
+              .map((b) => b.getAttribute("aria-label") || b.textContent?.trim() || "без имени")
+              .join(" | "),
+          );
+      report(hasClose, "Кнопка закрытия программы найдена", seen && `на странице: ${seen}`);
 
       if (hasClose) {
         await close.first().click({ timeout: 5000 }).catch(() => {});
