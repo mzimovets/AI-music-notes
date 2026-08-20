@@ -105,13 +105,63 @@ async function main() {
       .catch(() => false);
     report(cachedEverything, "Приложение скачало себя в память устройства");
 
-    // Собираем адреса, по которым потом пойдём без связи
+    /**
+     * Ждём окончания скачивания, а не его начала.
+     *
+     * Обязательный минимум появляется в кеше почти сразу, а ноты качаются ещё
+     * долго. Уйти в офлайн в этот момент — значит проверить полупустой кеш и
+     * получить бодрое «всё хорошо». Считаем записи, пока их число не перестанет
+     * расти.
+     */
+    let previousCount = -1;
+    let stableFor = 0;
+    const cacheDeadline = Date.now() + CACHE_WAIT_MS;
+    while (Date.now() < cacheDeadline && stableFor < 3) {
+      await page.waitForTimeout(2000);
+      const count = await page.evaluate(async () => {
+        let total = 0;
+        for (const name of await caches.keys()) {
+          total += (await caches.open(name).then((c) => c.keys())).length;
+        }
+        return total;
+      });
+      stableFor = count === previousCount ? stableFor + 1 : 0;
+      previousCount = count;
+    }
+    report(previousCount > 0, "Скачивание завершилось", `${previousCount} записей в памяти`);
+
+    /**
+     * Адреса берём из списков самого приложения, а не из ссылок на странице.
+     *
+     * По ссылкам находилось пусто: переходы сделаны не тегами <a>, и проверка
+     * молча ограничивалась одной главной — то есть говорила «всё хорошо», ни
+     * разу не открыв ни программы, ни ноты. Ровно та ложная уверенность, от
+     * которой всё это и затевалось.
+     */
     const links = await page.evaluate(() => {
-      const hrefs = Array.from(document.querySelectorAll("a[href]"))
-        .map((a) => new URL(a.getAttribute("href"), location.origin).pathname)
-        .filter((p) => /^\/(playlist|stack|stackView|song|songRead)\//.test(p));
-      return Array.from(new Set(hrefs)).slice(0, 4);
+      const read = (key, fallback) => {
+        try { return JSON.parse(localStorage.getItem(key) ?? "") ?? fallback; }
+        catch { return fallback; }
+      };
+      const snapshot = read("cache-readiness-snapshot-v1", { stacks: [], songs: [] });
+      const categories = read("offline-categories-v1", []);
+
+      const paths = [];
+      const stack = snapshot.stacks?.[0];
+      const song = snapshot.songs?.[0];
+      const category = categories?.[0];
+
+      if (category?.key) paths.push(`/playlist/${category.key}`);
+      if (stack?.id) paths.push(`/stackView/${stack.id}`);
+      if (song?.id) paths.push(`/songRead/${song.id}`, `/song/${song.id}`);
+      return paths;
     });
+
+    report(
+      links.length >= 3,
+      "Найдены страницы для проверки",
+      links.length ? links.join(", ") : "ни одной — проверять нечего",
+    );
 
     // Прогреваем найденные страницы, пока связь ещё есть
     for (const path of links) {
@@ -140,6 +190,41 @@ async function main() {
         responseMs < RESPONSE_LIMIT_MS,
         `Без связи ${path}: экран откликается`,
         `${responseMs} мс`,
+      );
+    }
+
+    /**
+     * Кнопки внутри программы. Когда страница подменялась главной, приложение
+     * оживало наполовину: с виду ноты на месте, а кнопка закрытия и боковое
+     * меню не отзывались. По внешнему виду это не отличить — только нажатием.
+     */
+    const stackPath = links.find((p) => p.startsWith("/stackView/"));
+    if (stackPath) {
+      await page.goto(BASE + stackPath, { waitUntil: "domcontentloaded" }).catch(() => {});
+      await page.waitForTimeout(2500);
+
+      const buttons = await page.evaluate(() => document.querySelectorAll("button").length);
+      report(buttons > 0, "Без связи в программе есть кнопки", `${buttons} шт.`);
+
+      const before = page.url();
+      // Тап по странице показывает кнопки, затем ищем закрытие
+      await page.mouse.click(512, 683).catch(() => {});
+      await page.waitForTimeout(700);
+      const clicked = await page
+        .evaluate(() => {
+          const all = Array.from(document.querySelectorAll("button, a"));
+          const close = all.find((el) => /закры|close/i.test(el.getAttribute("title") ?? el.textContent ?? ""));
+          if (!close) return false;
+          close.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          return true;
+        })
+        .catch(() => false);
+      await page.waitForTimeout(1500);
+
+      report(
+        !clicked || page.url() !== before,
+        "Без связи кнопка закрытия программы работает",
+        clicked ? "" : "кнопка не найдена — проверить вручную",
       );
     }
 
