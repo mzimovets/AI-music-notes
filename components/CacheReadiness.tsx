@@ -133,7 +133,8 @@ export function CacheReadiness() {
         aria-label="Готовность к работе без связи"
         title={allReady ? "Всё скачано" : `Скачано ${percent}%`}
         style={{
-          position: "fixed", left: 12, bottom: 12, zIndex: 40,
+          // Справа: слева на главной уже стоят свои кнопки
+          position: "fixed", right: 12, bottom: 12, zIndex: 40,
           width: 44, height: 44, padding: 0, borderRadius: "50%", border: "none",
           background: "rgba(255,255,255,0.92)",
           boxShadow: "0 2px 10px rgba(0,0,0,0.12)",

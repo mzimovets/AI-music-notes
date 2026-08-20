@@ -642,7 +642,7 @@ export function ServiceWorkerManager() {
   if (!progress || progress.total === 0) return null;
 
   const pct = Math.round((progress.current / progress.total) * 100);
-  // Досчитав, плашка уезжает в кружок готовности в левом нижнем углу — так
+  // Досчитав, плашка сжимается в кружок готовности в правом нижнем углу — так
   // видно, куда смотреть дальше, вместо того чтобы она просто пропала
   const collapsing = progress.done && collapse;
   const radius = 16;
@@ -665,11 +665,9 @@ export function ServiceWorkerManager() {
         boxShadow: "0 4px 20px rgba(125,94,66,0.18)",
         border: "1px solid rgba(189,150,115,0.25)",
         backdropFilter: "blur(8px)",
-        // Уезжает в левый нижний угол — туда, где стоит кружок готовности
-        transformOrigin: "left center",
-        transform: collapsing
-          ? "translate(calc(-100vw + 106px), 14px) scale(0.32)"
-          : "none",
+        // Сжимается в кружок готовности — он стоит тут же, в правом нижнем углу
+        transformOrigin: "right center",
+        transform: collapsing ? "translate(-14px, 12px) scale(0.32)" : "none",
         opacity: collapsing ? 0 : 1,
         transition: "transform 0.75s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.75s ease",
         pointerEvents: collapsing ? "none" : "auto",
