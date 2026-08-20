@@ -1,0 +1,13 @@
+{
+  "name": "ai-music-notes-checks",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Проверки офлайна. Отдельно от приложения намеренно: deploy.sh ставит и разработческие пакеты, а на плате браузер для проверок не нужен и весит слишком много.",
+  "type": "module",
+  "scripts": {
+    "check": "node offline-check.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.49.0"
+  }
+}
