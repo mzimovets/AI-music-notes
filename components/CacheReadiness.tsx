@@ -23,7 +23,13 @@ import {
  * без перезагрузки страницы.
  */
 
-const RECHECK_MS = 30_000;
+/**
+ * Проверка обходит все ноты и программы, а это сотни обращений к хранилищу.
+ * Часто её гонять нельзя — планшет заметно тяжелеет. Между проверками картина
+ * всё равно не меняется сама по себе: правки приходят событиями.
+ */
+const RECHECK_MS = 120_000;
+const MIN_GAP_MS = 20_000;
 
 /** Круглая полоса в углу — те же пропорции, что у плашки кеширования */
 const RING_RADIUS = 18;
@@ -47,9 +53,14 @@ export function CacheReadiness() {
   const [fill, setFill] = useState<{ done: number; total: number } | null>(null);
   const checking = useRef(false);
 
-  const refresh = useCallback(async () => {
+  const lastCheck = useRef(0);
+
+  const refresh = useCallback(async (force = false) => {
     if (checking.current) return;
+    // Событий может прийти несколько подряд — считаем один раз
+    if (!force && Date.now() - lastCheck.current < MIN_GAP_MS) return;
     checking.current = true;
+    lastCheck.current = Date.now();
     try {
       setReadiness(await checkReadiness());
     } finally {
@@ -57,31 +68,34 @@ export function CacheReadiness() {
     }
   }, []);
 
+  // Обработчикам событий аргумент не нужен: событие пришло бы вместо force
+  const refreshOnEvent = useCallback(() => { refresh(); }, [refresh]);
+
   // Пересчёт по всякому поводу, который может изменить картину. Перезагрузка
   // страницы для этого не нужна — в том и смысл
   useEffect(() => {
-    refresh();
+    refresh(true);
 
-    const timer = setInterval(refresh, RECHECK_MS);
-    const onVisible = () => { if (document.visibilityState === "visible") refresh(); };
+    const timer = setInterval(refreshOnEvent, RECHECK_MS);
+    const onVisible = () => { if (document.visibilityState === "visible") refreshOnEvent(); };
 
     document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("online", refresh);
-    window.addEventListener("sw-recache-done", refresh);
-    window.addEventListener("db-sync-complete", refresh);
-    socket.on("db-synced", refresh);
-    socket.on("stack-updated", refresh);
+    window.addEventListener("online", refreshOnEvent);
+    window.addEventListener("sw-recache-done", refreshOnEvent);
+    window.addEventListener("db-sync-complete", refreshOnEvent);
+    socket.on("db-synced", refreshOnEvent);
+    socket.on("stack-updated", refreshOnEvent);
 
     return () => {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("online", refresh);
-      window.removeEventListener("sw-recache-done", refresh);
-      window.removeEventListener("db-sync-complete", refresh);
-      socket.off("db-synced", refresh);
-      socket.off("stack-updated", refresh);
+      window.removeEventListener("online", refreshOnEvent);
+      window.removeEventListener("sw-recache-done", refreshOnEvent);
+      window.removeEventListener("db-sync-complete", refreshOnEvent);
+      socket.off("db-synced", refreshOnEvent);
+      socket.off("stack-updated", refreshOnEvent);
     };
-  }, [refresh]);
+  }, [refresh, refreshOnEvent]);
 
   const missing = readiness
     ? [...readiness.stacks, ...readiness.songs, ...readiness.categories].filter(
@@ -103,7 +117,7 @@ export function CacheReadiness() {
     } finally {
       setBusy(false);
       setFill(null);
-      await refresh();
+      await refresh(true);
     }
   }, [busy, readiness, refresh]);
 
@@ -133,7 +147,7 @@ export function CacheReadiness() {
   return (
     <>
       <button
-        onClick={() => { setOpen(true); refresh(); }}
+        onClick={() => { setOpen(true); refresh(true); }}
         aria-label="Готовность к работе без связи"
         title={allReady ? "Всё скачано" : `Скачано ${percent}%`}
         style={{

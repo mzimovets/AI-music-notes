@@ -117,6 +117,30 @@ async function cachedAt(url: string): Promise<number | null> {
   }
 }
 
+/**
+ * Обходит список небольшими порциями.
+ *
+ * Разом на сотни нот получалось столько же одновременных обращений к хранилищу,
+ * и планшет заметно подвисал: экран переставал откликаться, а списки висели в
+ * загрузке. По восемь за раз работает так же быстро и никому не мешает.
+ */
+async function mapLimited<T, R>(items: T[], worker: (item: T) => Promise<R>): Promise<R[]> {
+  const LIMIT = 8;
+  const result = new Array<R>(items.length);
+  let index = 0;
+
+  await Promise.all(
+    Array.from({ length: Math.min(LIMIT, items.length) }, async () => {
+      while (index < items.length) {
+        const current = index++;
+        result[current] = await worker(items[current]);
+      }
+    }),
+  );
+
+  return result;
+}
+
 async function itemState(url: string, updatedAt: number): Promise<ItemState> {
   const at = await cachedAt(url);
   if (at === null) return "missing";
@@ -160,17 +184,14 @@ export async function checkReadiness(): Promise<Readiness> {
     // знаем, не появилось ли на сервере что-то ещё, и так и напишем
   }
 
-  const stacks: ReadinessItem[] = await Promise.all(
-    snapshot.stacks.map(async (doc) => ({
+  const stacks: ReadinessItem[] = await mapLimited(snapshot.stacks, async (doc) => ({
       id: doc.id,
       title: doc.title,
       kind: "stack" as const,
       state: await itemState(`/stackView/${doc.id}`, doc.updatedAt),
-    })),
-  );
+  }));
 
-  const songs: ReadinessItem[] = await Promise.all(
-    snapshot.songs.map(async (doc) => {
+  const songs: ReadinessItem[] = await mapLimited(snapshot.songs, async (doc) => {
       const pageState = await itemState(`/songRead/${doc.id}`, doc.updatedAt);
       // Страница без листа бесполезна, поэтому отсутствие файла приравниваем
       // к отсутствию ноты целиком
@@ -184,12 +205,10 @@ export async function checkReadiness(): Promise<Readiness> {
         state: fileMissing && pageState === "ok" ? "missing" : pageState,
         fileMissing,
       };
-    }),
-  );
+  });
 
   // Разделы берём из своего хранилища: оно переживает отсутствие связи
-  const categories: ReadinessItem[] = await Promise.all(
-    getCategories().map(async (category) => {
+  const categories: ReadinessItem[] = await mapLimited(getCategories(), async (category) => {
       const pageState = await itemState(`/playlist/${category.key}`, 0);
       const imageMissing = category.image
         ? (await cachedAt(category.image)) === null
@@ -201,8 +220,7 @@ export async function checkReadiness(): Promise<Readiness> {
         state: imageMissing && pageState === "ok" ? ("missing" as ItemState) : pageState,
         fileMissing: imageMissing,
       };
-    }),
-  );
+  });
 
   const engineOk = (await Promise.all(ENGINE_URLS.map(cachedAt))).every((at) => at !== null);
   const homeOk = (await cachedAt("/")) !== null;

@@ -18,25 +18,22 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
     } catch {}
   };
 
+  /**
+   * Занятый объём спрашиваем у системы, а не считаем сами.
+   *
+   * Раньше здесь перебирались все записи всех хранилищ и каждая читалась
+   * целиком — сотни нот на десятки мегабайт. Один раз при открытии страницы это
+   * сходило с рук, но как пересчёт стал регулярным, планшет захлебнулся:
+   * ничего не нажималось, а списки бесконечно висели в загрузке.
+   *
+   * storage.estimate() отдаёт то же число сразу и почти бесплатно.
+   */
   const calculateCacheSize = async () => {
-    if (!("caches" in window)) return;
     try {
-      let totalSize = 0;
-      const cacheNames = await caches.keys();
-      for (const name of cacheNames) {
-        const cache = await caches.open(name);
-        const keys = await cache.keys();
-        for (const request of keys) {
-          try {
-            const response = await cache.match(request);
-            if (response) {
-              const blob = await response.blob();
-              totalSize += blob.size;
-            }
-          } catch {}
-        }
+      if (navigator.storage?.estimate) {
+        const { usage } = await navigator.storage.estimate();
+        if (typeof usage === "number") setCacheSize(usage);
       }
-      setCacheSize(totalSize);
     } catch {}
   };
 
