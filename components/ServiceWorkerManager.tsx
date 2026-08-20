@@ -576,6 +576,17 @@ export function ServiceWorkerManager() {
     return () => window.removeEventListener("sw-recache-song", handler);
   }, []);
 
+  // Отъезд плашки в кружок готовности — включается с задержкой, чтобы
+  // «Готово к офлайн-работе» успели прочитать
+  const [collapse, setCollapse] = useState(false);
+  useEffect(() => {
+    if (!progress?.done) { setCollapse(false); return; }
+    // Успеть отыграть до того, как плашку уберут совсем: перекэширование одной
+    // ноты держит её всего две секунды
+    const timer = setTimeout(() => setCollapse(true), 1000);
+    return () => clearTimeout(timer);
+  }, [progress?.done]);
+
   // Typewriter states
   const [typeIndex, setTypeIndex] = useState(0);
   const [displayText, setDisplayText] = useState("");
@@ -631,6 +642,9 @@ export function ServiceWorkerManager() {
   if (!progress || progress.total === 0) return null;
 
   const pct = Math.round((progress.current / progress.total) * 100);
+  // Досчитав, плашка уезжает в кружок готовности в левом нижнем углу — так
+  // видно, куда смотреть дальше, вместо того чтобы она просто пропала
+  const collapsing = progress.done && collapse;
   const radius = 16;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference * (1 - pct / 100);
@@ -651,6 +665,14 @@ export function ServiceWorkerManager() {
         boxShadow: "0 4px 20px rgba(125,94,66,0.18)",
         border: "1px solid rgba(189,150,115,0.25)",
         backdropFilter: "blur(8px)",
+        // Уезжает в левый нижний угол — туда, где стоит кружок готовности
+        transformOrigin: "left center",
+        transform: collapsing
+          ? "translate(calc(-100vw + 106px), 14px) scale(0.32)"
+          : "none",
+        opacity: collapsing ? 0 : 1,
+        transition: "transform 0.75s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.75s ease",
+        pointerEvents: collapsing ? "none" : "auto",
       }}
     >
       {/* Текстовая подпись с typewriter */}

@@ -47,6 +47,18 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
       fetchCounts();
       setTimeout(calculateCacheSize, 100);
     };
+
+    /**
+     * Числа обновляются на глазах, а не при следующем заходе на страницу.
+     *
+     * Раньше пересчёт шёл только по событиям правок, и пока идёт кеширование,
+     * размер кеша оставался прежним — со стороны выглядело, будто ничего не
+     * скачивается. Заодно пересчитываем при возвращении в приложение.
+     */
+    const timer = setInterval(handleRecalc, 10_000);
+    const onVisible = () => { if (document.visibilityState === "visible") handleRecalc(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("online", handleRecalc);
     const handleDbSynced = (data: { added: number; updated: number; deleted: number }) => {
       if (data.added + data.updated + data.deleted > 0) {
         setTimeout(fetchCounts, 1500);
@@ -58,6 +70,9 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
     window.addEventListener("db-sync-complete", fetchCounts);
     socket.on("db-synced", handleDbSynced);
     return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("online", handleRecalc);
       window.removeEventListener("sw-sync-needed", handleRecalc);
       window.removeEventListener("sw-delete-song", handleRecalc);
       window.removeEventListener("sw-delete-stack", handleRecalc);

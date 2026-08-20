@@ -19,6 +19,7 @@ import { useSession } from "next-auth/react";
 import { getBackendBaseUrl } from "@/lib/client-url";
 import { socket } from "@/lib/socket";
 import { CacheStats } from "@/components/CacheStats";
+import { CacheReadiness } from "@/components/CacheReadiness";
 import { WiFiManagerModal } from "@/components/WiFiManagerModal";
 import { useLocalServer } from "@/hooks/useLocalServer";
 import { PenIcon } from "@/components/icons/PenIcon";
@@ -454,6 +455,10 @@ export default function Home() {
       </section>
 
       <CacheStats songsCount={allSongs.length} stacksCount={stacks.length} />
+
+      {/* Готовность к работе без связи — маленькая полоса в углу,
+          по нажатию перечень того, что скачано, а чего нет */}
+      <CacheReadiness />
 
 
     </SongsLibraryContextProvider>
