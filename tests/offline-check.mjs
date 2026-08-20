@@ -203,17 +203,59 @@ async function main() {
       await page.goto(BASE + stackPath, { waitUntil: "domcontentloaded" }).catch(() => {});
       await page.waitForTimeout(2500);
 
+      /**
+       * Самое важное: лист действительно нарисован и целиком.
+       *
+       * Ноты не раз выходили обрезанными — верх есть, низ пустой, — или
+       * рисовались выше экрана, и нижняя половина уходила за край. Со стороны
+       * страница при этом выглядит рабочей, поэтому смотрим на размеры холста
+       * и его положение, а не на наличие.
+       */
+      await page.waitForSelector("canvas", { timeout: 20_000 }).catch(() => {});
+      const sheet = await page.evaluate(() => {
+        const canvas = document.querySelector("canvas");
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        return {
+          height: Math.round(rect.height),
+          width: Math.round(rect.width),
+          top: Math.round(rect.top),
+          bottom: Math.round(rect.bottom),
+          screen: window.innerHeight,
+        };
+      });
+
+      report(!!sheet, "Без связи лист нот нарисован", sheet ? `${sheet.width}×${sheet.height}` : "холста нет");
+
+      if (sheet) {
+        // Лист должен занимать большую часть экрана: вдвое меньший означает,
+        // что просмотрщику досталась неверная высота
+        report(
+          sheet.height > sheet.screen * 0.6,
+          "Лист занимает экран, а не его часть",
+          `${sheet.height} при экране ${sheet.screen}`,
+        );
+        // И помещаться в него целиком, а не уходить за край
+        report(
+          sheet.top >= -8 && sheet.bottom <= sheet.screen + 8,
+          "Лист не обрезан краями экрана",
+          `${sheet.top}…${sheet.bottom}`,
+        );
+      }
+
       const buttons = await page.evaluate(() => document.querySelectorAll("button").length);
       report(buttons > 0, "Без связи в программе есть кнопки", `${buttons} шт.`);
 
       const before = page.url();
-      // Тап по странице показывает кнопки, затем ищем закрытие
+      // Тап по странице показывает спрятанные кнопки
       await page.mouse.click(512, 683).catch(() => {});
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(900);
       const clicked = await page
         .evaluate(() => {
           const all = Array.from(document.querySelectorAll("button, a"));
-          const close = all.find((el) => /закры|close/i.test(el.getAttribute("title") ?? el.textContent ?? ""));
+          const close = all.find((el) =>
+            /закры|close/i.test(`${el.getAttribute("title") ?? ""} ${el.getAttribute("aria-label") ?? ""} ${el.textContent ?? ""}`),
+          );
           if (!close) return false;
           close.dispatchEvent(new MouseEvent("click", { bubbles: true }));
           return true;
@@ -221,11 +263,12 @@ async function main() {
         .catch(() => false);
       await page.waitForTimeout(1500);
 
-      report(
-        !clicked || page.url() !== before,
-        "Без связи кнопка закрытия программы работает",
-        clicked ? "" : "кнопка не найдена — проверить вручную",
-      );
+      // Ненайденная кнопка — не повод считать проверку пройденной: раньше это
+      // давало галочку там, где проверять было нечего
+      report(clicked, "Кнопка закрытия программы найдена");
+      if (clicked) {
+        report(page.url() !== before, "Без связи кнопка закрытия работает");
+      }
     }
 
     // ── Ошибки воркера ───────────────────────────────────────────────────────
