@@ -47,6 +47,9 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
         <Button
           onPress={() => setIsOpen(true)}
           isIconOnly
+          // Кнопка состоит из одного значка, и без подписи у неё нет имени:
+          // её не назовёт программа чтения с экрана и не найдёт проверка
+          aria-label="Закрыть программу"
           type="button"
           disableRipple
           variant="light"

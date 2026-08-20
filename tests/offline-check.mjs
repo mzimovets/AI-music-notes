@@ -246,28 +246,44 @@ async function main() {
       const buttons = await page.evaluate(() => document.querySelectorAll("button").length);
       report(buttons > 0, "Без связи в программе есть кнопки", `${buttons} шт.`);
 
-      const before = page.url();
-      // Тап по странице показывает спрятанные кнопки
-      await page.mouse.click(512, 683).catch(() => {});
-      await page.waitForTimeout(900);
-      const clicked = await page
-        .evaluate(() => {
-          const all = Array.from(document.querySelectorAll("button, a"));
-          const close = all.find((el) =>
-            /закры|close/i.test(`${el.getAttribute("title") ?? ""} ${el.getAttribute("aria-label") ?? ""} ${el.textContent ?? ""}`),
-          );
-          if (!close) return false;
-          close.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-          return true;
-        })
-        .catch(() => false);
-      await page.waitForTimeout(1500);
+      // Боковое меню — вторая кнопка, которая переставала отзываться
+      const sidebar = page.getByRole("button", { name: "Список песен программы" });
+      const hasSidebar = (await sidebar.count()) > 0;
+      report(hasSidebar, "Кнопка списка песен найдена");
+      if (hasSidebar) {
+        await sidebar.first().click({ timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(900);
+        const opened = await page.evaluate(() =>
+          /песн|программ/i.test(document.body.innerText),
+        );
+        report(opened, "Без связи список песен открывается");
+        await page.keyboard.press("Escape").catch(() => {});
+        await page.waitForTimeout(500);
+      }
 
-      // Ненайденная кнопка — не повод считать проверку пройденной: раньше это
-      // давало галочку там, где проверять было нечего
-      report(clicked, "Кнопка закрытия программы найдена");
-      if (clicked) {
-        report(page.url() !== before, "Без связи кнопка закрытия работает");
+      /**
+       * Закрытие идёт в два шага: кнопка открывает подтверждение «Выйти?», и
+       * только «Закрыть» в нём уводит на главную. Проверяем оба, иначе нажатие
+       * считалось бы неудачным просто потому, что адрес не сменился сразу.
+       */
+      const before = page.url();
+      const close = page.getByRole("button", { name: "Закрыть программу" });
+      const hasClose = (await close.count()) > 0;
+      report(hasClose, "Кнопка закрытия программы найдена");
+
+      if (hasClose) {
+        await close.first().click({ timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(900);
+
+        const confirm = page.getByRole("button", { name: "Закрыть", exact: true });
+        const askedConfirmation = (await confirm.count()) > 0;
+        report(askedConfirmation, "Без связи спрашивается подтверждение выхода");
+
+        if (askedConfirmation) {
+          await confirm.first().click({ timeout: 5000 }).catch(() => {});
+          await page.waitForTimeout(2000);
+          report(page.url() !== before, "Без связи выход из программы работает", page.url());
+        }
       }
     }
 

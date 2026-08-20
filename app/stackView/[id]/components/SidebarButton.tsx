@@ -13,6 +13,9 @@ export const SidebarButton = ({ onPress }: SidebarButtonProps) => {
     // Запас прозрачный — внешне кнопка прежняя (см. также CloseButton)
     <Button
       isIconOnly
+      // Одни значки без подписи: без имени кнопку не назовёт программа чтения
+      // с экрана и не найдёт проверка (см. также CloseButton)
+      aria-label="Список песен программы"
       type="button"
       onPress={onPress}
       disableRipple
