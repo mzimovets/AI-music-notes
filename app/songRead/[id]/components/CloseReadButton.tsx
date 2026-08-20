@@ -24,6 +24,9 @@ export const CloseReadButton = () => {
       <Button
         onPress={() => setIsOpen(true)}
         isIconOnly
+        // Кнопка из одного значка: без имени её не назовёт программа чтения с
+        // экрана и не найдёт проверка. На вид ничего не меняется
+        aria-label="Закрыть программу"
         type="button"
         disableRipple
         variant="light"
