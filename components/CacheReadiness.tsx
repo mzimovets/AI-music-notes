@@ -43,6 +43,8 @@ export function CacheReadiness() {
   const [readiness, setReadiness] = useState<Readiness | null>(null);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  // Ход догрузки — чтобы после нажатия было видно, что идёт работа
+  const [fill, setFill] = useState<{ done: number; total: number } | null>(null);
   const checking = useRef(false);
 
   const refresh = useCallback(async () => {
@@ -82,7 +84,9 @@ export function CacheReadiness() {
   }, [refresh]);
 
   const missing = readiness
-    ? [...readiness.stacks, ...readiness.songs].filter((i) => i.state !== "ok")
+    ? [...readiness.stacks, ...readiness.songs, ...readiness.categories].filter(
+        (i) => i.state !== "ok",
+      )
     : [];
 
   /**
@@ -93,10 +97,12 @@ export function CacheReadiness() {
   const fillGaps = useCallback(async () => {
     if (busy || !readiness) return;
     setBusy(true);
+    setFill({ done: 0, total: 0 });
     try {
-      await repairReadiness(readiness);
+      await repairReadiness(readiness, (done, total) => setFill({ done, total }));
     } finally {
       setBusy(false);
+      setFill(null);
       await refresh();
     }
   }, [busy, readiness, refresh]);
@@ -215,13 +221,42 @@ export function CacheReadiness() {
                   background: "linear-gradient(to right, #BD9673, #7D5E42)",
                 }}
               >
-                {busy ? "Догружаю…" : "Догрузить недостающее"}
+                {busy
+                  ? fill && fill.total > 0
+                    ? `Догружаю… ${fill.done} из ${fill.total}`
+                    : "Догружаю…"
+                  : "Догрузить недостающее"}
               </button>
             )}
 
-            <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, minHeight: 0 }}>
+            {busy && (
+              <div style={{ height: 6, borderRadius: 3, background: "rgba(0,0,0,0.07)", overflow: "hidden" }}>
+                <div
+                  style={{
+                    height: "100%",
+                    width: fill && fill.total > 0 ? `${Math.round((fill.done / fill.total) * 100)}%` : "12%",
+                    background: "linear-gradient(90deg,#BD9673,#7D5E42)",
+                    transition: "width 0.3s ease",
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Что из возможностей работает без связи. Печать, скачивание и
+                отправка берут тот же файл ноты, что и просмотр, поэтому
+                отдельной проверки не требуют — важно лишь, все ли листы на месте */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
+              <Feature ok={readiness.engineOk} label="Просмотр нот" />
+              <Feature ok={readiness.filesOk} label="Печать" />
+              <Feature ok={readiness.filesOk} label="Скачивание" />
+              <Feature ok={readiness.filesOk} label="Отправка" />
+              <Feature ok={readiness.categories.every((c) => c.state === "ok")} label="Карточки разделов" />
+            </div>
+
+            <div style={{ overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
               <Section title="Программы" items={readiness.stacks} />
               <Section title="Ноты" items={readiness.songs} />
+              <Section title="Разделы" items={readiness.categories} />
             </div>
           </div>
         </ModalContent>
@@ -230,7 +265,25 @@ export function CacheReadiness() {
   );
 }
 
+function Feature({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <span
+      className="input-header"
+      style={{
+        fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 7,
+        color: ok ? "#166534" : "#991b1b",
+        background: ok ? "rgba(74,222,128,0.16)" : "rgba(248,113,113,0.16)",
+      }}
+    >
+      {ok ? "✓" : "✕"} {label}
+    </span>
+  );
+}
+
+/** Список свёрнут: в нём сотни строк, а нужен он лишь когда что-то не сошлось */
 function Section({ title, items }: { title: string; items: ReadinessItem[] }) {
+  const [open, setOpen] = useState(false);
+
   // Сначала беды — ради них сюда и заходят
   const sorted = [...items].sort((a, b) => (a.state === "ok" ? 1 : 0) - (b.state === "ok" ? 1 : 0));
   const bad = items.filter((i) => i.state !== "ok").length;
@@ -239,10 +292,27 @@ function Section({ title, items }: { title: string; items: ReadinessItem[] }) {
 
   return (
     <div>
-      <div className="input-header" style={{ fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.4)", marginBottom: 5 }}>
-        {title} · {items.length - bad} из {items.length}
-      </div>
-      <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="input-header"
+        style={{
+          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+          background: "none", border: "none", padding: "4px 0", cursor: "pointer",
+          fontSize: 11, fontWeight: 700, color: "rgba(0,0,0,0.45)",
+        }}
+      >
+        <span>
+          {title} · {items.length - bad} из {items.length}
+          {bad > 0 && <span style={{ color: "#be123c" }}> · не хватает {bad}</span>}
+        </span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2.5" strokeLinecap="round"
+          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}>
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+
+      {open && (
+      <div style={{ borderRadius: 10, overflow: "hidden", border: "1px solid rgba(0,0,0,0.06)", marginTop: 4 }}>
         {sorted.map((item, i) => {
           const label = stateLabel(item);
           return (
@@ -265,6 +335,7 @@ function Section({ title, items }: { title: string; items: ReadinessItem[] }) {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

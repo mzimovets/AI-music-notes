@@ -15,6 +15,7 @@
  */
 
 import { getBackendBaseUrl, getUploadPath } from "./client-url";
+import { getCategories } from "./categories-store";
 
 const SNAPSHOT_KEY = "cache-readiness-snapshot-v1";
 
@@ -23,7 +24,7 @@ export type ItemState = "ok" | "missing" | "stale";
 export interface ReadinessItem {
   id: string;
   title: string;
-  kind: "stack" | "song";
+  kind: "stack" | "song" | "category";
   state: ItemState;
   /** Ноты без файла — отдельный случай: страница есть, а листа нет */
   fileMissing?: boolean;
@@ -35,9 +36,16 @@ export interface Readiness {
   fresh: boolean;
   stacks: ReadinessItem[];
   songs: ReadinessItem[];
+  /** Разделы с картинками — их листают, чтобы найти ноту */
+  categories: ReadinessItem[];
   /** Движок pdf.js и его декодеры — без них не откроется ни одна нота */
   engineOk: boolean;
   homeOk: boolean;
+  /**
+   * Печать, скачивание и отправка берут тот же файл ноты, что и просмотр,
+   * поэтому работают ровно тогда, когда скачаны все листы
+   */
+  filesOk: boolean;
   ready: number;
   total: number;
 }
@@ -179,10 +187,28 @@ export async function checkReadiness(): Promise<Readiness> {
     }),
   );
 
+  // Разделы берём из своего хранилища: оно переживает отсутствие связи
+  const categories: ReadinessItem[] = await Promise.all(
+    getCategories().map(async (category) => {
+      const pageState = await itemState(`/playlist/${category.key}`, 0);
+      const imageMissing = category.image
+        ? (await cachedAt(category.image)) === null
+        : false;
+      return {
+        id: category.key,
+        title: category.name || category.key,
+        kind: "category" as const,
+        state: imageMissing && pageState === "ok" ? ("missing" as ItemState) : pageState,
+        fileMissing: imageMissing,
+      };
+    }),
+  );
+
   const engineOk = (await Promise.all(ENGINE_URLS.map(cachedAt))).every((at) => at !== null);
   const homeOk = (await cachedAt("/")) !== null;
+  const filesOk = songs.every((s) => !s.fileMissing);
 
-  const items = [...stacks, ...songs];
+  const items = [...stacks, ...songs, ...categories];
   const ready = items.filter((i) => i.state === "ok").length;
   // Движок и главная — такие же обязательные части, как страницы
   const total = items.length + 2;
@@ -192,8 +218,10 @@ export async function checkReadiness(): Promise<Readiness> {
     fresh,
     stacks,
     songs,
+    categories,
     engineOk,
     homeOk,
+    filesOk,
     ready: ready + (engineOk ? 1 : 0) + (homeOk ? 1 : 0),
     total,
   };
@@ -209,9 +237,13 @@ export async function checkReadiness(): Promise<Readiness> {
  *
  * Возвращает, сколько удалось починить.
  */
-export async function repairReadiness(readiness: Readiness): Promise<number> {
+export async function repairReadiness(
+  readiness: Readiness,
+  onProgress?: (done: number, total: number) => void,
+): Promise<number> {
   const snapshot = loadSnapshot();
   const byId = new Map(snapshot.songs.map((s) => [s.id, s]));
+  const categoryImages = new Map(getCategories().map((c) => [c.key, c.image]));
 
   const urls: string[] = [];
 
@@ -224,11 +256,19 @@ export async function repairReadiness(readiness: Readiness): Promise<number> {
     const filename = byId.get(item.id)?.filename;
     if (filename) urls.push(getUploadPath(filename));
   }
+  for (const item of readiness.categories) {
+    if (item.state === "ok") continue;
+    urls.push(`/playlist/${item.id}`);
+    const image = categoryImages.get(item.id);
+    if (image) urls.push(image);
+  }
   if (!readiness.engineOk) urls.push(...ENGINE_URLS);
   if (!readiness.homeOk) urls.push("/");
   urls.push("/offline.html");
 
   let fixed = 0;
+  let done = 0;
+  onProgress?.(0, urls.length);
   // По шесть за раз: по одному это складывалось в минуты на сотнях адресов,
   // а без ограничения планшет захлёбывается
   const CONCURRENCY = 6;
@@ -244,6 +284,7 @@ export async function repairReadiness(readiness: Readiness): Promise<number> {
           const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
           if (res.ok) fixed++;
         } catch {}
+        onProgress?.(++done, urls.length);
       }
     }),
   );
