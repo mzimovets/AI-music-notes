@@ -21,37 +21,19 @@ export const SPLASH_FORCE_KEY = "splashOnNextLoad";
  * заставка иначе успевала мелькнуть до того, как отработает скрипт.
  */
 export function SplashScreen() {
-  const [phase, setPhase] = useState<"visible" | "fading" | "done">(() => {
-    if (typeof window === "undefined") return "visible";
-    try {
-      if (sessionStorage.getItem(SPLASH_FORCE_KEY) === "1") return "visible";
-      // Уже показывали в этом запуске — значит это переход, а не открытие
-      return sessionStorage.getItem("splashShown") === "1" ? "done" : "visible";
-    } catch {
-      return "visible";
-    }
-  });
+  // Убираем из разметки, когда заставка отыграла: сама она уже скрыта
+  // анимацией, но незачем оставлять на странице лишний узел
+  const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    if (phase === "done") return;
+    const timer = setTimeout(() => setGone(true), 2200);
+    return () => clearTimeout(timer);
+  }, []);
 
-    try {
-      sessionStorage.setItem("splashShown", "1");
-      sessionStorage.removeItem(SPLASH_FORCE_KEY);
-    } catch {}
-
-    const fade = setTimeout(() => setPhase("fading"), 1500);
-    const done = setTimeout(() => setPhase("done"), 1900);
-    return () => {
-      clearTimeout(fade);
-      clearTimeout(done);
-    };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  if (phase === "done") return null;
+  if (gone) return null;
 
   return (
-    <div className={`splash${phase === "fading" ? " splash-hide" : ""}`} aria-hidden="true">
+    <div className="splash" aria-hidden="true">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo512.png" alt="" className="splash-icon" width={112} height={112} />
     </div>

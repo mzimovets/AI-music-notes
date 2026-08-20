@@ -64,6 +64,32 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
 
         <meta name="theme-color" content="#F7F4F1" />
+
+        {/*
+          Решаем до отрисовки, показывать ли заставку.
+
+          Скриптом, а не в React: без связи переходы между разделами идут через
+          полную перезагрузку страницы, а React при этом может и не ожить —
+          часть файлов не загрузилась. Тогда заставка, которой распоряжался он,
+          висела на каждом переходе и не уходила вовсе.
+
+          sessionStorage переживает перезагрузку, но очищается при закрытии
+          приложения: этим и отличаем запуск от перехода. Метка splashOnNextLoad
+          нужна, когда заставку показывают намеренно — при переключении между
+          платой и интернетом приложение перезагружает себя само.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{
+  var shown='splashShown', force='splashOnNextLoad';
+  if(sessionStorage.getItem(force)==='1'||sessionStorage.getItem(shown)!=='1'){
+    document.documentElement.setAttribute('data-splash','1');
+    sessionStorage.setItem(shown,'1');
+    sessionStorage.removeItem(force);
+  }
+}catch(e){document.documentElement.setAttribute('data-splash','1');}})();`,
+          }}
+        />
       </head>
 
       <body

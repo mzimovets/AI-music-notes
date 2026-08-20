@@ -470,6 +470,37 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       };
     }, [navigate]);
 
+    /**
+     * ВРЕМЕННО: числа для разбора обрезанных нот. Убрать после проверки.
+     *
+     * Показывает и размеры, и положение холста на экране: если лист обрезан,
+     * сразу видно, что именно не сходится — коробка не с экран, холст не с
+     * коробку или холст уехал за край.
+     */
+    const [debugLine, setDebugLine] = useState("");
+    useEffect(() => {
+      const tick = () => {
+        const box = containerRef.current?.getBoundingClientRect();
+        const canvas = containerRef.current?.querySelector("canvas");
+        const rect = canvas?.getBoundingClientRect();
+        const round = (n: number) => Math.round(n);
+        setDebugLine(
+          [
+            `окно ${window.innerHeight}`,
+            box ? `коробка ${round(box.top)}…${round(box.bottom)} = ${round(box.height)}` : "коробка —",
+            rect ? `холст ${round(rect.top)}…${round(rect.bottom)} = ${round(rect.height)}` : "холст —",
+            canvas ? `буфер ${canvas.width}×${canvas.height}` : "",
+            `задано ${height} · замер ${round(measuredHeight)}`,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        );
+      };
+      tick();
+      const timer = setInterval(tick, 500);
+      return () => clearInterval(timer);
+    }, [height, measuredHeight]);
+
     // ── Mouse events for desktop ──────────────────────────────────────────────
     const mouseStartX = useRef<number | null>(null);
     const mouseStartY = useRef<number | null>(null);
@@ -547,6 +578,18 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           justifyContent: "center",
         }}
       >
+        {/* ВРЕМЕННО: числа для разбора обрезанных нот, убрать после проверки */}
+        <div
+          style={{
+            position: "absolute", left: 4, bottom: 4, zIndex: 5,
+            font: "10px ui-monospace, monospace", color: "#111",
+            background: "rgba(255,255,255,0.85)", padding: "2px 5px",
+            borderRadius: 4, pointerEvents: "none", whiteSpace: "nowrap",
+          }}
+        >
+          {debugLine}
+        </div>
+
         {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{

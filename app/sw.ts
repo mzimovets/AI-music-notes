@@ -167,5 +167,29 @@ const serwist = new Serwist({
   ],
 });
 
+/**
+ * Запасной ответ, когда обработчик не смог отдать ничего.
+ *
+ * Страницы обслуживаются стратегией «сначала сеть». Без связи она берёт ответ
+ * из кеша, но если этой страницы там нет — не открывали ни разу, — отдать
+ * нечего, и наружу летела ошибка вида «FetchEvent.respondWith received an
+ * error: no-response». Для хора это означало бы белый экран вместо нот.
+ *
+ * Отдаём главную страницу: приложение поднимется и покажет то, что успело
+ * скачаться, вместо ошибки браузера. Это последняя защита — при полном
+ * кешировании перед выездом сюда доходить не должно.
+ */
+serwist.setCatchHandler(async ({ request }) => {
+  const isPage =
+    request.mode === "navigate" || request.destination === "document";
+  if (!isPage) return Response.error();
+
+  const cached =
+    (await caches.match(request, { ignoreSearch: true })) ??
+    (await caches.match("/", { ignoreSearch: true }));
+
+  return cached ?? Response.error();
+});
+
 serwist.addEventListeners();
 

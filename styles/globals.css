@@ -148,9 +148,23 @@ img {
   transition: opacity 0.4s ease;
 }
 
+/* Показывается только по метке, которую ставит скрипт в <head> до отрисовки:
+   он и решает, запуск это или переход (см. app/layout.tsx).
+
+   Гасится анимацией, а не скриптом. Без связи бывает, что React не оживает —
+   часть файлов не загрузилась, — и заставка, которую убирал он, оставалась на
+   экране навсегда. Анимация отработает в любом случае. */
 @media (display-mode: standalone), (display-mode: fullscreen) {
-  .splash {
+  html[data-splash="1"] .splash {
     display: flex;
+    animation: splash-auto-hide 0.4s ease 1.5s forwards;
+  }
+}
+
+@keyframes splash-auto-hide {
+  to {
+    opacity: 0;
+    visibility: hidden;
   }
 }
 
