@@ -63,11 +63,14 @@ const pagesNeedingReparse = new WeakSet<object>();
  * отменённых отрисовках: их полосы не попадают на экран вовсе и утекли бы
  * целиком, а смена сети вызывает как раз шквал перерисовок с отменами.
  */
-function releaseCanvases(canvases: Iterable<HTMLCanvasElement>) {
-  for (const canvas of canvases) {
+function releaseCanvases(canvases: ArrayLike<HTMLCanvasElement>) {
+  // Array.from, а не перебор напрямую: сюда приходит и обычный массив, и
+  // выборка из разметки, а её перебор требует настроек сборки, которых
+  // в проекте нет
+  Array.from(canvases).forEach((canvas) => {
     canvas.width = 0;
     canvas.height = 0;
-  }
+  });
 }
 
 // ─── Single page canvas renderer ─────────────────────────────────────────────
