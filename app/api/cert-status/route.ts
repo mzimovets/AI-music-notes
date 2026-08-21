@@ -1,0 +1,60 @@
+import { NextResponse } from "next/server";
+import { execFileSync } from "child_process";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
+
+/**
+ * Состояние сертификата на плате — для показа в окне платы.
+ *
+ * Понадобилось после истории, когда сертификат просрочился и узналось это
+ * письмом от хостинга спустя полтора месяца. Пока срок нигде не показывался,
+ * заметить отставание было нечем.
+ *
+ * Читаем сам файл сертификата, а не наши записи о нём: записи могут отстать
+ * от действительности, а срок в сертификате — нет.
+ */
+
+const CERT_FILE =
+  process.env.BOARD_CERT_FILE || "/etc/ssl/nevsky-songs/server.crt";
+
+/** Куда cert-sync.js пишет ход последней проверки */
+const STATE_FILE = path.join(process.cwd(), "server", "cert-state.json");
+
+function expiryOf(file: string): number | null {
+  try {
+    const out = execFileSync(
+      "openssl",
+      ["x509", "-enddate", "-noout", "-in", file],
+      // Ругань на отсутствующий файл в журнале не нужна: на плате без
+      // сертификата это обычное состояние, а не происшествие
+      { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const raw = out.split("=")[1]?.trim();
+    return raw ? new Date(raw).getTime() || null : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function GET() {
+  const expiresAt = existsSync(CERT_FILE) ? expiryOf(CERT_FILE) : null;
+
+  let state: Record<string, unknown> = {};
+  try {
+    state = JSON.parse(readFileSync(STATE_FILE, "utf8"));
+  } catch {
+    // Файла нет — значит забор сертификата ещё ни разу не отрабатывал
+  }
+
+  return NextResponse.json({
+    present: expiresAt !== null,
+    expiresAt,
+    daysLeft:
+      expiresAt === null
+        ? null
+        : Math.floor((expiresAt - Date.now()) / 86_400_000),
+    lastCheckAt: state.lastCheckAt ?? null,
+    lastUpdatedAt: state.lastUpdatedAt ?? null,
+    error: state.error ?? null,
+  });
+}

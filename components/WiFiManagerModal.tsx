@@ -133,6 +133,110 @@ interface SyncHistoryEntry {
 type Tab = "system" | "power" | "network" | "firmware";
 
 // ── Fan SVG — плавное вращение через RAF (без рестарта при смене RPM) ──────────
+interface CertInfo {
+  present: boolean;
+  expiresAt: number | null;
+  daysLeft: number | null;
+  lastCheckAt: number | null;
+  lastUpdatedAt: number | null;
+  error: string | null;
+}
+
+/**
+ * Срок сертификата на плате.
+ *
+ * Появилось после истории, когда сертификат просрочился и узналось это письмом
+ * от хостинга спустя полтора месяца. Пока срок нигде не показывался, заметить
+ * отставание было нечем. Цвет меняется заранее: за две недели жёлтый, после
+ * истечения красный — чтобы это бросалось в глаза до выступления, а не после.
+ */
+function CertRow({ cert }: { cert: CertInfo | null }) {
+  if (!cert) {
+    return (
+      <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.35)" }}>
+        Нет данных
+      </span>
+    );
+  }
+
+  if (!cert.present) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span className="input-header" style={{ fontSize: 12, color: "#991b1b", fontWeight: 700 }}>
+          Сертификата на плате нет
+        </span>
+        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", lineHeight: 1.4 }}>
+          Планшеты не будут доверять плате. Подключите её к интернету — сертификат
+          заберётся с сервера сам в течение часа.
+        </span>
+      </div>
+    );
+  }
+
+  const days = cert.daysLeft ?? 0;
+  const color = days < 0 ? "#991b1b" : days < 14 ? "#92400e" : "#166534";
+  const bg =
+    days < 0
+      ? "rgba(248,113,113,0.16)"
+      : days < 14
+        ? "rgba(251,191,36,0.2)"
+        : "rgba(74,222,128,0.16)";
+
+  const plural = (n: number) => {
+    const a = Math.abs(n) % 100;
+    const b = a % 10;
+    if (a > 10 && a < 20) return "дней";
+    if (b > 1 && b < 5) return "дня";
+    if (b === 1) return "день";
+    return "дней";
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+        <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
+          Действует до
+        </span>
+        <span
+          className="input-header"
+          style={{ fontSize: 11, fontWeight: 700, color, background: bg, padding: "2px 8px", borderRadius: 7 }}
+        >
+          {cert.expiresAt
+            ? new Date(cert.expiresAt).toLocaleDateString("ru", { day: "numeric", month: "long" })
+            : "—"}
+          {" · "}
+          {days < 0 ? "истёк" : `${days} ${plural(days)}`}
+        </span>
+      </div>
+
+      {cert.lastUpdatedAt && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
+            Обновлён
+          </span>
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>
+            {new Date(cert.lastUpdatedAt).toLocaleString("ru", {
+              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
+            })}
+          </span>
+        </div>
+      )}
+
+      {days < 14 && days >= 0 && (
+        <span className="input-header" style={{ fontSize: 11, color: "#92400e", lineHeight: 1.4 }}>
+          Скоро истекает. Подключите плату к интернету — обновление придёт само.
+        </span>
+      )}
+
+      {cert.error && (
+        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", lineHeight: 1.4 }}>
+          Последняя проверка не удалась: {cert.error}
+        </span>
+      )}
+    </div>
+  );
+}
+
 function FanIcon({ rpm }: { rpm: number }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const rpmRef = useRef(rpm);
@@ -314,6 +418,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const [updateStartedAt, setUpdateStartedAt] = useState<number>(0);
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
   const [commitOpen, setCommitOpen] = useState(false);
   const [firmwareLogOpen, setFirmwareLogOpen] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number>(() => {
@@ -461,6 +566,21 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     } catch { setUpdateInfo({ error: "Нет соединения" }); }
     finally { setChecking(false); }
   }, []);
+
+  // Сертификат спрашиваем при открытии окна и раз в полчаса: меняется он раз
+  // в два месяца, чаще смотреть незачем
+  useEffect(() => {
+    if (!isOpen) return;
+    const load = async () => {
+      try {
+        const res = await fetch(`${rpiBaseUrlRef.current}/api/cert-status`);
+        if (res.ok) setCertInfo(await res.json());
+      } catch { setCertInfo(null); }
+    };
+    load();
+    const timer = setInterval(load, 30 * 60_000);
+    return () => clearInterval(timer);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) { if (checkTimer.current) clearInterval(checkTimer.current); return; }
@@ -1839,6 +1959,13 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                       </div>
                     )}
                   </div>
+
+                  {/* Сертификат */}
+                  <div style={{ ...card }}>
+                    <SectionLabel style={{ margin: "0 0 8px" }}>Сертификат</SectionLabel>
+                    <CertRow cert={certInfo} />
+                  </div>
+
                 </div>
               )}
 
