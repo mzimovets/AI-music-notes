@@ -4,6 +4,7 @@
 
 import fs from "fs";
 import path from "path";
+import { syncCertificate } from "./cert-sync.js";
 import { fileURLToPath } from "url";
 import { database, io } from "./index.js";
 import { metricsDb } from "./metrics-db.js";
@@ -452,6 +453,14 @@ export function startSyncScheduler() {
 
     syncFromInternet();
     setInterval(syncFromInternet, SYNC_INTERVAL_MS);
+
+    /**
+     * Сертификат тянем тем же чередом, что и данные: раз в час, и только
+     * когда интернет есть. Без интернета попытка просто ничего не найдёт и
+     * запишет это в состояние — на работу платы в соборе это не влияет.
+     */
+    syncCertificate();
+    setInterval(syncCertificate, 60 * 60 * 1000);
 
     // Полная сверка (Local wins) — раз в час
     // Первый прогон через 1 мин после старта, далее каждый час

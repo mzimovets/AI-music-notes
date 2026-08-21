@@ -4,6 +4,8 @@ import path from "path";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import multer from "multer";
+import crypto from "crypto";
+import { execSync } from "child_process";
 import { database } from "../index.js";
 import { metricsDb } from "../metrics-db.js";
 
@@ -31,7 +33,76 @@ function verifyApiKey(req, res, next) {
   next();
 }
 
+/**
+ * Ключ отдельный от SYNC_API_KEY — намеренно.
+ *
+ * Через синхронизацию ходят ноты и программы, а здесь отдаётся закрытый ключ
+ * сертификата всех доменов. Один общий ключ означал бы, что его утечка стоит
+ * не только данных, но и сертификата. Отдельный можно сменить, не трогая
+ * остальное, и выдать только плате.
+ */
+function verifyCertKey(req, res, next) {
+  const key = process.env.CERT_API_KEY;
+  if (!key)
+    return res.status(503).json({ error: "Выдача сертификата не настроена" });
+
+  const auth = req.headers["authorization"] || "";
+  const provided = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+
+  if (!provided || provided !== key) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+const CERT_DIR = process.env.CERT_SOURCE_DIR || "/etc/ssl/songs";
+
 export const syncRoutes = (app, upload) => {
+  /**
+   * GET /api/sync/cert — текущий сертификат для платы.
+   *
+   * Единственный ручной шаг во всей цепочке продления был именно здесь: на
+   * сервере сертификат обновляется и разъезжается сам, а на плату его носили
+   * руками. Забытый перенос означает, что планшеты в какой-то день перестают
+   * доверять плате — и узнаётся это обычно не дома.
+   *
+   * Отпечаток отдаём отдельно, чтобы плата могла понять, изменилось ли что-то,
+   * не перезаписывая файлы и не трогая nginx без нужды.
+   */
+  app.get("/api/sync/cert", verifyCertKey, (req, res) => {
+    try {
+      const fullchainPath = path.join(CERT_DIR, "fullchain.pem");
+      const privkeyPath = path.join(CERT_DIR, "privkey.pem");
+
+      if (!fs.existsSync(fullchainPath) || !fs.existsSync(privkeyPath)) {
+        return res.status(404).json({ error: "Сертификат на сервере не найден" });
+      }
+
+      const fullchain = fs.readFileSync(fullchainPath, "utf8");
+      const privkey = fs.readFileSync(privkeyPath, "utf8");
+
+      // Отпечаток и срок считаем из самого сертификата, а не по времени файла:
+      // файл могли перезаписать тем же содержимым
+      const fingerprint = crypto
+        .createHash("sha256")
+        .update(fullchain)
+        .digest("hex");
+
+      let expiresAt = null;
+      try {
+        const out = execSync(`openssl x509 -enddate -noout -in "${fullchainPath}"`, {
+          encoding: "utf8",
+        });
+        const raw = out.split("=")[1]?.trim();
+        if (raw) expiresAt = new Date(raw).getTime() || null;
+      } catch {}
+
+      res.json({ fullchain, privkey, fingerprint, expiresAt });
+    } catch (e) {
+      res.status(500).json({ error: `Не удалось прочитать сертификат: ${e.message}` });
+    }
+  });
+
   // GET /api/sync/export?since=<unix_ms>
   // Возвращает все записи (songs + stacks), изменённые после `since`.
   // Включает soft-deleted записи, чтобы реплика могла их удалить у себя.
