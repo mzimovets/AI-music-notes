@@ -41,18 +41,33 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
   const retry = async () => {
     setRetrying(true);
 
+    /**
+     * Ждём воркер, но недолго.
+     *
+     * Обновление воркера лезет в сеть, и без связи этот вызов не завершается
+     * вовсе: кнопка навсегда застревала на «Загружаю…», до перезагрузки дело
+     * не доходило, и помогало только закрыть приложение целиком. Что бы ни
+     * случилось с воркером, через три секунды перезагружаемся.
+     */
+    const withLimit = (work: Promise<unknown>) =>
+      Promise.race([work, new Promise((resolve) => setTimeout(resolve, 3000))]).catch(() => {});
+
     try {
       const attempts = Number(sessionStorage.getItem("startupRetries") || 0);
       sessionStorage.setItem("startupRetries", String(attempts + 1));
 
-      const registration = await navigator.serviceWorker?.getRegistration();
+      const registration = await withLimit(navigator.serviceWorker?.getRegistration() ?? Promise.resolve())
+        .then(() => navigator.serviceWorker?.getRegistration?.())
+        .catch(() => null);
+
       if (attempts === 0) {
-        await registration?.update();
+        await withLimit(registration?.update() ?? Promise.resolve());
       } else {
-        await registration?.unregister();
+        await withLimit(registration?.unregister() ?? Promise.resolve());
         if (window.caches) {
-          const keys = await caches.keys();
-          await Promise.all(keys.map((key) => caches.delete(key)));
+          await withLimit(
+            caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key)))),
+          );
         }
       }
     } catch {}
@@ -87,7 +102,10 @@ export default function GlobalError({ reset }: { error: Error; reset: () => void
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
-            style={{ opacity: 0.55, marginBottom: 24 }}
+            // margin по бокам обязателен: Tailwind делает svg блочным
+            // элементом, и выравнивание по тексту на него не действует —
+            // значок оставался прижатым к левому краю
+            style={{ opacity: 0.55, margin: "0 auto 24px" }}
             aria-hidden="true"
           >
             <path

@@ -8,6 +8,8 @@ import { getQueue } from "@/lib/offline-queue";
 import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
 import { fetchCategories, getCategories } from "@/lib/categories-store";
 import { socket } from "@/lib/socket";
+import { useLocalServer } from "@/hooks/useLocalServer";
+import { SPLASH_FORCE_KEY } from "@/components/SplashScreen";
 
 const CACHE_STATE_KEY = "sw-cached-state-v5";
 
@@ -374,6 +376,34 @@ export function ServiceWorkerManager() {
     socket.on("db-synced", handler);
     return () => { socket.off("db-synced", handler); };
   }, []);
+
+  /**
+   * Переключились между платой и интернетом — открываемся заново.
+   *
+   * У платы и сайта могут быть разные сборки, и приложение, открытое с одной,
+   * продолжало работать с другой: страницы и данные оказывались вперемешку, и
+   * в какой-то момент переставали открываться разделы. Чистая перезагрузка
+   * снимает это целиком, а заставка делает её понятной — видно, что приложение
+   * переподключается, а не сломалось.
+   *
+   * Раньше это стояло только на странице программы, то есть почти никогда не
+   * срабатывало: сеть чаще меняют, находясь в списках.
+   */
+  const localServer = useLocalServer();
+  const knownIsLocal = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (localServer.loading) return;
+
+    if (knownIsLocal.current === null) {
+      knownIsLocal.current = localServer.isLocal;
+      return;
+    }
+    if (knownIsLocal.current === localServer.isLocal) return;
+
+    knownIsLocal.current = localServer.isLocal;
+    try { sessionStorage.setItem(SPLASH_FORCE_KEY, "1"); } catch {}
+    window.location.reload();
+  }, [localServer.isLocal, localServer.loading]);
 
   // SW регистрируется всегда
   useEffect(() => {

@@ -141,13 +141,42 @@ async function mapLimited<T, R>(items: T[], worker: (item: T) => Promise<R>): Pr
   return result;
 }
 
-async function itemState(url: string, updatedAt: number): Promise<ItemState> {
+const VERSIONS_KEY = "cache-readiness-versions-v1";
+
+/**
+ * Какая версия записи лежит в кеше — по нашему собственному учёту.
+ *
+ * Раньше устаревание определялось по дате в кешированном ответе, но её ставит
+ * сервер, а часы платы отстают на часы. Дата приходила из прошлого, запись
+ * считалась устаревшей всегда, и «догрузить» ничего не могло исправить: сколько
+ * ни качай, следующая проверка снова объявляла её старой. Свои записи от чужих
+ * часов не зависят.
+ */
+function loadVersions(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(VERSIONS_KEY) ?? "{}") ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberVersions(entries: Record<string, number>) {
+  try {
+    localStorage.setItem(VERSIONS_KEY, JSON.stringify({ ...loadVersions(), ...entries }));
+  } catch {}
+}
+
+async function itemState(url: string, id: string, updatedAt: number): Promise<ItemState> {
   const at = await cachedAt(url);
   if (at === null) return "missing";
-  // Запас в минуту: даты сервера и записи считаются по разным часам, и без
-  // него свежескачанная страница иногда выглядела бы устаревшей
-  if (updatedAt && at && updatedAt > at + 60_000) return "stale";
-  return "ok";
+
+  // Записи о версии нет — значит страница попала в кеш обычным ходом, и
+  // сравнивать не с чем. Считаем годной: объявлять устаревшим всё подряд
+  // хуже, чем изредка не заметить правку
+  const known = loadVersions()[id];
+  if (known === undefined || !updatedAt) return "ok";
+
+  return known === updatedAt ? "ok" : "stale";
 }
 
 const ENGINE_URLS = [
@@ -188,11 +217,11 @@ export async function checkReadiness(): Promise<Readiness> {
       id: doc.id,
       title: doc.title,
       kind: "stack" as const,
-      state: await itemState(`/stackView/${doc.id}`, doc.updatedAt),
+      state: await itemState(`/stackView/${doc.id}`, doc.id, doc.updatedAt),
   }));
 
   const songs: ReadinessItem[] = await mapLimited(snapshot.songs, async (doc) => {
-      const pageState = await itemState(`/songRead/${doc.id}`, doc.updatedAt);
+      const pageState = await itemState(`/songRead/${doc.id}`, doc.id, doc.updatedAt);
       // Страница без листа бесполезна, поэтому отсутствие файла приравниваем
       // к отсутствию ноты целиком
       const fileMissing = doc.filename
@@ -209,7 +238,7 @@ export async function checkReadiness(): Promise<Readiness> {
 
   // Разделы берём из своего хранилища: оно переживает отсутствие связи
   const categories: ReadinessItem[] = await mapLimited(getCategories(), async (category) => {
-      const pageState = await itemState(`/playlist/${category.key}`, 0);
+      const pageState = await itemState(`/playlist/${category.key}`, category.key, 0);
       const imageMissing = category.image
         ? (await cachedAt(category.image)) === null
         : false;
@@ -284,6 +313,14 @@ export async function repairReadiness(
   if (!readiness.homeOk) urls.push("/");
   urls.push("/offline.html");
 
+  // Версии запоминаем только после удачной загрузки: иначе запись считалась бы
+  // обновлённой, хотя качать не получилось
+  const versionById = new Map<string, number>();
+  for (const doc of [...snapshot.stacks, ...snapshot.songs]) {
+    versionById.set(doc.id, doc.updatedAt);
+  }
+  const learned: Record<string, number> = {};
+
   let fixed = 0;
   let done = 0;
   onProgress?.(0, urls.length);
@@ -300,13 +337,20 @@ export async function repairReadiness(
           // cache: "reload" — берём с сервера, а не из кеша браузера, иначе
           // устаревшая страница так и осталась бы устаревшей
           const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
-          if (res.ok) fixed++;
+          if (res.ok) {
+            fixed++;
+            // Запоминаем, какая версия записи теперь лежит в кеше
+            const id = url.split("/")[2];
+            if (id && versionById.has(id)) learned[id] = versionById.get(id) ?? 0;
+            if (url.startsWith("/playlist/")) learned[id] = 0;
+          }
         } catch {}
         onProgress?.(++done, urls.length);
       }
     }),
   );
 
+  rememberVersions(learned);
   return fixed;
 }
 
