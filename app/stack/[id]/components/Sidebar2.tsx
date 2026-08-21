@@ -475,23 +475,10 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                       Программа
                     </Button>
                   )}
-                  <Button
-                    className={`font-medium text-small ${
-                      activeTab === "ai"
-                        ? "text-white"
-                        : "text-default-500"
-                    }`}
-                    style={activeTab === "ai" ? {
-                      background: "linear-gradient(135deg, #1a1f5e, #2d3a8c)",
-                      border: "1px solid #3b4fa0",
-                    } : {}}
-                    size="sm"
-                    variant="flat"
-                    isDisabled={!hasInternet}
-                    onClick={() => hasInternet && setActiveTab("ai")}
-                  >
-                    ✦ ИИ
-                  </Button>
+                  {/* Кнопка «ИИ» убрана: на телефоне она не помещалась в ряд
+                      с остальными и уезжала за край. Сам раздел и его код
+                      оставлены на месте — см. AiRecommend.tsx, — чтобы вернуть
+                      можно было одной строкой */}
                 </div>
                 <Button
                   isIconOnly

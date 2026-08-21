@@ -415,7 +415,9 @@ export default function Home() {
       </section>
       {/*End Stacks.tsx */}
 
-      <div className="pb-0 flex items-center gap-4 font-header mt-8">
+      {/* mb-4 только на телефоне — тот же отступ, что у заголовка «Программы».
+          На широких экранах всё было в порядке, поэтому там оставляем как было */}
+      <div className="pb-0 flex items-center gap-4 font-header mt-8 mb-4 md:mb-0">
         Песни
         {isRegent && (
           <button
@@ -445,7 +447,9 @@ export default function Home() {
         )}
       </div>
       {/* <LoadingCamerton /> */}
-      <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-2">
+      {/* pt-0 на телефоне: раньше здесь был отступ сверху, которого нет у
+          программ, и заголовок «Песни» отставал от карточек заметно дальше */}
+      <section className="flex flex-col items-center justify-center gap-4 pt-0 pb-8 md:py-2">
         <Suspense>
           <Albums
             isEditing={isRegent && isEditingCategories}

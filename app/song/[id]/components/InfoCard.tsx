@@ -18,6 +18,7 @@ import {
 import { editSong, removeSong } from "@/actions/actions";
 import { enqueue, storeFile } from "@/lib/offline-queue";
 import { Reprise, Song } from "@/lib/types";
+import { PenIcon } from "@/components/icons/PenIcon";
 import { Input } from "@heroui/input";
 import { useSession } from "next-auth/react";
 import { recacheSong } from "@/lib/recache-song";
@@ -195,7 +196,10 @@ export const InfoCard = () => {
   return (
     <SongContextProvider songResponse={song}>
       <Card className="mt-8 border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
-        <CardHeader className="flex flex-col md:flex-row justify-between items-center gap-4 px-8 py-6 bg-white border-b">
+        {/* На телефоне заголовок и кнопки стоят в одну строку: раньше кнопка
+            «Редактировать» уходила под заголовок и занимала целую полосу.
+            На широких экранах порядок прежний */}
+        <CardHeader className="flex flex-row justify-between items-center gap-3 px-4 md:px-8 py-4 md:py-6 bg-white border-b">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 card-header">
               Детали партитуры
@@ -232,13 +236,22 @@ export const InfoCard = () => {
             {session?.user?.role === "регент" && (
               <Button
                 onPress={handleEdit}
-                className={`button-edit-font px-5 py-2.5 rounded-lg transition-all ${
+                aria-label={isEdit ? "Отменить редактирование" : "Редактировать"}
+                title={isEdit ? "Отменить редактирование" : "Редактировать"}
+                className={`button-edit-font rounded-lg transition-all min-w-0 px-3 py-2 md:px-5 md:py-2.5 ${
                   isEdit
                     ? "bg-gray-100 text-gray-600 hover:bg-gray-200 border"
                     : "bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white hover:shadow-lg"
                 }`}
               >
-                {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
+                {/* На телефоне только значок: подписи занимали почти всю
+                    ширину экрана. На широких экранах текст остаётся */}
+                <span className="hidden md:inline">
+                  {isEdit ? "✕ Отменить редактирование" : "Редактировать"}
+                </span>
+                <span className="md:hidden flex items-center justify-center">
+                  {isEdit ? <span className="text-lg leading-none">✕</span> : <PenIcon className="w-4 h-4" />}
+                </span>
               </Button>
             )}
           </div>
