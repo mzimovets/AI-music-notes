@@ -7,19 +7,19 @@ export const NavBackButton = () => {
 
   return (
     <div className="fixed left-0 z-50" style={{ top: 82 }}>
+      {/* На телефоне фигура меньше: в прежнем размере она занимала треть
+          высоты экрана. Размеры заданы классами, поэтому масштабируется целиком */}
       <button
         onClick={() => router.push("/")}
-        className="relative flex items-center justify-center active:opacity-70 transition-opacity"
-        style={{ width: 42, height: 200 }}
+        className="relative flex items-center justify-center active:opacity-70 transition-opacity w-[30px] h-[140px] md:w-[42px] md:h-[200px]"
         aria-label="Назад"
       >
         {/* Фигура: узко сверху, широко посередине, узко снизу */}
         <svg
-          width="42"
-          height="200"
           viewBox="0 0 42 200"
+          preserveAspectRatio="none"
           xmlns="http://www.w3.org/2000/svg"
-          className="absolute inset-0"
+          className="absolute inset-0 w-full h-full"
           style={{ filter: "drop-shadow(2px 3px 5px rgba(0,0,0,0.25))" }}
         >
           <defs>
@@ -34,7 +34,7 @@ export const NavBackButton = () => {
             fill="url(#navBackGrad)"
           />
         </svg>
-        <LeftArr className="relative z-10 w-8 h-8" style={{ marginLeft: 8 }} />
+        <LeftArr className="relative z-10 w-6 h-6 md:w-8 md:h-8 ml-1 md:ml-2" />
       </button>
     </div>
   );

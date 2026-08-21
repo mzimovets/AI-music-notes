@@ -27,14 +27,17 @@ export const DocViewer = ({ fileUrl, songId }: { fileUrl: string | File; songId?
 
       {pdfDoc?.numPages > 1 && (
         <div
-          className="sticky bottom-4 z-50 flex items-center justify-center gap-4 p-4
+          /* max-w и прокрутка внутри: ширина следует за содержимым, и на
+             телефоне при десятке страниц полоса выходила за край экрана.
+             Отступы и промежутки на телефоне меньше — иначе не помещается */
+          className="sticky bottom-4 z-50 flex items-center justify-center gap-2 md:gap-4 p-2 md:p-4
             rounded-[2rem] border border-white/80 bg-white/5 backdrop-blur-xl
             shadow-2xl shadow-black/5 ring-1 ring-black/5
-            mx-auto w-max m-10"
+            mx-auto w-max max-w-[calc(100vw-1.5rem)] overflow-x-auto m-10"
         >
           <div
             onClick={() => pageNum > 1 && setPageNum(pageNum - 1)}
-            className={`cursor-pointer p-3 ${
+            className={`cursor-pointer p-1 md:p-3 scale-75 md:scale-100 shrink-0 ${
               pageNum > 1 ? "hover:opacity-80 hover:scale-105" : "opacity-30 cursor-not-allowed"
             } transition-all duration-200`}
             title="Предыдущая страница"
@@ -71,7 +74,7 @@ export const DocViewer = ({ fileUrl, songId }: { fileUrl: string | File; songId?
 
           <div
             onClick={() => pdfDoc && pageNum < pdfDoc.numPages && setPageNum(pageNum + 1)}
-            className={`cursor-pointer p-3 ${
+            className={`cursor-pointer p-1 md:p-3 scale-75 md:scale-100 shrink-0 ${
               pdfDoc && pageNum < pdfDoc.numPages ? "hover:opacity-80 hover:scale-105" : "opacity-30 cursor-not-allowed"
             } transition-all duration-200`}
             title="Следующая страница"

@@ -28,12 +28,17 @@ export default function ModalFilePreviewer({
       isOpen={isOpen}
       onOpenChange={onClose}
       placement="center"
-      className="mt-20"
+      // На телефоне окно шло по центру, а не под самой шапкой: прижатие к
+      // верху и сдвиг вверх оставлены только широким экранам, где так и задумано
+      className="mt-0 md:mt-20"
       size="4xl"
       classNames={{
-        wrapper: "!items-start",
-        base: "-translate-y-10",
-        closeButton: "top-3 right-3 !w-9 !h-9 [&>svg]:w-5 [&>svg]:h-5",
+        wrapper: "items-center md:!items-start",
+        // Поля по бокам на телефоне: без них окно упиралось в края экрана и
+        // значок закрытия в углу оказывался срезанным
+        base: "mx-2 md:mx-0 md:-translate-y-10",
+        closeButton:
+          "top-2 right-2 md:top-3 md:right-3 !w-9 !h-9 [&>svg]:w-5 [&>svg]:h-5 z-20",
       }}
     >
       <ModalContent>

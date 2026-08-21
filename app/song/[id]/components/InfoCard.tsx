@@ -195,7 +195,10 @@ export const InfoCard = () => {
 
   return (
     <SongContextProvider songResponse={song}>
-      <Card className="mt-8 border border-gray-200 rounded-2xl shadow-lg overflow-hidden">
+      {/* На телефоне блок выходит за поля страницы во всю ширину: полей по
+          24 пикселя с каждой стороны там жалко, а таблица от этого тесная.
+          Скругления убраны заодно — иначе полоса выглядит оборванной */}
+      <Card className="mt-8 border border-gray-200 shadow-lg overflow-hidden -mx-6 rounded-none md:mx-0 md:rounded-2xl">
         {/* На телефоне заголовок и кнопки стоят в одну строку: раньше кнопка
             «Редактировать» уходила под заголовок и занимала целую полосу.
             На широких экранах порядок прежний */}
