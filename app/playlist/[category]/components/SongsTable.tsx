@@ -49,15 +49,38 @@ export const SongsTable = () => {
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Запрещаем скролл страницы пока компонент смонтирован
+  /**
+   * Телефон отличаем один раз и следим за поворотом.
+   *
+   * На телефоне список идёт вниз обычной прокруткой, а не разбивается на
+   * страницы: свободной высоты там хватало ровно на одну песню, и листать
+   * приходилось по одной — пользоваться этим невозможно.
+   */
+  const [isMobile, setIsMobile] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768,
+  );
   useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    window.addEventListener("orientationchange", check);
+    return () => {
+      window.removeEventListener("resize", check);
+      window.removeEventListener("orientationchange", check);
+    };
+  }, []);
+
+  // Прокрутку страницы запрещаем только там, где список разбит на страницы.
+  // На телефоне она и есть способ листать список
+  useEffect(() => {
+    if (isMobile) return;
     document.body.style.overflow = "hidden";
     document.documentElement.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
     };
-  }, []);
+  }, [isMobile]);
 
   // Пересчёт количества строк исходя из доступной высоты
   const recalc = useCallback(() => {
@@ -100,9 +123,11 @@ export const SongsTable = () => {
   const pages = Math.ceil(filteredSongs.length / rowsPerPage);
 
   const items = useMemo(() => {
+    // На телефоне отдаём список целиком — разбивать его на страницы незачем
+    if (isMobile) return filteredSongs;
     const start = (page - 1) * rowsPerPage;
     return filteredSongs.slice(start, start + rowsPerPage);
-  }, [page, filteredSongs, rowsPerPage]);
+  }, [page, filteredSongs, rowsPerPage, isMobile]);
 
   const allColumns = [
     { name: "НАЗВАНИЕ", uid: "name", align: "start" as const },
@@ -126,7 +151,7 @@ export const SongsTable = () => {
   );
 
   const pagination =
-    pages > 1 ? (
+    pages > 1 && !isMobile ? (
       <Pagination
         page={page}
         total={pages}
