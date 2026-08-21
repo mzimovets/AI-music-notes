@@ -554,7 +554,9 @@ export const SideBarStack = ({
     border-b border-default-200/50
     bg-content1/50 backdrop-blur-lg"
               >
-                <div className="flex flex-1 min-w-0 gap-1 input-header pl-4">
+                {/* overflow-x-auto и pl поменьше: на телефоне вкладки не помещались
+                    в строку и выдавливали кнопку закрытия за край экрана */}
+                <div className="flex flex-1 min-w-0 gap-1 input-header pl-2 lg:pl-4 overflow-x-auto flex-nowrap">
                   <Button
                     className={` font-medium text-small lg:text-sm ${
                       activeTab === "stack"
@@ -713,7 +715,10 @@ export const SideBarStack = ({
                   )}
                   <Button
                     isIconOnly
-                    className="text-default-400 rotate-180"
+                    aria-label="Закрыть список песен"
+                    // shrink-0 — кнопка не должна сжиматься и уезжать за край,
+                    // когда вкладок в строке становится больше
+                    className="text-default-400 rotate-180 shrink-0"
                     size="sm"
                     variant="light"
                     onPress={onClose}

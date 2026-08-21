@@ -632,6 +632,15 @@ export function ServiceWorkerManager() {
   // Отъезд плашки в кружок готовности — включается с задержкой, чтобы
   // «Готово к офлайн-работе» успели прочитать
   const [collapse, setCollapse] = useState(false);
+
+  // Первый кадр плашка проводит сжатой в кружок, со следующего разворачивается
+  const [appeared, setAppeared] = useState(false);
+  useEffect(() => {
+    if (!progress) { setAppeared(false); return; }
+    const frame = requestAnimationFrame(() => setAppeared(true));
+    return () => cancelAnimationFrame(frame);
+  }, [!!progress]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (!progress?.done) { setCollapse(false); return; }
     // Успеть отыграть до того, как плашку уберут совсем: перекэширование одной
@@ -718,11 +727,18 @@ export function ServiceWorkerManager() {
         boxShadow: "0 4px 20px rgba(125,94,66,0.18)",
         border: "1px solid rgba(189,150,115,0.25)",
         backdropFilter: "blur(8px)",
-        // Сжимается в кружок готовности — он стоит тут же, в правом нижнем углу
+        /**
+         * Появляется из кружка готовности и сворачивается обратно в него.
+         *
+         * Кружок стоит в том же правом нижнем углу, поэтому плашка растёт от
+         * своего правого края — со стороны это читается как «раскрылась из
+         * кнопки». Раньше она просто возникала и пропадала, и связь с кружком
+         * была неочевидна.
+         */
         transformOrigin: "right center",
-        transform: collapsing ? "translate(-14px, 12px) scale(0.32)" : "none",
-        opacity: collapsing ? 0 : 1,
-        transition: "transform 0.75s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.75s ease",
+        transform: collapsing || !appeared ? "translate(-26px, 0) scale(0.3)" : "none",
+        opacity: collapsing || !appeared ? 0 : 1,
+        transition: "transform 0.55s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.55s ease",
         pointerEvents: collapsing ? "none" : "auto",
       }}
     >

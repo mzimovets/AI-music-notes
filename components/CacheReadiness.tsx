@@ -31,8 +31,10 @@ import {
 const RECHECK_MS = 120_000;
 const MIN_GAP_MS = 20_000;
 
-/** Круглая полоса в углу — те же пропорции, что у плашки кеширования */
-const RING_RADIUS = 18;
+/** Размеры и отступ совпадают с кнопкой платы в левом углу — чтобы стояли вровень */
+const RING_SIZE = 48;
+const RING_INSET = 24;
+const RING_RADIUS = 20;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
 function stateLabel(item: ReadinessItem): { text: string; color: string; bg: string } {
@@ -151,18 +153,19 @@ export function CacheReadiness() {
         aria-label="Готовность к работе без связи"
         title={allReady ? "Всё скачано" : `Скачано ${percent}%`}
         style={{
-          // Справа: слева на главной уже стоят свои кнопки
-          position: "fixed", right: 12, bottom: 12, zIndex: 40,
-          width: 44, height: 44, padding: 0, borderRadius: "50%", border: "none",
+          // Справа: слева на главной уже стоят свои кнопки. Отступ и размер
+          // те же, что у кнопки платы, — иначе кружки стоят вразнобой
+          position: "fixed", right: RING_INSET, bottom: RING_INSET, zIndex: 40,
+          width: RING_SIZE, height: RING_SIZE, padding: 0, borderRadius: "50%", border: "none",
           background: "rgba(255,255,255,0.92)",
           boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
           cursor: "pointer", display: "grid", placeItems: "center",
         }}
       >
-        <svg width={44} height={44} viewBox="0 0 44 44" style={{ transform: "rotate(-90deg)" }}>
-          <circle cx="22" cy="22" r={RING_RADIUS} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="3.5" />
+        <svg width={RING_SIZE} height={RING_SIZE} viewBox="0 0 48 48" style={{ transform: "rotate(-90deg)" }}>
+          <circle cx="24" cy="24" r={RING_RADIUS} fill="none" stroke="rgba(0,0,0,0.08)" strokeWidth="3.5" />
           <circle
-            cx="22" cy="22" r={RING_RADIUS} fill="none"
+            cx="24" cy="24" r={RING_RADIUS} fill="none"
             stroke={ringColor} strokeWidth="3.5" strokeLinecap="round"
             strokeDasharray={RING_LENGTH}
             strokeDashoffset={RING_LENGTH * (1 - percent / 100)}
