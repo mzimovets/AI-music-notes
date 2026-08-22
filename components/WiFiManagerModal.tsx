@@ -153,7 +153,7 @@ interface CertInfo {
  * отставание было нечем. Цвет меняется заранее: за две недели жёлтый, после
  * истечения красный — чтобы это бросалось в глаза до выступления, а не после.
  */
-function CertRow({ cert }: { cert: CertInfo | null }) {
+function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean }) {
   if (!cert) {
     return (
       <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.35)" }}>
@@ -163,6 +163,21 @@ function CertRow({ cert }: { cert: CertInfo | null }) {
   }
 
   if (!cert.present) {
+    /**
+     * Отличаем «сертификата нет» от «спросили не у платы».
+     *
+     * Окно платы отвечает тем сервером, к которому подключено приложение. Через
+     * интернет-сервер этого файла нет и быть не должно, а надпись «сертификата
+     * на плате нет» в такой момент пугала зря.
+     */
+    if (!isLocal) {
+      return (
+        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)", lineHeight: 1.4 }}>
+          Видно только при подключении к плате — сейчас приложение работает через интернет.
+        </span>
+      );
+    }
+
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <span className="input-header" style={{ fontSize: 12, color: "#991b1b", fontWeight: 700 }}>
@@ -1992,7 +2007,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                   {/* Сертификат */}
                   <div style={{ ...card }}>
                     <SectionLabel style={{ margin: "0 0 8px" }}>Сертификат</SectionLabel>
-                    <CertRow cert={certInfo} />
+                    <CertRow cert={certInfo} isLocal={isLocal} />
                   </div>
 
                 </div>

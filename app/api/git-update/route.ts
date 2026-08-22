@@ -246,14 +246,22 @@ export async function POST() {
       // Журнал начинаем до всего остального, иначе при неудаче с nvm не будет
       // ни строчки и снаружи это выглядит как «ничего не происходит».
       // Вся цепочка обёрнута в скобки: любой сбой внутри дописывает FAILED,
-      // а не обрывается молча — иначе процент замирает и не объясняет причину
+      // а не обрывается молча — иначе процент замирает и не объясняет причину.
+      //
+      // Не git pull, а приведение к состоянию репозитория. pull старался
+      // сохранить местные изменения и упирался в них: то файлы блокировок
+      // переписал npm install, то файлы принесли на плату вручную. Обновление
+      // вставало с «на плате есть свои правки», и починить это можно было
+      // только из терминала. Сохранять там нечего — код на плате никто не
+      // правит, — поэтому затираем без разговоров. Данные не тронуты: база,
+      // ноты и настройки репозиторием не ведутся
       `echo "START $(date)" > ${LOG_FILE}
 export NVM_DIR="/home/pi/.nvm"; [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 {
   cd ${APP_DIR} &&
   echo "PULLING" >> ${LOG_FILE} &&
-  { git checkout -- package-lock.json public/sw.js server/package-lock.json server/node_modules/.package-lock.json 2>/dev/null || true; } &&
-  git pull origin main >> ${LOG_FILE} 2>&1 &&
+  git fetch origin main >> ${LOG_FILE} 2>&1 &&
+  git reset --hard origin/main >> ${LOG_FILE} 2>&1 &&
   echo "INSTALLING" >> ${LOG_FILE} &&
   NODE_ENV=development npm install >> ${LOG_FILE} 2>&1 &&
   echo "BUILDING" >> ${LOG_FILE} &&
