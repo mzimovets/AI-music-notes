@@ -442,11 +442,18 @@ export function startSyncScheduler() {
     // Проверяем нужна ли полная синхронизация:
     // 1. Меньше 10 песен — база пустая после восстановления
     // 2. Есть песни в БД, но папка uploads пустая — файлы не скачались
-    const localCount = await dbCount({ type: "song" });
+    // docType, а не type: песни хранятся с полем docType (см. routes/songs.js).
+    // По несуществующему полю счёт всегда выходил нулевым, и плата при каждом
+    // запуске считала базу пустой — сбрасывала метку и качала с сервера всё
+    // заново, хотя всё уже было на месте
+    const localCount = await dbCount({
+      docType: "song",
+      deletedAt: { $exists: false },
+    });
     const uploadsEmpty = fs.readdirSync(uploadsDir).length === 0;
     if (localCount < 10 || (localCount > 0 && uploadsEmpty)) {
       console.log(
-        `[sync] Обнаружено неполное состояние (песен: ${localCount}, файлов: 0) — сбрасываю таймстамп для полной синхронизации`
+        `[sync] Обнаружено неполное состояние (песен: ${localCount}, файлов: ${fs.readdirSync(uploadsDir).length}) — сбрасываю таймстамп для полной синхронизации`
       );
       saveLastSyncTimestamp(0);
     }
