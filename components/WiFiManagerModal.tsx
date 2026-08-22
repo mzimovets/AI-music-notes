@@ -133,6 +133,21 @@ interface SyncHistoryEntry {
 type Tab = "system" | "power" | "network" | "firmware";
 
 // ── Fan SVG — плавное вращение через RAF (без рестарта при смене RPM) ──────────
+/** «Сегодня в 14:20» понятнее, чем «22 авг., 14:20» — а дальше уже нужна дата */
+function fmtWhen(ts: number) {
+  const d = new Date(ts);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  const time = d.toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return `сегодня в ${time}`;
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === yesterday.toDateString()) return `вчера в ${time}`;
+
+  return d.toLocaleString("ru", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
 interface CertInfo {
   present: boolean;
   expiresAt: number | null;
@@ -227,15 +242,27 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
         </span>
       </div>
 
+      {/* Две разные вещи, и раньше была видна только одна: замена случается раз
+          в два месяца, а проверка — постоянно. Одна подпись «Обновлён» читалась
+          как «когда проверяли», и число сбивало с толку */}
       {cert.lastUpdatedAt && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
           <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
-            Обновлён
+            Заменён на новый
           </span>
           <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>
-            {new Date(cert.lastUpdatedAt).toLocaleString("ru", {
-              day: "numeric", month: "short", hour: "2-digit", minute: "2-digit",
-            })}
+            {fmtWhen(cert.lastUpdatedAt)}
+          </span>
+        </div>
+      )}
+
+      {cert.lastCheckAt && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
+            Проверялся
+          </span>
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.4)" }}>
+            {fmtWhen(cert.lastCheckAt)}
           </span>
         </div>
       )}
@@ -251,7 +278,7 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
       {cert.worstSite && cert.worstSite.daysLeft !== null && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 4, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
           <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
-            Сайты
+            Раньше всех истекает
           </span>
           <span
             className="input-header"
@@ -265,8 +292,10 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
                   : "rgba(74,222,128,0.16)",
             }}
           >
+            {cert.worstSite.host.replace(".nevsky-sobor.ru", "")}
+            {" · "}
             {cert.worstSite.daysLeft < 0
-              ? `${cert.worstSite.host} — истёк`
+              ? "истёк"
               : `${cert.worstSite.daysLeft} ${plural(cert.worstSite.daysLeft)}`}
           </span>
         </div>
@@ -1817,7 +1846,10 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                   </div>
 
                   {/* DB Sync */}
-                  <div style={{ ...card, flex: 1, overflow: "hidden", minHeight: 0 }}>
+                  {/* flexShrink: 0, а не «занять остаток»: раскрытый журнал прошивки
+                      отбирал у этого блока высоту, и его содержимое обрезалось.
+                      Прокрутка здесь внешняя, на всей вкладке */}
+                  <div style={{ ...card, flexShrink: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                       <SectionLabel style={{ margin: 0 }}>База данных</SectionLabel>
                     </div>
@@ -1857,7 +1889,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                     )}
 
                     {/* История изменений */}
-                    <div style={{ marginTop: 8, flex: 1, display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }}>
+                    <div style={{ marginTop: 8, display: "flex", flexDirection: "column" }}>
                       <button onClick={() => setHistoryOpen((v) => !v)} style={{
                         width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
                         background: "none", border: "none", cursor: "pointer", padding: "4px 0", flexShrink: 0,
@@ -1877,7 +1909,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                       </button>
 
                       {historyOpen && (
-                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, flex: 1, overflowY: "auto", minHeight: 0 }}>
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
                           {syncHistory.length === 0 && (
                             <div style={{ padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>
