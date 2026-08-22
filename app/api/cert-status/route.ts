@@ -56,5 +56,10 @@ export async function GET() {
     lastCheckAt: state.lastCheckAt ?? null,
     lastUpdatedAt: state.lastUpdatedAt ?? null,
     error: state.error ?? null,
+    // Сайт, у которого срок кончается раньше всех: сторож обходит их, когда у
+    // платы есть интернет. Нужен потому, что файл на диске и то, что реально
+    // отдаётся браузеру, однажды разошлись на полтора месяца
+    worstSite: state.worstSite ?? null,
+    sitesCheckedAt: state.sitesCheckedAt ?? null,
   });
 }

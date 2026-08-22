@@ -140,6 +140,9 @@ interface CertInfo {
   lastCheckAt: number | null;
   lastUpdatedAt: number | null;
   error: string | null;
+  /** Сайт с ближайшим сроком — за ним следит сторож */
+  worstSite: { host: string; daysLeft: number | null } | null;
+  sitesCheckedAt: number | null;
 }
 
 /**
@@ -226,6 +229,32 @@ function CertRow({ cert }: { cert: CertInfo | null }) {
         <span className="input-header" style={{ fontSize: 11, color: "#92400e", lineHeight: 1.4 }}>
           Скоро истекает. Подключите плату к интернету — обновление придёт само.
         </span>
+      )}
+
+      {/* Сайты проверяются отдельно от файла на плате: однажды они разошлись
+          на полтора месяца, и по файлам это было не видно */}
+      {cert.worstSite && cert.worstSite.daysLeft !== null && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, paddingTop: 4, borderTop: "1px solid rgba(0,0,0,0.06)" }}>
+          <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.45)" }}>
+            Сайты
+          </span>
+          <span
+            className="input-header"
+            style={{
+              fontSize: 11, fontWeight: 700, padding: "2px 8px", borderRadius: 7,
+              color: cert.worstSite.daysLeft < 0 ? "#991b1b" : cert.worstSite.daysLeft < 14 ? "#92400e" : "#166534",
+              background: cert.worstSite.daysLeft < 0
+                ? "rgba(248,113,113,0.16)"
+                : cert.worstSite.daysLeft < 14
+                  ? "rgba(251,191,36,0.2)"
+                  : "rgba(74,222,128,0.16)",
+            }}
+          >
+            {cert.worstSite.daysLeft < 0
+              ? `${cert.worstSite.host} — истёк`
+              : `${cert.worstSite.daysLeft} ${plural(cert.worstSite.daysLeft)}`}
+          </span>
+        </div>
       )}
 
       {cert.error && (

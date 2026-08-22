@@ -116,6 +116,64 @@ function install(fullchain, privkey) {
   fs.unlinkSync(tmpKey);
 }
 
+/**
+ * Домены, которые видят люди. Сторож смотрит именно на них.
+ *
+ * Смысл — проверять не файл на диске, а то, что на самом деле отдаётся
+ * браузеру. Разница нас однажды подвела: сертификат на сервере обновлялся
+ * исправно, а музей полтора месяца отдавал просроченный, потому что до
+ * хостинга новый не доезжал. По файлам всё выглядело благополучно.
+ */
+const PUBLIC_HOSTS = [
+  "songs.nevsky-sobor.ru",
+  "songs-back.nevsky-sobor.ru",
+  "museum.nevsky-sobor.ru",
+  "schedule.nevsky-sobor.ru",
+  "tabel.nevsky-sobor.ru",
+];
+
+function servedExpiry(host) {
+  try {
+    const out = execFileSync(
+      "bash",
+      [
+        "-c",
+        `echo | openssl s_client -connect ${host}:443 -servername ${host} 2>/dev/null | openssl x509 -noout -enddate`,
+      ],
+      { encoding: "utf8", timeout: 15_000, stdio: ["ignore", "pipe", "ignore"] },
+    );
+    const raw = out.split("=")[1]?.trim();
+    return raw ? new Date(raw).getTime() || null : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Обходит сайты и запоминает, у кого срок кончается раньше всех */
+export function checkPublicSites() {
+  const sites = PUBLIC_HOSTS.map((host) => {
+    const expiresAt = servedExpiry(host);
+    return {
+      host,
+      expiresAt,
+      daysLeft:
+        expiresAt === null
+          ? null
+          : Math.floor((expiresAt - Date.now()) / 86_400_000),
+    };
+  });
+
+  // Недоступный сайт — это не «просрочен», а «не смогли проверить»,
+  // и путать одно с другим нельзя
+  const known = sites.filter((s) => s.daysLeft !== null);
+  const worst = known.length
+    ? known.reduce((a, b) => (a.daysLeft <= b.daysLeft ? a : b))
+    : null;
+
+  writeState({ sites, worstSite: worst, sitesCheckedAt: Date.now() });
+  return sites;
+}
+
 export async function syncCertificate() {
   const url = process.env.SYNC_MASTER_URL;
   const key = process.env.CERT_API_KEY;
@@ -141,6 +199,10 @@ export async function syncCertificate() {
       writeState({ lastCheckAt: Date.now(), error: "Сервер вернул пустой сертификат" });
       return;
     }
+
+    // Связь есть — заодно проверяем, что отдают сами сайты. Гонять этот обход
+    // отдельным расписанием незачем: он нужен ровно тогда, когда есть интернет
+    checkPublicSites();
 
     // Тот же самый — трогать nginx незачем
     if (fingerprint && fingerprint === localFingerprint()) {
