@@ -174,6 +174,25 @@ export function checkPublicSites() {
   return sites;
 }
 
+/**
+ * Проверяет сертификат, если пора.
+ *
+ * Вызывается после каждой удачной синхронизации данных — это самый надёжный
+ * признак того, что интернет появился. Плата почти всё время без сети, и
+ * проверка по расписанию легко приходится ровно на глухое время; а так она
+ * случается сразу, как только связь есть.
+ *
+ * Чтобы не ходить к серверу каждые пять минут, пока плата стоит в сети,
+ * удачную проверку не повторяем полчаса. После неудачной пробуем сразу:
+ * связь могла быть неполной.
+ */
+export async function syncCertificateIfDue() {
+  const state = readState();
+  const since = Date.now() - (state.lastCheckAt ?? 0);
+  if (!state.error && since < 30 * 60_000) return;
+  await syncCertificate();
+}
+
 export async function syncCertificate() {
   const url = process.env.SYNC_MASTER_URL;
   const key = process.env.CERT_API_KEY;

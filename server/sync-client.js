@@ -4,7 +4,7 @@
 
 import fs from "fs";
 import path from "path";
-import { syncCertificate } from "./cert-sync.js";
+import { syncCertificate, syncCertificateIfDue } from "./cert-sync.js";
 import { fileURLToPath } from "url";
 import { database, io } from "./index.js";
 import { metricsDb } from "./metrics-db.js";
@@ -423,6 +423,11 @@ export async function syncFromInternet() {
       ` | ${deltaBytes} байт (reduction=${(reductionRatio * 100).toFixed(1)}%)` +
       ` | ${lagInfo}`,
   );
+
+  // Синхронизация удалась — значит интернет есть прямо сейчас. Лучшего повода
+  // проверить сертификат не будет: плата почти всё время без сети, и проверка
+  // по расписанию легко приходится на глухое время
+  syncCertificateIfDue();
 }
 
 export function startSyncScheduler() {
