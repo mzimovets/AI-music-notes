@@ -87,7 +87,7 @@ async function deleteFromAllCaches(urlPath: string) {
 
 async function fetchAndCache(url: string, cacheName: string) {
   try {
-    const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
+    const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(30_000) });
     if (res.ok) {
       const cache = await caches.open(cacheName);
       await cache.put(url, res);
@@ -125,7 +125,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
   let currentStacks: string[] = [];
 
   try {
-    const res = await fetch(`${backUrl}/songs`, { credentials: "same-origin" });
+    const res = await fetch(`${backUrl}/songs`, { credentials: "same-origin", signal: AbortSignal.timeout(10_000) });
     if (res.ok) {
       const data = await res.json();
       const docs: { _id: string; file?: { filename?: string } }[] =
@@ -139,7 +139,7 @@ async function syncCache(onProgress: (p: Progress) => void) {
   }
 
   try {
-    const res = await fetch(`${backUrl}/stacks`, { credentials: "same-origin" });
+    const res = await fetch(`${backUrl}/stacks`, { credentials: "same-origin", signal: AbortSignal.timeout(10_000) });
     if (res.ok) {
       const data = await res.json();
       const docs: { _id: string }[] = data?.docs ?? (Array.isArray(data) ? data : []);

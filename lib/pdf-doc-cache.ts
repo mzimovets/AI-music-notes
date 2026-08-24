@@ -42,6 +42,29 @@ function loadPdfjsLib() {
  * Открывает документ по URL. Повторные вызовы с тем же URL возвращают тот же
  * объект — включая случай, когда загрузка ещё идёт.
  */
+/**
+ * Достаёт ноту из памяти устройства, не касаясь сети.
+ *
+ * Сервис-воркер и сам отдаёт ноты по правилу «сначала кеш», но полагаться
+ * только на него нельзя: сразу после его обновления страница какое-то время
+ * остаётся без него, и тогда запрос уходит в сеть. Без связи он висит, пока
+ * не сдастся система, занимая одно из немногих соединений — и следующие
+ * запросы даже не начинаются. Со стороны это выглядит как застывшее
+ * приложение, которое «через какое-то время очухалось».
+ *
+ * Своя проверка снимает эту зависимость целиком: то, что скачано, открывается
+ * мгновенно при любом состоянии сети и при любом состоянии воркера.
+ */
+async function readFromCache(url: string): Promise<ArrayBuffer | null> {
+  if (typeof caches === "undefined") return null;
+  try {
+    const hit = await caches.match(url, { ignoreSearch: true, ignoreVary: true });
+    return hit ? await hit.arrayBuffer() : null;
+  } catch {
+    return null;
+  }
+}
+
 export function getPdfDocument(url: string): Promise<PdfDocument> {
   const cached = docs.get(url);
   if (cached) return cached;
@@ -52,9 +75,18 @@ export function getPdfDocument(url: string): Promise<PdfDocument> {
     // Файл забираем обычным запросом, а не отдаём URL в pdf.js. Тот качает
     // документ диапазонами, а service worker хранит целые ответы и такие
     // запросы обслужить не может — без интернета ноты не открывались вовсе.
-    const res = await fetch(url);
-    if (!res.ok) throw new Error(`Не удалось загрузить ${url}: ${res.status}`);
-    const data = await res.arrayBuffer();
+    // Сначала своя память, и только потом сеть. Скачанная нота открывается
+    // мгновенно при любом состоянии связи — ради этого всё и делалось
+    let data = await readFromCache(url);
+
+    if (!data) {
+      // Ноты нет на устройстве — приходится идти в сеть. Срок короткий:
+      // без связи ждать бессмысленно, а человеку важнее быстро понять, что
+      // лист не скачан, чем смотреть в пустой экран полминуты
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+      if (!res.ok) throw new Error(`Не удалось загрузить ${url}: ${res.status}`);
+      data = await res.arrayBuffer();
+    }
 
     return (pdfjsLib as any).getDocument({
       data,

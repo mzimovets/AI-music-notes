@@ -17,7 +17,7 @@ export function OnlineBanner() {
     if (!isLocal) return;
     const check = async () => {
       try {
-        const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`);
+        const res = await fetch(`${rpiBaseUrl}/api/wifi-manager`, { signal: AbortSignal.timeout(5000) });
         if (res.ok) {
           const data = await res.json();
           setHasInternet(data.connected && !data.noInternet);

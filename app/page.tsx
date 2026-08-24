@@ -104,7 +104,7 @@ export default function Home() {
       if (Date.now() - lastCheck < 30_000) return;
       lastCheck = Date.now();
       try {
-        const res = await fetch(`${rpiBaseUrl}/api/git-update`);
+        const res = await fetch(`${rpiBaseUrl}/api/git-update`, { signal: AbortSignal.timeout(6000) });
         if (res.ok) { const d = await res.json(); setHasFirmwareUpdate(!!d.hasUpdate); }
       } catch {}
     };

@@ -9,7 +9,7 @@ export function CacheStats(_props: { songsCount?: number; stacksCount?: number }
 
   const fetchCounts = async () => {
     try {
-      const res = await fetch("/api/song-stats");
+      const res = await fetch("/api/song-stats", { signal: AbortSignal.timeout(5000) });
       if (res.ok) {
         const { songsCount, stacksCount } = await res.json();
         setSongsCount(songsCount);
