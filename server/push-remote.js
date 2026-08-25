@@ -6,6 +6,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import { correctedNow } from "./clock-offset.js";
 dotenv.config({ path: ".env.local" });
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,7 +21,9 @@ function logPushToHistory(doc) {
   let history = [];
   try { history = JSON.parse(fs.readFileSync(HISTORY_FILE, "utf8")); } catch {}
   const entry = {
-    timestamp: Date.now(),
+    // Часы платы без батарейки отстают — поправка на разницу с мастером,
+    // если она уже известна (см. clock-offset.js), иначе как есть
+    timestamp: correctedNow(),
     direction: "local→site",
     added: doc.deletedAt ? [] : (history.find(e => e.added?.some(c => c._id === doc._id)) ? [] : [{ title: doc.title || doc.name || doc._id, type: doc.docType }]),
     updated: doc.deletedAt ? [] : [{ title: doc.title || doc.name || doc._id, type: doc.docType }],

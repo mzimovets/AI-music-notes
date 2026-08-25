@@ -17,6 +17,7 @@ import {
   pushStackToRemote,
   flushOutbox,
 } from "./push-remote.js";
+import { recordClockOffset } from "./clock-offset.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -352,11 +353,17 @@ export async function syncFromInternet() {
   }
 
   saveLastSyncTimestamp(timestamp);
+  // Мастер только что прислал точное время — заодно узнаём, насколько
+  // разошлись часы платы, чтобы честно датировать местные события (см.
+  // логику ниже и logPushToHistory в push-remote.js)
+  recordClockOffset(timestamp);
 
   // Save history entry if anything changed
   if (changeAdded.length || changeUpdated.length || changeDeleted.length) {
     saveHistory({
-      timestamp: syncStartTs,
+      // Метка мастера, а не своя: часы платы без батарейки отстают (см.
+      // TODO.md, пункт 3) — список в приложении показывал бы неверные даты
+      timestamp,
       direction: "site→local",
       added: changeAdded,
       updated: changeUpdated,

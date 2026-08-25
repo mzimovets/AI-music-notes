@@ -58,3 +58,4 @@ tests/node_modules
 # Рабочее состояние платы — пишется на месте, в репозитории ему не место
 server/cert-state.json
 server/push-outbox.json
+server/clock-offset.json
