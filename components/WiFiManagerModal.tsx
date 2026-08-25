@@ -399,26 +399,13 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
           ref={inputRef}
           type={show ? "text" : "password"} placeholder={placeholder} value={value}
           onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
-          // scrollIntoView считает по расчётной высоте страницы (layout
-          // viewport), а клавиатура перекрывает настоящую видимую область
-          // (visual viewport) — это две разные величины, и на iOS layout
-          // viewport часто не сжимается вовсе. Меряем напрямую через
-          // window.visualViewport и докручиваем именно на ту разницу,
-          // что реально перекрыта клавиатурой
+          // Модалка сама ужимается под клавиатуру (см. --visual-viewport-height
+          // в её height), поэтому достаточно подвести поле в видимую часть
+          // её собственной прокрутки. Задержка — чтобы клавиатура успела
+          // выехать и высота пересчиталась
           onFocus={(e) => {
             const el = e.currentTarget;
-            setTimeout(() => {
-              const vv = window.visualViewport;
-              if (!vv) { el.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
-              const rect = el.getBoundingClientRect();
-              const visibleBottom = vv.height + vv.offsetTop;
-              const overflowBy = rect.bottom - visibleBottom + 16; // 16px запаса снизу
-              if (overflowBy > 0) {
-                const scrollParent = el.closest("[data-modal-scroll]") as HTMLElement | null;
-                if (scrollParent) scrollParent.scrollBy({ top: overflowBy, behavior: "smooth" });
-                else window.scrollBy({ top: overflowBy, behavior: "smooth" });
-              }
-            }, 350); // ждём, пока клавиатура закончит выезжать
+            setTimeout(() => el.scrollIntoView({ block: "center", behavior: "smooth" }), 350);
           }}
           className="input-header"
           style={{
@@ -1045,7 +1032,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
         background: "rgba(244,241,237,0.92)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
         border: "1px solid rgba(255,255,255,0.65)", boxShadow: "0 32px 80px rgba(0,0,0,0.24)",
         borderRadius: 26,
-        height: "min(700px, calc(100dvh - 32px))",
+        // Не 100dvh: на iOS клавиатура не сжимает layout viewport, и dvh
+        // остаётся во всю высоту экрана — модалка не уменьшалась, поле
+        // пароля уезжало под клавиатуру. --visual-viewport-height HeroUI
+        // ставит на обёртку из window.visualViewport.height, а он про
+        // клавиатуру знает и ужимается вместе с ней
+        height: "min(700px, calc(var(--visual-viewport-height, 100dvh) - 32px))",
         display: "flex", flexDirection: "column", overflow: "hidden",
       }}>
         {() => (
