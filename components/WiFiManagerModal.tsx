@@ -399,11 +399,27 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
           ref={inputRef}
           type={show ? "text" : "password"} placeholder={placeholder} value={value}
           onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
-          // Клавиатура на телефоне выезжает поверх модалки и закрывает
-          // поле — ждём, пока она закончит выезжать (иначе scrollIntoView
-          // считает по старой, ещё не сжатой высоте экрана), и подводим
-          // поле в видимую часть
-          onFocus={() => setTimeout(() => inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 300)}
+          // scrollIntoView считает по расчётной высоте страницы (layout
+          // viewport), а клавиатура перекрывает настоящую видимую область
+          // (visual viewport) — это две разные величины, и на iOS layout
+          // viewport часто не сжимается вовсе. Меряем напрямую через
+          // window.visualViewport и докручиваем именно на ту разницу,
+          // что реально перекрыта клавиатурой
+          onFocus={(e) => {
+            const el = e.currentTarget;
+            setTimeout(() => {
+              const vv = window.visualViewport;
+              if (!vv) { el.scrollIntoView({ block: "center", behavior: "smooth" }); return; }
+              const rect = el.getBoundingClientRect();
+              const visibleBottom = vv.height + vv.offsetTop;
+              const overflowBy = rect.bottom - visibleBottom + 16; // 16px запаса снизу
+              if (overflowBy > 0) {
+                const scrollParent = el.closest("[data-modal-scroll]") as HTMLElement | null;
+                if (scrollParent) scrollParent.scrollBy({ top: overflowBy, behavior: "smooth" });
+                else window.scrollBy({ top: overflowBy, behavior: "smooth" });
+              }
+            }, 350); // ждём, пока клавиатура закончит выезжать
+          }}
           className="input-header"
           style={{
             width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
@@ -1115,7 +1131,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
             <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 16px 0", flexShrink: 0 }} />
 
             {/* ── Content ─────────────────────────────────────────────────────── */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
+            <div data-modal-scroll style={{ flex: 1, overflowY: "auto", padding: "12px 16px 36px", display: "flex", flexDirection: "column", gap: 10 }}>
 
               {/* ══ НЕ ПОДКЛЮЧЕНЫ К ПЛАТЕ ═════════════════════════════════════ */}
               {!isLocal && !localServerLoading && (
