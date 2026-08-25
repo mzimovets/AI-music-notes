@@ -1,5 +1,26 @@
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
+import { optimizeIfNeeded } from "../scan-optimizer.js";
+
+/**
+ * Если загруженный скан оказался тяжёлым (JPEG2000/JBIG2 от ABBYY — самая
+ * медленная распаковка из возможных, разбор — TODO.md, пункт 2), переделываем
+ * его в обычный JPEG. В фоне, после ответа — не задерживает загрузку ноты, и
+ * ничего не ломает, если на сервере не установлены нужные инструменты
+ * (тогда просто ничего не делает).
+ */
+function optimizeUploadedScanInBackground(songId, filePath) {
+  if (!filePath) return;
+  optimizeIfNeeded(filePath).then((result) => {
+    if (!result.optimized) return;
+    database.update({ _id: songId }, { $set: { updatedAt: Date.now() } }, {}, (err) => {
+      if (err) return console.log("err", err);
+      database.findOne({ _id: songId }, (findErr, doc) => {
+        if (!findErr && doc) pushLocalChangeToRemote(doc);
+      });
+    });
+  });
+}
 
 export const songsRoutes = (app, urlencodedParser, upload) => {
   app.get("/song/:songId", (req, res) => {
@@ -44,6 +65,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
         res.json({ status: "ok", doc });
         // Мгновенный push на мастер (фоново, не блокирует ответ)
         if (!err && doc) pushLocalChangeToRemote(doc);
+        if (!err && doc) optimizeUploadedScanInBackground(req.params.songId, req.file?.path);
       });
     },
   );
@@ -75,6 +97,7 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
               if (!findErr && doc) pushLocalChangeToRemote(doc);
             });
           }
+          if (!err) optimizeUploadedScanInBackground(req.params.songId, req.file?.path);
         },
       );
     },
