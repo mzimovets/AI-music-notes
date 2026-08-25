@@ -53,12 +53,32 @@ function saveLastSyncTimestamp(ts) {
 
 async function downloadFile(filename) {
   const dest = path.join(__dirname, "uploads", filename);
-  if (fs.existsSync(dest)) return;
+  const url = `${INTERNET_URL}/uploads/${encodeURIComponent(filename)}`;
+
+  /**
+   * Раньше здесь стояло "файл с таким именем уже есть — выходим", и
+   * заменённый на мастере файл до платы не доезжал никогда: имя-то прежнее.
+   * Именно так переделанные (облегчённые) сканы оставались тяжёлыми на
+   * плате, и та же беда ждала бы любую исправленную регентом ноту.
+   *
+   * Сверяем размер через HEAD — это один дешёвый запрос вместо полной
+   * перекачки. Если размер не сообщили, ведём себя как раньше (не качаем
+   * заново), чтобы не тянуть все файлы при каждой синхронизации.
+   */
+  if (fs.existsSync(dest)) {
+    try {
+      const head = await fetch(url, { method: "HEAD", signal: AbortSignal.timeout(10_000) });
+      const remoteSize = parseInt(head.headers.get("content-length") ?? "", 10);
+      if (!head.ok || !Number.isFinite(remoteSize)) return;
+      if (remoteSize === fs.statSync(dest).size) return;
+      console.log(`[sync] Файл изменился на мастере, забираю заново: ${filename}`);
+    } catch {
+      return; // не смогли спросить — оставляем то, что есть
+    }
+  }
 
   try {
-    const res = await fetch(
-      `${INTERNET_URL}/uploads/${encodeURIComponent(filename)}`,
-    );
+    const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const buffer = Buffer.from(await res.arrayBuffer());
     fs.writeFileSync(dest, buffer);
