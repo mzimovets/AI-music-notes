@@ -336,7 +336,7 @@ export async function repairReadiness(
         try {
           // cache: "reload" — берём с сервера, а не из кеша браузера, иначе
           // устаревшая страница так и осталась бы устаревшей
-          const res = await fetch(url, { credentials: "same-origin", cache: "reload" });
+          const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) });
           if (res.ok) {
             fixed++;
             // Запоминаем, какая версия записи теперь лежит в кеше

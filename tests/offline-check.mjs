@@ -305,11 +305,45 @@ async function main() {
       }
     }
 
+    /**
+     * Переключение сетей — не то же самое, что просто офлайн.
+     *
+     * Реальная смена Wi-Fi выглядит как быстрый обрыв и восстановление связи:
+     * браузер получает события `offline`, затем `online`. Именно на `online`
+     * завязана фоновая синхронизация (сервис-воркер докачивает страницы,
+     * отправляется отложенная очередь) — и именно в этот момент несколько
+     * запросов, зависших без таймаута, однажды подвесили экран целиком.
+     * Простое «отключить сеть и оставить выключенной» эту гонку не ловит —
+     * нужно именно переключение, туда и обратно.
+     */
+    await context.setOffline(true);
+    await page.waitForTimeout(300);
+    await context.setOffline(false);
+    report(true, "Сеть переключена (обрыв → восстановление), как при смене Wi-Fi");
+
+    // Событие `online` запускает фоновую синхронизацию — проверяем отклик
+    // сразу после него, не дожидаясь, пока она сама уляжется
+    const switchResponseMs = await measureResponsiveness(page);
+    report(
+      switchResponseMs < RESPONSE_LIMIT_MS,
+      "Сразу после переключения сети экран откликается",
+      `${switchResponseMs} мс`,
+    );
+
+    if (stackPath) {
+      await page.goto(BASE + stackPath, { waitUntil: "domcontentloaded" }).catch(() => {});
+      await page.waitForTimeout(500);
+      const afterSwitchMs = await measureResponsiveness(page);
+      report(
+        afterSwitchMs < RESPONSE_LIMIT_MS,
+        "Программа открывается сразу после переключения сети",
+        `${afterSwitchMs} мс`,
+      );
+    }
+
     // ── Ошибки воркера ───────────────────────────────────────────────────────
     const swErrors = consoleErrors.filter((e) => /no-response|FetchEvent/.test(e));
     report(swErrors.length === 0, "Воркер не отдавал ошибок вместо страниц", swErrors[0] ?? "");
-
-    await context.setOffline(false);
   } finally {
     await browser.close();
   }

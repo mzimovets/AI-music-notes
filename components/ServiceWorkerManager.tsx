@@ -43,6 +43,8 @@ interface Progress {
 interface SongEntry {
   id: string;
   filename: string | null;
+  /** Нужна, чтобы при удалении песни знать, какой раздел перекешировать */
+  category?: string;
 }
 
 interface CachedState {
@@ -128,11 +130,11 @@ async function syncCache(onProgress: (p: Progress) => void) {
     const res = await fetch(`${backUrl}/songs`, { credentials: "same-origin", signal: AbortSignal.timeout(10_000) });
     if (res.ok) {
       const data = await res.json();
-      const docs: { _id: string; file?: { filename?: string } }[] =
+      const docs: { _id: string; file?: { filename?: string }; category?: string }[] =
         data?.docs ?? (Array.isArray(data) ? data : []);
       currentSongs = docs
         .filter((d) => d._id)
-        .map((d) => ({ id: d._id, filename: d.file?.filename ?? null }));
+        .map((d) => ({ id: d._id, filename: d.file?.filename ?? null, category: d.category }));
     }
   } catch (e) {
     console.warn("[Sync] Не удалось получить список песен:", e);
@@ -153,11 +155,20 @@ async function syncCache(onProgress: (p: Progress) => void) {
   const currentStackIds = new Set(currentStacks);
 
   // Удаляем из кэша то, что удалено из БД
-  for (const { id, filename } of prev.songs) {
+  const categoriesAfterDeletion = new Set<string>();
+  let songDeleted = false;
+  for (const { id, filename, category } of prev.songs) {
     if (!currentSongIds.has(id)) {
+      songDeleted = true;
       console.log(`[Sync] Удаляем /song/${id}`);
       await deleteFromAllCaches(`/song/${id}`);
+      // Страница чтения — отдельный адрес, без неё удалённая нота
+      // продолжала бы открываться офлайн из памяти устройства
+      await deleteFromAllCaches(`/songRead/${id}`);
       if (filename) await deleteFromAllCaches(getUploadPath(filename));
+      // Раздел, где лежала эта нота, тоже устарел — её нужно убрать из
+      // закешированного списка, иначе офлайн она осталась бы в разделе
+      if (category) categoriesAfterDeletion.add(category);
     }
   }
   for (const id of prev.stacks) {
@@ -216,17 +227,34 @@ async function syncCache(onProgress: (p: Progress) => void) {
     }
   } else {
     // Инкрементально: только новые
+    const queuedCategoryKeys = new Set<string>();
     for (const { key, image } of newCategories) {
       pageUrls.push(`/playlist/${key}`);
+      queuedCategoryKeys.add(key);
       if (image) assetUrls.push(image);
     }
     for (const { id } of newSongs) pageUrls.push(`/song/${id}`, `/songRead/${id}`);
     for (const { filename } of newSongs) {
       if (filename) assetUrls.push(getUploadPath(filename));
     }
+    // Новая или удалённая песня в уже существующем разделе меняет список
+    // песен на его странице — без этого страница раздела оставалась старой:
+    // добавленная нота не была видна внутри раздела, а удалённая — не
+    // пропадала из него
+    for (const key of newSongs.map((s) => s.category).concat(Array.from(categoriesAfterDeletion))) {
+      if (key && !queuedCategoryKeys.has(key)) {
+        pageUrls.push(`/playlist/${key}`);
+        queuedCategoryKeys.add(key);
+      }
+    }
     for (const id of newStacks) {
       pageUrls.push(`/stack/${id}`, `/stackView/${id}`);
     }
+    // Главная показывает список песен для поиска. Раньше она перекешировалась
+    // только при самом первом запуске — дальше офлайн-поиск мог находить
+    // удалённые ноты или не находить только что добавленные, пока страницу
+    // случайно не открывали при живой сети
+    if (newSongs.length > 0 || songDeleted) pageUrls.push("/");
   }
 
   const total = pageUrls.length * 2 + assetUrls.length; // *2 = HTML + RSC
@@ -268,12 +296,12 @@ async function syncCache(onProgress: (p: Progress) => void) {
   // страницы независимы, поэтому идут вместе
   await runBatched(pageUrls, async (url) => {
     await Promise.all([
-      fetch(url, { credentials: "same-origin", cache: "reload" })
+      fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) })
         .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} html ${url}`))
         .catch((e) => console.warn(`[Sync] ✗ html ${url}`, e))
         .finally(tick),
       // RSC payload — для клиентской навигации Next.js App Router
-      fetch(url, { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" } })
+      fetch(url, { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" }, signal: AbortSignal.timeout(6000) })
         .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} rsc  ${url}`))
         .catch((e) => console.warn(`[Sync] ✗ rsc ${url}`, e))
         .finally(tick),
@@ -533,11 +561,18 @@ export function ServiceWorkerManager() {
   // Удаление песни из кэша при её удалении из БД
   useEffect(() => {
     const handler = async (e: Event) => {
-      const { id, filename } = (e as CustomEvent<{ id: string; filename?: string }>).detail;
+      const { id, filename, category } = (e as CustomEvent<{ id: string; filename?: string; category?: string }>).detail;
       if (!id || !("caches" in window)) return;
       console.log(`[Sync] Удаляем из кэша песню ${id}`);
       await deleteFromAllCaches(`/song/${id}`);
+      // Страница чтения — отдельный адрес от карточки песни, без неё
+      // удалённая нота продолжала бы открываться офлайн из памяти устройства
+      await deleteFromAllCaches(`/songRead/${id}`);
       if (filename) await deleteFromAllCaches(`/uploads/${filename}`);
+      // Раздел вычищаем только при живой сети: страница откроется следом
+      // (сразу после удаления) и перекачается сама. Офлайн так делать нельзя —
+      // взять свежую версию неоткуда, а без кеша раздел вовсе не откроется
+      if (category && navigator.onLine) await deleteFromAllCaches(`/playlist/${category}`);
       const state = loadCachedState();
       saveCachedState({ ...state, songs: state.songs.filter((s) => s.id !== id) });
     };
@@ -582,9 +617,9 @@ export function ServiceWorkerManager() {
       for (let i = 0; i < urls.length; i++) {
         try {
           // HTML-версия → кэш pages (прямой переход / F5)
-          await fetch(urls[i], { credentials: "same-origin", cache: "reload" });
+          await fetch(urls[i], { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) });
           // RSC-версия → кэш pages-rsc-app (клиентская навигация Next.js)
-          await fetch(urls[i], { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" } });
+          await fetch(urls[i], { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" }, signal: AbortSignal.timeout(6000) });
           console.log(`[Sync] ✓ ${urls[i]}`);
         } catch {}
         setProgress({ current: i + 1, total: 2, done: i === 1 });

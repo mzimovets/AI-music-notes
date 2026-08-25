@@ -29,6 +29,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
         const res = await fetch(`${backUrl}/song/${op.tempId}`, {
           method: "POST",
           body: fd,
+          signal: AbortSignal.timeout(25_000),
         });
         if (res.ok) {
           await removeFile(op.fileDbKey);
@@ -55,6 +56,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
         const res = await fetch(`${backUrl}/song/${op.id}/true`, {
           method: "POST",
           body: fd,
+          signal: AbortSignal.timeout(25_000),
         });
         if (res.ok && op.fileDbKey) await removeFile(op.fileDbKey);
         return res.ok;
@@ -62,7 +64,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
 
       // ── Удалить песню ───────────────────────────────────────────────
       case "song.delete": {
-        const res = await fetch(`${backUrl}/song/${op.id}/true`);
+        const res = await fetch(`${backUrl}/song/${op.id}/true`, { signal: AbortSignal.timeout(8000) });
         return res.ok;
       }
 
@@ -72,6 +74,7 @@ async function execOp(op: OfflineOp): Promise<boolean> {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name: op.name, _id: op.id, docType: "stack" }),
+          signal: AbortSignal.timeout(8000),
         });
         return res.ok;
       }
@@ -93,13 +96,14 @@ async function execOp(op: OfflineOp): Promise<boolean> {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
+          signal: AbortSignal.timeout(8000),
         });
         return res.ok;
       }
 
       // ── Удалить стопку ──────────────────────────────────────────────
       case "stack.delete": {
-        const res = await fetch(`${backUrl}/stack/${op.id}/true`);
+        const res = await fetch(`${backUrl}/stack/${op.id}/true`, { signal: AbortSignal.timeout(8000) });
         return res.ok;
       }
     }

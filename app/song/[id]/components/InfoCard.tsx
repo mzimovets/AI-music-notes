@@ -154,7 +154,7 @@ export const InfoCard = () => {
         enqueue({ type: "song.delete", id: song.doc._id });
         window.dispatchEvent(
           new CustomEvent("sw-delete-song", {
-            detail: { id: song.doc._id, filename: song.doc.file?.filename },
+            detail: { id: song.doc._id, filename: song.doc.file?.filename, category: song.doc.category },
           }),
         );
         router.push(`/playlist/${song.doc.category}`);
@@ -166,7 +166,7 @@ export const InfoCard = () => {
       if (response) {
         window.dispatchEvent(
           new CustomEvent("sw-delete-song", {
-            detail: { id: song.doc._id, filename: song.doc.file?.filename },
+            detail: { id: song.doc._id, filename: song.doc.file?.filename, category: song.doc.category },
           }),
         );
         router.push(`/playlist/${song.doc.category}`);
