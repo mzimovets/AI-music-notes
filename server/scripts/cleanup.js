@@ -41,10 +41,24 @@ db.loadDatabase((err) => {
       process.exit(1);
     }
 
-    const songs = allDocs.filter((d) => d.docType === "song" || d.filename);
+    // Имя файла ноты лежит внутри file.filename, а не прямо в записи —
+    // раньше здесь проверялось d.filename (несуществующее поле), из-за чего
+    // вообще ВСЕ файлы в uploads всегда считались ничьими
+    const songs = allDocs.filter((d) => d.docType === "song");
     const referencedFiles = new Set(
-      songs.map((d) => d.filename).filter(Boolean)
+      songs.map((d) => d.file?.filename).filter(Boolean)
     );
+
+    // Картинки разделов — отдельный документ, не song, и хранят путь
+    // ("/uploads/имя.jpg"), а не голое имя файла
+    const categoriesDoc = allDocs.find((d) => d.docType === "categories");
+    if (Array.isArray(categoriesDoc?.items)) {
+      for (const item of categoriesDoc.items) {
+        if (typeof item.image === "string" && item.image.startsWith("/uploads/")) {
+          referencedFiles.add(item.image.replace(/^\/uploads\//, ""));
+        }
+      }
+    }
 
     // --- 1. Orphan PDF files ---
     const uploadsDir = path.join(SERVER_DIR, "uploads");

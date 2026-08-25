@@ -1,5 +1,11 @@
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
 
 const CATEGORIES_ID = "categories";
 
@@ -76,11 +82,31 @@ export const categoriesRoutes = (app) => {
       updatedAt: Date.now(),
     };
 
-    database.update({ _id: CATEGORIES_ID }, doc, { upsert: true }, (err) => {
-      console.log("updating categories:", items.length);
-      if (err) console.log("err", err);
-      res.json({ status: "ok", items });
-      if (!err) pushLocalChangeToRemote(doc);
+    // Узнаём прежние картинки до перезаписи — при замене картинки категории
+    // старый загруженный файл иначе остаётся сиротой в uploads навсегда
+    // (та же беда, что и с заменой файла ноты, только для картинок разделов)
+    database.findOne({ _id: CATEGORIES_ID }, (findOldErr, oldDoc) => {
+      const oldImages = !findOldErr && Array.isArray(oldDoc?.items)
+        ? oldDoc.items.map((i) => i.image).filter((img) => typeof img === "string" && img.startsWith("/uploads/"))
+        : [];
+      const newImages = new Set(items.map((i) => i.image));
+
+      database.update({ _id: CATEGORIES_ID }, doc, { upsert: true }, (err) => {
+        console.log("updating categories:", items.length);
+        if (err) console.log("err", err);
+        res.json({ status: "ok", items });
+        if (!err) pushLocalChangeToRemote(doc);
+
+        if (!err) {
+          for (const oldImage of oldImages) {
+            if (newImages.has(oldImage)) continue;
+            const filename = oldImage.replace(/^\/uploads\//, "");
+            fs.unlink(path.join(UPLOADS_DIR, filename), (unlinkErr) => {
+              if (!unlinkErr) console.log(`Удалена старая картинка раздела: ${filename}`);
+            });
+          }
+        }
+      });
     });
   });
 };

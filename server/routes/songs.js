@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { database } from "../index.js";
 import { pushLocalChangeToRemote } from "../push-remote.js";
 import { optimizeIfNeeded } from "../scan-optimizer.js";
@@ -84,22 +86,37 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
       } else {
         serverSong.reprises = [];
       }
-      database.update(
-        { _id: req.params.songId },
-        { $set: { ...serverSong } },
-        (err, num) => {
-          console.log("edited song: ", req.params.songId);
-          if (err) console.log("err", err);
-          res.json({ status: "ok", doc: num });
-          // Получаем обновлённый документ и пушим на мастер (фоново)
-          if (!err) {
-            database.findOne({ _id: req.params.songId }, (findErr, doc) => {
-              if (!findErr && doc) pushLocalChangeToRemote(doc);
-            });
-          }
-          if (!err) optimizeUploadedScanInBackground(req.params.songId, req.file?.path);
-        },
-      );
+      // Узнаём старое имя файла до перезаписи — если ноту редактируют с
+      // новым сканом, старый файл иначе остаётся сиротой в uploads навсегда
+      // (найдено на «Пролегала_путь-дорожка.pdf»: запись давно указывает на
+      // другой файл, а этот так и лежит, ничем не занятый)
+      database.findOne({ _id: req.params.songId }, (findOldErr, oldDoc) => {
+        const oldFilename = !findOldErr ? oldDoc?.file?.filename : null;
+
+        database.update(
+          { _id: req.params.songId },
+          { $set: { ...serverSong } },
+          (err, num) => {
+            console.log("edited song: ", req.params.songId);
+            if (err) console.log("err", err);
+            res.json({ status: "ok", doc: num });
+            // Получаем обновлённый документ и пушим на мастер (фоново)
+            if (!err) {
+              database.findOne({ _id: req.params.songId }, (findErr, doc) => {
+                if (!findErr && doc) pushLocalChangeToRemote(doc);
+              });
+            }
+            if (!err) optimizeUploadedScanInBackground(req.params.songId, req.file?.path);
+
+            if (!err && req.file && oldFilename && oldFilename !== req.file.filename) {
+              const oldPath = path.join(req.file.destination, oldFilename);
+              fs.unlink(oldPath, (unlinkErr) => {
+                if (!unlinkErr) console.log(`Удалён старый файл ноты: ${oldFilename}`);
+              });
+            }
+          },
+        );
+      });
     },
   );
 
