@@ -1025,7 +1025,18 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
     <Modal
       isOpen={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}
       placement="center" backdrop="blur" hideCloseButton scrollBehavior="normal"
-      classNames={{ base: "max-w-[480px] w-[calc(100vw-16px)]" }}
+      classNames={{
+        base: "max-w-[480px] w-[calc(100vw-16px)]",
+        // HeroUI задаёт обёртке высоту классом h-[--visual-viewport-height],
+        // но Tailwind v4 больше не подставляет var() сам: в собранном CSS
+        // выходит невалидное "height:--visual-viewport-height", браузер
+        // отбрасывает правило, и обёртка остаётся во всю высоту экрана —
+        // модалка центрируется по полному экрану, и низ с полем пароля
+        // уезжает под клавиатуру. Пишем ту же величину корректно.
+        // Только для этого окна: data-slot="wrapper" есть и у выпадающих
+        // списков, поиска и прочего — общее правило ломает их вёрстку
+        wrapper: "!h-[var(--visual-viewport-height,100dvh)]",
+      }}
       keepMounted
     >
       <ModalContent style={{
