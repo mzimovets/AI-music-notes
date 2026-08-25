@@ -263,10 +263,26 @@ export const syncRoutes = (app, upload) => {
         return res.status(400).json({ error: "Некорректный JSON в поле doc" });
       }
 
-      // Если файл пришёл — кладём его с оригинальным именем из документа
+      // Если файл пришёл — кладём его с оригинальным именем из документа.
+      //
+      // Раньше здесь стояло "уже есть файл с таким именем — выбрасываем
+      // присланный". Из-за этого переделанные сканы никогда не доезжали до
+      // мастера: имя то же, значит новый (лёгкий) файл молча удалялся, а на
+      // сервере оставался старый тяжёлый. Запись в базе при этом обновлялась,
+      // и со стороны выглядело, будто всё синхронизировано.
+      //
+      // Push означает "вот текущее состояние этой ноты у реплики" — значит
+      // файл нужно принять. Сверяем размер, чтобы не переписывать зря.
       if (req.file && doc.file?.filename) {
         const targetPath = path.join(UPLOADS_DIR, doc.file.filename);
-        if (!fs.existsSync(targetPath)) {
+        const sameFile =
+          fs.existsSync(targetPath) &&
+          fs.statSync(targetPath).size === fs.statSync(req.file.path).size;
+
+        if (sameFile) {
+          fs.unlinkSync(req.file.path);
+        } else {
+          const replacing = fs.existsSync(targetPath);
           try {
             fs.renameSync(req.file.path, targetPath);
           } catch (e) {
@@ -275,9 +291,9 @@ export const syncRoutes = (app, upload) => {
               fs.unlinkSync(req.file.path);
             } else throw e;
           }
-          console.log(`[sync/push] Сохранён файл: ${doc.file.filename}`);
-        } else {
-          fs.unlinkSync(req.file.path);
+          console.log(
+            `[sync/push] ${replacing ? "Заменён" : "Сохранён"} файл: ${doc.file.filename}`,
+          );
         }
       }
 
