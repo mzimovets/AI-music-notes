@@ -4,6 +4,11 @@ import { Modal, ModalContent } from "@heroui/modal";
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
+// Сколько подряд неудачных опросов /api/system-status считать реальной
+// потерей связи. Раньше было 2 (~6с при интервале 3с) — хватало обычной
+// заминки Wi-Fi, чтобы модалка сереет и оживала без настоящей причины
+const FAIL_THRESHOLD = 4;
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -199,7 +204,7 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
           Сертификата на плате нет
         </span>
         <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", lineHeight: 1.4 }}>
-          Планшеты не будут доверять плате. Подключите её к интернету — сертификат
+          Устройства не будут доверять плате. Подключите её к интернету — сертификат
           заберётся с сервера сам в течение часа.
         </span>
       </div>
@@ -388,13 +393,13 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
       <div style={{ position: "relative" }}>
         <input
           ref={inputRef}
-          type={show ? "text" : "password"} placeholder={placeholder} value={value} autoFocus
+          type={show ? "text" : "password"} placeholder={placeholder} value={value}
           onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
           className="input-header"
           style={{
             width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
-            border: error ? "1.5px solid rgba(248,113,113,0.7)" : "1.5px solid rgba(0,0,0,0.09)",
-            background: error ? "rgba(255,235,235,0.8)" : "rgba(255,255,255,0.9)",
+            border: error ? "1.5px solid rgba(248,113,113,0.7)" : "1.5px solid rgba(125,94,66,0.18)",
+            background: error ? "rgba(255,235,235,0.8)" : "rgba(255,255,255,0.6)",
             fontSize: 14, color: "#2d2015", outline: "none", boxSizing: "border-box",
           }}
         />
@@ -469,6 +474,10 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const [scanDone, setScanDone] = useState(false);
   const [connectingTo, setConnectingTo] = useState<string | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
+  // Кому принадлежит connectError — без этого ошибка от "Подключить" на
+  // свёрнутой строке была не видна нигде (видна только внутри раскрытой
+  // панели пароля), человек просто не понимал, что попытка не удалась
+  const [connectErrorFor, setConnectErrorFor] = useState<string | null>(null);
   const [selectedSsid, setSelectedSsid] = useState<string | null>(null);
   const [password, setPassword] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -547,11 +556,16 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
         onDangerChange?.(danger);
       } else {
         sysFailCount.current++;
+        // Раньше порог проверялся только в catch — ошибочный (не сетевой)
+        // ответ мог расти сколько угодно, а модалка молча не темнела
+        if (sysFailCount.current >= FAIL_THRESHOLD) setBoardOffline(true);
       }
     } catch {
       sysFailCount.current++;
-      // 2 подряд ошибки (~6с) → считаем плату недоступной
-      if (sysFailCount.current >= 2) setBoardOffline(true);
+      // Порог поднят с 2 до 4 (~12с вместо ~6с) — двух неудач подряд
+      // хватало на обычную заминку Wi-Fi, и модалка сереет и оживает без
+      // настоящей причины
+      if (sysFailCount.current >= FAIL_THRESHOLD) setBoardOffline(true);
     }
   }, [isLocal, setBoardOffline, onDangerChange]);
 
@@ -709,7 +723,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   // ── WiFi actions ─────────────────────────────────────────────────────────────
   // quiet=true — не показывает тост при ошибке, возвращает успех/неуспех
   const handleScan = useCallback(async (quiet = false): Promise<boolean> => {
-    setScanning(true); setNetworks([]); setSelectedSsid(null); setPassword(""); setConnectError(null);
+    // Раньше здесь сразу обнулялся networks — секции "Знакомые сети" и
+    // "Другие сети" на время каждого скана (в т.ч. тихих, каждые 3с при
+    // переподключении) полностью пропадали с экрана. Список остаётся
+    // прежним, пока не придут свежие данные — тогда и обновится разом,
+    // включая исчезновение того, что действительно вышло из зоны действия
+    setScanning(true); setSelectedSsid(null); setPassword(""); setConnectError(null);
     try {
       const res = await fetch(`${rpiBaseUrlRef.current}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "scan" }) });
       const data = await res.json();
@@ -764,7 +783,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   }, [tab, checkUpdate, fetchSyncStatus]);
 
   const handleConnectSaved = async (networkId: string, ssid: string) => {
-    setConnectingTo(ssid); setConnectError(null); setNoInternet(false);
+    setConnectingTo(ssid); setConnectError(null); setConnectErrorFor(null); setNoInternet(false);
     try {
       const res = await fetch(`${rpiBaseUrlRef.current}/api/wifi-manager`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "connectSaved", networkId }) });
       const data = await res.json();
@@ -775,8 +794,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
         setNetworks((p) => p.map((n) => ({ ...n, inUse: n.ssid === ssid })));
       } else {
         setConnectError(data.error ?? "Не удалось подключиться");
+        setConnectErrorFor(networkId);
       }
-    } catch { setConnectError("Ошибка сети"); }
+    } catch {
+      setConnectError("Ошибка сети");
+      setConnectErrorFor(networkId);
+    }
     finally { setConnectingTo(null); }
   };
 
@@ -1252,9 +1275,9 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                           ↓ {fmtBps(sysData?.wlan1RxBps ?? 0)} &nbsp;·&nbsp; ↑ {fmtBps(sysData?.wlan1TxBps ?? 0)}
                         </span>
                       </div>
-                      {/* Tablet throughput */}
+                      {/* Device throughput */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                        <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontWeight: 500 }}>Планшеты</span>
+                        <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.4)", fontWeight: 500 }}>Устройства</span>
                         <span className="input-header" style={{ fontSize: 12, fontWeight: 600, color: "#2d2015" }}>
                           ↓ {fmtBps(sysData?.wlan0TxBps ?? 0)} &nbsp;·&nbsp; ↑ {fmtBps(sysData?.wlan0RxBps ?? 0)}
                         </span>
@@ -1306,12 +1329,17 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                         flexShrink: 0,
                       }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="input-header" style={{ fontSize: 15, fontWeight: 700, color: "#2d2015", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {status?.ssid ?? "—"}
+                        {/* Бэкенд сам отдаёт литеральный "—" в ssid/ip, когда
+                            wlan1 ни к чему не подключена — раньше это так и
+                            показывалось прочерком без объяснения */}
+                        <div className="input-header" style={{ fontSize: 15, fontWeight: 700, color: status?.ssid && status.ssid !== "—" ? "#2d2015" : "rgba(0,0,0,0.4)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {status?.ssid && status.ssid !== "—" ? status.ssid : "Нет подключения к интернету"}
                         </div>
-                        <div className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.38)", marginTop: 1, fontFamily: "monospace" }}>
-                          {status?.ip ?? ""}
-                        </div>
+                        {status?.ip && status.ip !== "—" && (
+                          <div className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.38)", marginTop: 1, fontFamily: "monospace" }}>
+                            {status.ip}
+                          </div>
+                        )}
                       </div>
                       {noInternet && (
                         <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 8px", borderRadius: 7, background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.4)" }}>
@@ -1431,7 +1459,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                                       </svg>
                                     )}
                                     <button
-                                      onClick={() => { setEditingId(isEditing ? null : sn.id); setEditPassword(""); setConnectError(null); }}
+                                      onClick={() => { setEditingId(isEditing ? null : sn.id); setEditPassword(""); setConnectError(null); setConnectErrorFor(null); }}
                                       style={{ background: "none", border: "none", cursor: "pointer", padding: 3, color: "rgba(0,0,0,0.3)", display: "flex" }}
                                     >
                                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -1455,6 +1483,20 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                                       )}
                                     </button>
                                   </div>
+
+                                  {/* Ошибка от кнопки "Подключить" на свёрнутой строке — раньше
+                                      попадала в connectError, но показывалась только внутри
+                                      раскрытой панели пароля, то есть нигде не была видна */}
+                                  {!isEditing && !inUse && connectErrorFor === sn.id && connectError && (
+                                    <div style={{
+                                      display: "flex", alignItems: "center", gap: 6,
+                                      padding: "6px 12px", borderRadius: "0 0 10px 10px",
+                                      background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.3)", borderTop: "none",
+                                    }}>
+                                      <span style={{ fontSize: 12 }}>⚠️</span>
+                                      <span className="input-header" style={{ fontSize: 12, color: "#991b1b" }}>{connectError}</span>
+                                    </div>
+                                  )}
 
                                   {isEditing && (
                                     <div data-expand-panel style={{
@@ -1486,7 +1528,16 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                       {/* Unknown networks */}
                       {otherNets.length > 0 && (
                         <div style={card}>
-                          <SectionLabel>Другие сети</SectionLabel>
+                          <SectionLabel>
+                            <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              Другие сети
+                              {scanning && (
+                                <svg className="animate-spin" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                                </svg>
+                              )}
+                            </span>
+                          </SectionLabel>
                           {otherNets.map((net) => (
                             <ScanNetItem
                               key={net.ssid} net={net} status={status}
@@ -1612,15 +1663,19 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                             </div>
 
                             {/* Здесь, а не в диагностике: та показывает снимок на
-                                момент запуска, а число планшетов нужно видеть
-                                постоянно — оно меняется по ходу службы */}
+                                момент запуска, а число устройств нужно видеть
+                                постоянно — оно меняется по ходу службы.
+                                Это соединения с самим приложением (сколько
+                                открытых окон/вкладок держат связь с сервером),
+                                а не число устройств на точке доступа платы —
+                                те два счётчика законно могут отличаться */}
                             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                               <div style={{ width: 28, display: "flex", justifyContent: "center" }}>
                                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2" strokeLinecap="round">
                                   <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="10" y1="18" x2="14" y2="18"/>
                                 </svg>
                               </div>
-                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>Планшетов</span>
+                              <span className="input-header" style={{ fontSize: 13, color: "rgba(0,0,0,0.45)", width: 80 }}>На связи</span>
                               <span className="input-header" style={{ fontSize: 13, fontWeight: 600, color: "#2d2015" }}>
                                 {typeof sysData?.clientsCount === "number" ? sysData.clientsCount : "—"}
                               </span>
@@ -2330,7 +2385,7 @@ function buildDiagGroups(
           status: "ok",
         },
         {
-          id: "board-clients", label: "Планшетов на связи",
+          id: "board-clients", label: "Устройств на связи",
           detail:
             typeof sysData?.clientsCount === "number"
               ? String(sysData.clientsCount)

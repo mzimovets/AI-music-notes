@@ -253,7 +253,10 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         size="5xl"
         backdrop="blur"
         classNames={{
-          base: "mt-100 shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl !max-w-5xl w-[calc(100vw-32px)]",
+          // mt-100 не существует в шкале Tailwind (нет такого ключа) — класс
+          // ничего не делал, а модалка на телефоне и правда стояла низко:
+          // причина в том, что зазор ей давал не он
+          base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl !max-w-5xl w-[calc(100vw-32px)]",
         }}
       >
         <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
@@ -263,16 +266,18 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                 <Pattern width={86} height={80} className="opacity-80" />
               </div>
 
-              {/* Заголовок */}
-              {/* className="p-0 flex flex-col text-center justify-center font-header gap-4" */}
-              <ModalHeader className="mx-auto text-center font-header">
+              {/* Заголовок — отступ слева, чтобы не налезать на узор в углу */}
+              <ModalHeader className="mx-auto text-center font-header px-16 pt-4">
                 Добавить новую партитуру
               </ModalHeader>
 
               <ModalBody>
                 <div className="space-y-6">
                   {/* Название и категория */}
-                  <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0 items-start">
+                  {/* gap-y-0 обнулял вертикальный зазор и на мобильном, где
+                      поля стоят друг под другом (grid-cols-1) — на md он
+                      снова не нужен, там поля рядом по горизонтали */}
+                  <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-6 md:gap-y-0 items-start">
                     <Input
                       isRequired
                       isInvalid={validationErrors.name}

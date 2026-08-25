@@ -987,7 +987,7 @@ export const SideBarStack = ({
                                           }}
                                         >
                                           {holidays.map((holiday) => (
-                                            <SelectItem key={holiday.key}>
+                                            <SelectItem key={holiday.key} className="input-header">
                                               {holiday.label}
                                             </SelectItem>
                                           ))}

@@ -737,7 +737,7 @@ export const Sidebar2 = ({ onPreview, forceVisible = true }: { onPreview: (song:
                                         }}
                                       >
                                         {holidays.map((holiday) => (
-                                          <SelectItem key={holiday.key}>
+                                          <SelectItem key={holiday.key} className="input-header">
                                             {holiday.label}
                                           </SelectItem>
                                         ))}

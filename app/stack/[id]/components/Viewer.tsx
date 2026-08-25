@@ -55,9 +55,13 @@ export const Viewer = ({ fileUrl }: { fileUrl: string | File }) => {
 
         {pdfDoc?.numPages > 1 && (
           <div
+            /* max-w и прокрутка внутри: ширина следует за содержимым, и на
+               телефоне при десятке страниц полоса выходила за край экрана
+               (тот же баг уже чинили в DocViewer.tsx, здесь пропустили) */
             className="fixed bottom-10 left-1/2 -translate-x-1/2 z-40
   bg-white/10 backdrop-blur-xl border border-white/80 shadow-2xl ring-1 ring-black/5
-  rounded-[2rem] transition-all duration-200 px-4 pt-2"
+  rounded-[2rem] transition-all duration-200 px-4 pt-2
+  max-w-[calc(100vw-1.5rem)] overflow-x-auto"
           >
             <Pagination
               onChange={setPageNum}

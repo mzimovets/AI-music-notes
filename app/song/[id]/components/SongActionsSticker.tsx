@@ -45,25 +45,30 @@ export const SongActionsSticker = () => {
   if (isMobile && !open) {
     return (
       <>
-        <button
-          onClick={() => setOpen(true)}
-          aria-label="Действия с нотой"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: "12px 0 0 12px",
-            background: "linear-gradient(to right, #BD9673, #7D5E42)",
-            boxShadow: "-2px 3px 6px rgba(0,0,0,0.25)",
-            border: "none",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
-          }}
-          className="active:opacity-70 transition-opacity"
-        >
-          <WidgetIcon className="w-5 h-5" />
-        </button>
+        {/* Кнопка (44px) уже своего контейнера (60px) — без выравнивания
+            она лепится к левому краю контейнера, а не к правому краю
+            экрана, оставляя пустой зазор */}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <button
+            onClick={() => setOpen(true)}
+            aria-label="Действия с нотой"
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: "12px 0 0 12px",
+              background: "linear-gradient(to right, #BD9673, #7D5E42)",
+              boxShadow: "-2px 3px 6px rgba(0,0,0,0.25)",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "white",
+            }}
+            className="active:opacity-70 transition-opacity"
+          >
+            <WidgetIcon className="w-5 h-5" />
+          </button>
+        </div>
         {PrintElement}
       </>
     );

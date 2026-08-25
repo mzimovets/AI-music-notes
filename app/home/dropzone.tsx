@@ -179,7 +179,10 @@ export default function MyDropzone({
                         style={{
                           display: "block",
                           textOverflow: "ellipsis",
-                          maxWidth: "180px", // Настройте под ваш дизайн
+                          // Родитель уже flex-1 min-w-0 — сам ограничивает
+                          // ширину по контейнеру. Жёсткие 180px не учитывали
+                          // ширину экрана и на узких телефонах вылезали за
+                          // карточку, а на широких зря обрезали раньше времени
                         }}
                         title={selectedFile.name}
                       >
