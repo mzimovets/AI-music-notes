@@ -31,6 +31,7 @@ import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
 import { execSync } from "child_process";
+import path from "path";
 import { fileURLToPath as _ftu } from "url";
 import { dirname as _dirname, join as _join } from "path";
 const __envDir = _dirname(_ftu(import.meta.url));
@@ -473,6 +474,41 @@ categoriesRoutes(app);
 
 // Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
 startSyncScheduler();
+
+/**
+ * Автоматическая уборка раз в сутки: файлы-сироты в uploads (замена скана
+ * или картинки раздела больше не оставляет старый файл висеть навсегда) и
+ * soft-deleted записи старше 30 дней.
+ *
+ * Резервная копия перед каждым запуском — своя страховка на случай, если
+ * поиск ничьих файлов где-то ошибётся. Без метки, чтобы участвовать в
+ * обычной ротации backup.sh (последние 10), а не копиться бесконечно.
+ */
+const CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+async function runAutoCleanup() {
+  try {
+    execSync(`bash "${path.join(__dirname, "scripts", "backup.sh")}"`, { stdio: "ignore" });
+  } catch (e) {
+    console.warn("[cleanup] Резервная копия перед автоуборкой не удалась, уборку пропускаю:", e.message);
+    return;
+  }
+  try {
+    const { runCleanup } = await import("./cleanup-core.js");
+    const result = await runCleanup({
+      database,
+      uploadsDir: path.join(__dirname, "uploads"),
+      purgeDays: 30,
+    });
+    console.log(
+      `[cleanup] Автоуборка: файлов удалено ${result.orphanFiles.length}, записей удалено ${result.purgedCount}`,
+    );
+  } catch (e) {
+    console.error("[cleanup] Автоуборка сорвалась:", e);
+  }
+}
+// Не сразу при старте — даём серверу спокойно подняться
+setTimeout(runAutoCleanup, 5 * 60 * 1000);
+setInterval(runAutoCleanup, CLEANUP_INTERVAL_MS);
 
 const deleteOldFiles = (fileName) => {
   fs.readdirSync(__dirname + "/uploads").forEach((file) => {
