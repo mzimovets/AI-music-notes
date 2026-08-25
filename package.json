@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "NODE_OPTIONS=--max-old-space-size=2560 next build",
     "start": "node server-next.js",
     "lint": "eslint --fix",
     "clicker": "node scripts/clicker.js"
