@@ -26,7 +26,7 @@ const PYTHON_SCRIPT = path.join(__dirname, "scripts", "optimize-scan.py");
 // Кэшируем результат: проверять бинарники на каждой загрузке ноты незачем
 let toolsAvailable = null;
 
-function checkTools() {
+export function checkTools() {
   if (toolsAvailable !== null) return toolsAvailable;
   try {
     execFileSync("pdfimages", ["-v"], { stdio: "ignore", timeout: 5000 });

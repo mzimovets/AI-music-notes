@@ -17,7 +17,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Datastore from "nedb";
 import { pushLocalChangeToRemote } from "../push-remote.js";
-import { needsOptimization, optimizeIfNeeded } from "../scan-optimizer.js";
+import { needsOptimization, optimizeIfNeeded, checkTools } from "../scan-optimizer.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SERVER_DIR = path.resolve(__dirname, "..");
@@ -29,6 +29,18 @@ const SKIP_BACKUP = args.includes("--no-backup");
 
 async function main() {
   console.log(`[optimize-scans] ${DRY_RUN ? "DRY RUN — " : ""}поиск тяжёлых сканов в ${UPLOADS_DIR}`);
+
+  // Без этой проверки скрипт молча отчитывался "тяжёлых: 0" там, где на
+  // самом деле не мог заглянуть ни в один файл: needsOptimization ловит
+  // любую ошибку и возвращает false. Так на сервере без poppler всё
+  // выглядело сделанным, хотя не было переделано ничего
+  if (!checkTools()) {
+    console.error(
+      "\n[optimize-scans] Нечем читать PDF — проверка невозможна, это НЕ значит, что переделывать нечего.\n" +
+        "                 Установите: sudo apt install -y poppler-utils python3-pil",
+    );
+    process.exit(1);
+  }
 
   const files = fs.readdirSync(UPLOADS_DIR).filter((f) => f.toLowerCase().endsWith(".pdf"));
   // По файлу за раз, с именем перед проверкой — если где-то зависнет
