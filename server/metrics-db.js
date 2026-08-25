@@ -2,6 +2,7 @@
 // Вынесена в отдельный модуль, чтобы не создавать circular import между
 // index.js → routes/sync.js и sync-client.js → index.js.
 
+import "./nedb-compat.js";
 import Datastore from "nedb";
 import path from "path";
 import { fileURLToPath } from "url";

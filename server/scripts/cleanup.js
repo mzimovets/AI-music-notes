@@ -8,6 +8,7 @@
 //   --dry-run     Показать что будет удалено, не удалять
 //   --purge-days=N Возраст soft-deleted записей для жёсткого удаления (default: 30)
 
+import "../nedb-compat.js";
 import Datastore from "nedb";
 import fs from "fs";
 import path from "path";

@@ -1,3 +1,7 @@
+// Чинит nedb на версиях Node, где нет util.isDate/isArray/isRegExp — без
+// этого падает вообще любое обращение к базе (см. nedb-compat.js)
+import "./nedb-compat.js";
+
 import express from "express";
 const app = express();
 import bodyParser from "body-parser";
