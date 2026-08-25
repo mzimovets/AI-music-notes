@@ -89,6 +89,16 @@ async function deleteFromAllCaches(urlPath: string) {
 
 async function fetchAndCache(url: string, cacheName: string) {
   try {
+    // Правило "сначала кеш" на /uploads/* (см. app/sw.ts) отдаёт файл из
+    // своей памяти сервис-воркера, даже не заглянув в сеть — cache: "reload"
+    // на это не влияет, сервис-воркер эту команду не видит. Без явного
+    // удаления старой записи изменившийся файл (тот же URL, другое
+    // содержимое — например, ноту переделали или регент заменил скан) не
+    // обновился бы в памяти устройства никогда, штатным путём
+    try {
+      const cache = await caches.open(cacheName);
+      await cache.delete(url, { ignoreVary: true, ignoreSearch: true });
+    } catch {}
     const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(30_000) });
     if (res.ok) {
       const cache = await caches.open(cacheName);

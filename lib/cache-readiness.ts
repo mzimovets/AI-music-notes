@@ -334,6 +334,22 @@ export async function repairReadiness(
       while (index < urls.length) {
         const url = urls[index++];
         try {
+          // /uploads/* — правило "сначала кеш" в сервис-воркере (см. app/sw.ts):
+          // он находит файл в своей памяти и отдаёт его же, даже не заглянув
+          // в сеть — cache: "reload" на это не влияет никак, это команда для
+          // обычного HTTP-кеша браузера, сервис-воркер её не видит и не
+          // обязан слушаться. Так переделанный скан с тем же именем файла
+          // не мог доехать до планшета вообще никаким штатным путём —
+          // помогала только полная переустановка приложения.
+          //
+          // Стираем именно эту запись из его памяти заранее — тогда отдавать
+          // ему нечего, и он сам идёт в сеть за свежим файлом
+          if (url.startsWith("/uploads/") && typeof caches !== "undefined") {
+            try {
+              const cache = await caches.open("uploads-cache");
+              await cache.delete(url, { ignoreVary: true, ignoreSearch: true });
+            } catch {}
+          }
           // cache: "reload" — берём с сервера, а не из кеша браузера, иначе
           // устаревшая страница так и осталась бы устаревшей
           const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) });
