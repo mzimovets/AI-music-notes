@@ -201,7 +201,11 @@ export default function MyDropzone({
                       handleRemoveFile(e);
                     }}
                     onMouseDown={(e) => e.stopPropagation()}
-                    className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg hover:scale-110 z-30"
+                    // Раньше кнопка нарочно вылезала за свои границы
+                    // (-top-2 -right-2), а внешняя карточка обрезает
+                    // содержимое (overflow-hidden) — сверху и справа
+                    // оставался виден только краешек красного кружка
+                    className="absolute top-1 right-1 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-all shadow-lg hover:scale-110 z-30"
                     aria-label="Удалить файл"
                   >
                     <span className="text-sm font-bold">×</span>

@@ -45,12 +45,19 @@ export const DocViewer = ({ fileUrl, songId }: { fileUrl: string | File; songId?
             <SwarrowIconWithCircle width={50} height={13} circleSize={20} />
           </div>
 
+          {/* На телефоне — просто "N / всего", а не кружки с номерами.
+              При многих страницах даже с многоточием кружки всё равно
+              выглядели неопрятно, и надёжнее не зависеть от того, сколько
+              их поместится — текст не может вылезти при любом числе страниц */}
+          <span className="md:hidden font-pagination text-sm font-bold text-gray-700 shrink-0 px-2">
+            {pageNum} / {pdfDoc.numPages}
+          </span>
           <Pagination
             onChange={setPageNum}
             total={pdfDoc.numPages}
             page={pageNum}
             showControls={false}
-            className="pb-4"
+            className="hidden md:flex pb-4"
             classNames={{
               wrapper: "font-header",
               item: [

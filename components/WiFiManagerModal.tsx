@@ -5,9 +5,13 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useLocalServer } from "@/hooks/useLocalServer";
 
 // Сколько подряд неудачных опросов /api/system-status считать реальной
-// потерей связи. Раньше было 2 (~6с при интервале 3с) — хватало обычной
-// заминки Wi-Fi, чтобы модалка сереет и оживала без настоящей причины
-const FAIL_THRESHOLD = 4;
+// потерей связи. Было 2 (~6с), потом 4 (~12с) — и то, и другое ловило
+// обычную заминку Wi-Fi как настоящее отключение. Если плата регулярно
+// сереет даже с этим запасом — вероятная причина не здесь, а в реальной
+// нестабильности платы (см. вкладку "Питание": пониженное напряжение и
+// тепловой тротлинг сами по себе способны рвать связь на секунды) —
+// программной подстройкой это до конца не лечится, чинить нужно питание
+const FAIL_THRESHOLD = 8;
 
 interface Props {
   isOpen: boolean;
@@ -395,6 +399,11 @@ function PasswordInput({ value, onChange, onKeyDown, error, placeholder = "Па�
           ref={inputRef}
           type={show ? "text" : "password"} placeholder={placeholder} value={value}
           onChange={(e) => onChange(e.target.value)} onKeyDown={onKeyDown}
+          // Клавиатура на телефоне выезжает поверх модалки и закрывает
+          // поле — ждём, пока она закончит выезжать (иначе scrollIntoView
+          // считает по старой, ещё не сжатой высоте экрана), и подводим
+          // поле в видимую часть
+          onFocus={() => setTimeout(() => inputRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 300)}
           className="input-header"
           style={{
             width: "100%", padding: "9px 36px 9px 12px", borderRadius: 9,
@@ -457,9 +466,11 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
       offlineSinceRef.current = 0;
       setOfflineSince(0);
       setRetryChecking(false);
-      // Сбрасываем устаревшие ошибки и результаты сканирования
+      // Сбрасываем устаревшие ошибки, но не список сетей — плата время от
+      // времени теряет и восстанавливает связь (см. FAIL_THRESHOLD), и
+      // каждое восстановление стирало "Знакомые сети" точно так же, как
+      // это раньше делал сам скан. Список сам обновится тихим ретрай-сканом
       setConnectError(null);
-      setNetworks([]);
       setScanDone(false);
       setToast(null); // убираем висящий тост "Ошибка сети"
       if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -1711,7 +1722,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
 
               {/* ══ ПРОШИВКА ════════════════════════════════════════════════════ */}
               {isLocal && tab === "firmware" && (
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto", minHeight: 0 }}>
+                // Раньше здесь была своя прокрутка (flex:1 + overflowY:auto)
+                // поверх уже прокручиваемого тела модалки (см. ниже) — два
+                // вложенных скролла подряд, а внутри ещё и у журнала был
+                // третий (maxHeight:280). Список обрывался некрасиво в
+                // маленьком окошке вместо того, чтобы идти общей прокруткой
+                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                   {/* Git update */}
                   <div style={{ ...card, flexShrink: 0, position: "relative" }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
@@ -1963,8 +1979,10 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                         </div>
                       </button>
 
+                      {/* Без своей прокрутки — идёт частью общей прокрутки
+                          модалки, а не обрывается в тесном окошке */}
                       {historyOpen && (
-                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6, maxHeight: 280, overflowY: "auto" }}>
+                        <div style={{ marginTop: 6, display: "flex", flexDirection: "column", gap: 6 }}>
                           {syncHistory.length === 0 && (
                             <div style={{ padding: "14px 0", display: "flex", alignItems: "center", justifyContent: "center" }}>
                               <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.3)" }}>Синхронизаций ещё не было</span>

@@ -252,14 +252,20 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
         placement="center"
         size="5xl"
         backdrop="blur"
+        // "inside" — прокручивается содержимое (ModalBody) внутри заданной
+        // высоты, шапка с крестиком и низ с кнопкой всегда остаются на
+        // месте и видны целиком. Раньше прокручивалась вся страница вокруг
+        // модалки — на телефоне из-за этого нижнюю часть (включая крестик)
+        // было не достать
+        scrollBehavior="inside"
         classNames={{
           // mt-100 не существует в шкале Tailwind (нет такого ключа) — класс
           // ничего не делал, а модалка на телефоне и правда стояла низко:
           // причина в том, что зазор ей давал не он
-          base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl !max-w-5xl w-[calc(100vw-32px)]",
+          base: "shadow-[0_20px_60px_rgba(0,0,0,0.25)] rounded-2xl !max-w-5xl w-[calc(100vw-32px)] max-h-[90vh]",
         }}
       >
-        <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl overflow-scroll">
+        <ModalContent className="bg-white/70 backdrop-blur-xl border border-white/40 rounded-2xl">
           {(onClose) => (
             <>
               <div className="absolute top-3 left-2 z-50">
