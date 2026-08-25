@@ -112,6 +112,13 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
   };
 
   const handleSave = async (onClose: () => void) => {
+    // Второе нажатие, пока идёт первое, заводило вторую партитуру с тем же
+    // названием и вторую копию файла (multer дописывал _1 к имени). Флаг
+    // isSaved для этого и заводили, но нигде не проверяли — кнопка всё
+    // это время оставалась нажимаемой. Так в библиотеке и появились
+    // «Гляжу в озера синие» дважды с разницей в 18 секунд
+    if (isSaved) return;
+
     const hasRepriseErrors =
       repriseRaw.some((r) => r.from === "" || r.to === "") ||
       reprises.some((r) => r.fromPage === r.toPage && r.fromPage !== 0);
@@ -556,13 +563,17 @@ export default function ModalAddScore({isOpen, onOpen, onOpenChange}: {isOpen: b
                 <Button
                   type="submit"
                   className="bg-gradient-to-r from-[#BD9673] to-[#7D5E42] text-white shadow-lg input-header text-sm"
+                  // isSaved: пока идёт сохранение, кнопка недоступна —
+                  // иначе второе нажатие заводит вторую такую же партитуру
                   isDisabled={
+                    isSaved ||
                     repriseRaw.some((r) => r.from === "" || r.to === "") ||
                     reprises.some((r) => r.fromPage !== 0 && r.fromPage === r.toPage)
                   }
+                  isLoading={isSaved}
                   onPress={() => handleSave(onClose)}
                 >
-                  Добавить в базу
+                  {isSaved ? "Добавляем…" : "Добавить в базу"}
                 </Button>
               </ModalFooter>
 
