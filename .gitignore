@@ -55,7 +55,12 @@ bun.lockb
 # Зависимости и браузеры для проверок офлайна
 tests/node_modules
 
-# Рабочее состояние платы — пишется на месте, в репозитории ему не место
+# Рабочее состояние платы — пишется на месте, в репозитории ему не место.
+# sync-state/sync-history попали сюда не сразу: пока они лежали в git,
+# обновление прошивки (git reset --hard) затирало живое состояние платы
+# закоммиченным, и окно платы показывало «Синхронизировано 82 д назад»
 server/cert-state.json
 server/push-outbox.json
+server/sync-state.json
+server/sync-history.json
 server/clock-offset.json

@@ -197,6 +197,9 @@ return (
                   <StackIcon color="white" />
                 </Button>
               )}
+            {/* Вход по QR убран по просьбе регента — вместе с кнопкой в меню
+                ниже и самой модалкой в конце файла. Код оставлен на случай,
+                если понадобится вернуть
             <Button
               onPress={() => setIsQRModalOpen(true)}
               radius="full"
@@ -206,6 +209,7 @@ return (
             >
               <QRIcon />
             </Button>
+            */}
             <Button
               onPress={handleExit}
               radius="full"
@@ -271,7 +275,7 @@ return (
                     </Button>
                   )}
 
-                {/* Кнопка QR вход */}
+                {/* Кнопка QR вход — убрана, см. пояснение выше
                 <Button
                   onPress={() => { setIsQRModalOpen(true); setIsOpen(false); }}
                   radius="full"
@@ -280,6 +284,7 @@ return (
                 >
                   QR вход
                 </Button>
+                */}
 
                 {/* Кнопка Exit */}
                 <Button
@@ -296,7 +301,9 @@ return (
         </NavbarContent>
       </HeroUINavbar>
       
+      {/* Модалка QR-входа — убрана, см. пояснение выше
       <QRModal isOpen={isQRModalOpen} onClose={() => setIsQRModalOpen(false)} />
+      */}
       <ModalAddScore isOpen={isModalAddScoreOpen} onOpen={onOpenModalAddScore} onOpenChange={onOpenChangeModalAddScore} />
       <StackNameModal
         isOpen={isModalOpen}

@@ -63,3 +63,25 @@ export async function GET() {
     sitesCheckedAt: state.sitesCheckedAt ?? null,
   });
 }
+
+/**
+ * Проверить сертификат прямо сейчас — для кнопки «Обновить» в окне платы.
+ *
+ * Сама проверка живёт в бэкенде (server/cert-sync.js): там загружены ключи
+ * доступа к мастеру, которых у этого процесса нет. Обход идёт раз в час, а
+ * неудачная попытка остаётся записанной в файле состояния до следующей —
+ * человек успевает подключить плату к интернету и хочет увидеть итог сразу,
+ * а не гадать, устарело сообщение или нет.
+ */
+export async function POST() {
+  const BACKEND = process.env.NEXT_PUBLIC_BASIC_BACK_URL || "http://localhost:4000";
+  try {
+    const res = await fetch(`${BACKEND}/api/cert-refresh`, {
+      method: "POST",
+      signal: AbortSignal.timeout(30_000),
+    });
+    return NextResponse.json(await res.json(), { status: res.ok ? 200 : 502 });
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err?.message) }, { status: 500 });
+  }
+}

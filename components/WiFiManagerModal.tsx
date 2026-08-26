@@ -191,7 +191,12 @@ function humanSyncError(raw?: string) {
  * отставание было нечем. Цвет меняется заранее: за две недели жёлтый, после
  * истечения красный — чтобы это бросалось в глаза до выступления, а не после.
  */
-function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean }) {
+function CertRow({ cert, isLocal, onRefresh, refreshing }: {
+  cert: CertInfo | null;
+  isLocal: boolean;
+  onRefresh?: () => void;
+  refreshing?: boolean;
+}) {
   if (!cert) {
     return (
       <span className="input-header" style={{ fontSize: 12, color: "rgba(0,0,0,0.35)" }}>
@@ -223,8 +228,16 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
         </span>
         <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.45)", lineHeight: 1.4 }}>
           Устройства не будут доверять плате. Подключите её к интернету — сертификат
-          заберётся с сервера сам в течение часа.
+          заберётся с сервера сам в течение часа, или нажмите «Обновить».
         </span>
+        {cert.error && (
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", lineHeight: 1.4 }}>
+            Последняя проверка не удалась: {humanSyncError(cert.error)}
+          </span>
+        )}
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <CertRefreshButton onRefresh={onRefresh} refreshing={refreshing} />
+        </div>
       </div>
     );
   }
@@ -325,11 +338,36 @@ function CertRow({ cert, isLocal }: { cert: CertInfo | null; isLocal: boolean })
       )}
 
       {cert.error && (
-        <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", lineHeight: 1.4 }}>
-          Последняя проверка не удалась: {cert.error}
-        </span>
+        /* Неудачная попытка лежит записанной в файле состояния и висит до
+           следующего обхода — а он раз в час. Сама по себе она не пройдёт,
+           поэтому рядом кнопка: подключил плату к интернету — нажал */
+        <div style={{ display: "flex", alignItems: "center", gap: 8, lineHeight: 1.4 }}>
+          <span className="input-header" style={{ fontSize: 11, color: "rgba(0,0,0,0.35)", flex: 1 }}>
+            Последняя проверка не удалась: {humanSyncError(cert.error)}
+          </span>
+          <CertRefreshButton onRefresh={onRefresh} refreshing={refreshing} />
+        </div>
       )}
     </div>
+  );
+}
+
+function CertRefreshButton({ onRefresh, refreshing }: { onRefresh?: () => void; refreshing?: boolean }) {
+  if (!onRefresh) return null;
+  return (
+    <button
+      onClick={onRefresh}
+      disabled={refreshing}
+      className="input-header"
+      style={{
+        flexShrink: 0, padding: "4px 10px", borderRadius: 8,
+        border: "1px solid rgba(125,94,66,0.25)", background: "rgba(255,255,255,0.6)",
+        color: "#7D5E42", fontSize: 11, fontWeight: 600,
+        cursor: refreshing ? "not-allowed" : "pointer",
+      }}
+    >
+      {refreshing ? "Проверяю…" : "Обновить"}
+    </button>
   );
 }
 
@@ -529,6 +567,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const [checking, setChecking] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [certInfo, setCertInfo] = useState<CertInfo | null>(null);
+  const [certRefreshing, setCertRefreshing] = useState(false);
   const [commitOpen, setCommitOpen] = useState(false);
   const [firmwareLogOpen, setFirmwareLogOpen] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<number>(() => {
@@ -684,18 +723,31 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
 
   // Сертификат спрашиваем при открытии окна и раз в полчаса: меняется он раз
   // в два месяца, чаще смотреть незачем
+  const loadCert = useCallback(async () => {
+    try {
+      const res = await fetch(`${rpiBaseUrlRef.current}/api/cert-status`);
+      if (res.ok) setCertInfo(await res.json());
+    } catch { setCertInfo(null); }
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
-    const load = async () => {
-      try {
-        const res = await fetch(`${rpiBaseUrlRef.current}/api/cert-status`);
-        if (res.ok) setCertInfo(await res.json());
-      } catch { setCertInfo(null); }
-    };
-    load();
-    const timer = setInterval(load, 30 * 60_000);
+    loadCert();
+    const timer = setInterval(loadCert, 30 * 60_000);
     return () => clearInterval(timer);
-  }, [isOpen]);
+  }, [isOpen, loadCert]);
+
+  /** Кнопка «Обновить» у сертификата: проверяем на плате прямо сейчас */
+  const refreshCert = useCallback(async () => {
+    setCertRefreshing(true);
+    try {
+      await fetch(`${rpiBaseUrlRef.current}/api/cert-status`, { method: "POST" });
+    } catch {}
+    // Итог читаем в любом случае: даже неудачная попытка обновляет запись о
+    // времени последней проверки, и человеку видно, что кнопка сработала
+    await loadCert();
+    setCertRefreshing(false);
+  }, [loadCert]);
 
   useEffect(() => {
     if (!isOpen) { if (checkTimer.current) clearInterval(checkTimer.current); return; }
@@ -2167,7 +2219,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                   {/* Сертификат */}
                   <div style={{ ...card }}>
                     <SectionLabel style={{ margin: "0 0 8px" }}>Сертификат</SectionLabel>
-                    <CertRow cert={certInfo} isLocal={isLocal} />
+                    <CertRow cert={certInfo} isLocal={isLocal} onRefresh={refreshCert} refreshing={certRefreshing} />
                   </div>
 
                 </div>
