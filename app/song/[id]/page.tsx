@@ -16,10 +16,10 @@ export default async function PricingPage({
   const { id } = await params;
   const song = await getSongById(id);
 
-  // На удалённую ноту бэкенд отвечает {status:"ok", doc:null}, а не 404 —
-  // без проверки song.doc.name ниже падал во весь экран "Something went
-  // wrong": ссылка на неё живёт дольше самой записи (протухший кеш поиска,
-  // старая вкладка, избранное) и рано или поздно по ней кликают
+  // На удалённую партитуру бэкенд отвечает {status:"ok", doc:null}, а не
+  // 404 — без проверки song.doc.name ниже падал во весь экран "Something
+  // went wrong": ссылка на неё живёт дольше самой записи (протухший кеш
+  // поиска, старая вкладка, избранное) и рано или поздно по ней кликают
   if (!song?.doc) notFound();
 
   return (
