@@ -37,5 +37,14 @@ rsync -avz --delete \
   .next \
   "$SERVER_HOST:$SERVER_DIR/"
 
+SSH="ssh -p $SERVER_PORT $SERVER_HOST"
+
+# На самом первом запуске на сервере ещё старая версия deploy.sh, которая
+# про server-nobuild не знает — подтягиваем код явно, чтобы сам скрипт
+# обновился раньше, чем мы его вызовем. На всех следующих запусках это
+# просто безобидное повторение того же самого шага
+echo "=== Обновляю сам deploy.sh на сервере (на случай первого запуска)"
+$SSH "cd $SERVER_DIR && git fetch origin main && git reset --hard origin/main"
+
 echo "=== На сервере: код через git, зависимости, перезапуск (без сборки)"
-ssh -p "$SERVER_PORT" "$SERVER_HOST" "cd $SERVER_DIR && bash deploy.sh server-nobuild"
+$SSH "cd $SERVER_DIR && bash deploy.sh server-nobuild"
