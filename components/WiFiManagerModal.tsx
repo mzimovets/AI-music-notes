@@ -170,6 +170,20 @@ interface CertInfo {
 }
 
 /**
+ * Человеческая причина вместо «fetch failed».
+ *
+ * Так дословно выглядит любая сорвавшаяся попытка платы связаться с сервером
+ * (сообщение самого Node, см. app/api/update-db/route.ts). Человеку оно не
+ * говорит ничего, а причина почти всегда одна и та же — у платы нет интернета.
+ */
+function humanSyncError(raw?: string) {
+  if (!raw) return "Неизвестная ошибка";
+  if (/fetch failed|Failed to fetch|NetworkError|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN/i.test(raw))
+    return "Плата не смогла связаться с сервером — скорее всего у неё нет интернета";
+  return raw;
+}
+
+/**
  * Срок сертификата на плате.
  *
  * Появилось после истории, когда сертификат просрочился и узналось это письмом
@@ -686,9 +700,12 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   useEffect(() => {
     if (!isOpen) { if (checkTimer.current) clearInterval(checkTimer.current); return; }
     checkUpdate();
-    // Если ошибка — повторяем каждые 30с, иначе каждые 3 мин
-    const interval = updateInfo?.error ? 30_000 : 3 * 60_000;
-    checkTimer.current = setInterval(checkUpdate, interval);
+    // При ошибке раньше повторяли каждые 30с — и она всплывала снова и снова,
+    // хотя сама по себе не проходит: у платы либо есть интернет, либо нет.
+    // Теперь молча ждём кнопку «Обновить» рядом с сообщением, а по кругу
+    // ходим только когда всё в порядке — чтобы заметить новую прошивку
+    if (updateInfo?.error) return;
+    checkTimer.current = setInterval(checkUpdate, 3 * 60_000);
     return () => { if (checkTimer.current) clearInterval(checkTimer.current); };
   }, [isOpen, checkUpdate, updateInfo?.error]);
 
@@ -1769,7 +1786,26 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                     {!checking && updateInfo && (
                       <div style={{ marginBottom: 10 }}>
                         {updateInfo.error ? (
-                          <div className="input-header" style={{ fontSize: 12, color: "#dc2626" }}>{updateInfo.error}</div>
+                          /* Сама по себе такая ошибка не проходит, поэтому не
+                             перепроверяем её по кругу, а даём нажать явно */
+                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <span className="input-header" style={{ fontSize: 12, color: "#dc2626", flex: 1 }}>
+                              {humanSyncError(updateInfo.error)}
+                            </span>
+                            <button
+                              onClick={checkUpdate}
+                              disabled={checking}
+                              className="input-header"
+                              style={{
+                                flexShrink: 0, padding: "5px 12px", borderRadius: 8,
+                                border: "1px solid rgba(125,94,66,0.25)", background: "rgba(255,255,255,0.6)",
+                                color: "#7D5E42", fontSize: 12, fontWeight: 600,
+                                cursor: checking ? "not-allowed" : "pointer",
+                              }}
+                            >
+                              {checking ? "Проверяю…" : "Обновить"}
+                            </button>
+                          </div>
                         ) : updateInfo.hasUpdate ? (
                           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -2122,7 +2158,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                           ✗ Ошибка синхронизации
                         </span>
                         <div className="input-header" style={{ fontSize: 11, color: "#991b1b", marginTop: 3 }}>
-                          {syncResult.error ?? "Неизвестная ошибка"}
+                          {humanSyncError(syncResult.error)}
                         </div>
                       </div>
                     )}

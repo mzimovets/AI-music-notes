@@ -84,7 +84,9 @@ export const SortableSong: React.FC<SortableSongProps> = ({
                 onPress={() => onRemove(song.instanceId)}
                 className="min-w-0 px-3 bg-red-50 text-red-400 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all shadow-none"
               >
-                <TrashBinIcon />
+                {/* Рядом с глазом: у того 20px, а по умолчанию корзина 26px
+                    и выглядела крупнее соседа */}
+                <TrashBinIcon className="w-5 h-5" />
               </Button>
               <div
                 {...attributes}
