@@ -125,7 +125,13 @@ const serwist = new Serwist({
         const path = new URL(request.url).pathname;
         return (
           path === "/" ||
-          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?/.test(path)
+          // $ в конце обязателен: без него "/songs" и "/stacks" (списочные
+          // API-маршруты, не страницы) тоже совпадали по префиксу "song"/
+          // "stack" — и список нот кэшировался этим правилом с таймаутом
+          // 0.5с, из-за чего при заминке сети отдавался протухший JSON со
+          // уже удалёнными на сервере нотами, а readiness честно докачивал
+          // их файлы обратно (файл на диске ещё жив до плановой уборки)
+          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?$/.test(path)
         );
       },
       handler: new NetworkFirst({
@@ -150,7 +156,7 @@ const serwist = new Serwist({
         const path = new URL(request.url).pathname;
         return (
           path === "/" ||
-          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?/.test(path)
+          /^\/(playlist|song|stack|stackView|songRead)(\/[^/]+)?$/.test(path)
         );
       },
       handler: new NetworkFirst({
