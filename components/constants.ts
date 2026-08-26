@@ -35,6 +35,11 @@ export const categorySongs = [
     image: "/songs/children.jpg",
   },
   {
+    key: "patrioticheskie",
+    name: "Патриотические",
+    image: "/songs/pobeda.jpg",
+  },
+  {
     key: "other",
     name: "Другое",
     image: "/songs/other.jpg",

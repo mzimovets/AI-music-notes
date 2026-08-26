@@ -1923,7 +1923,7 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
                             : updateDone ? "linear-gradient(135deg,#BD9673,#7D5E42)"
                             : canUpdate ? "linear-gradient(135deg,#BD9673,#7D5E42)"
                             : "rgba(0,0,0,0.07)",
-                          color: updating ? "#7D5E42" : canUpdate ? "white" : "rgba(0,0,0,0.3)",
+                          color: updating ? "#7D5E42" : updateDone || canUpdate ? "white" : "rgba(0,0,0,0.3)",
                           fontSize: 14, fontWeight: 700, cursor: canUpdate ? "pointer" : "not-allowed",
                           display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.15s",
                           boxShadow: canUpdate && !updating ? "0 4px 14px rgba(125,94,66,0.3)" : "none",
