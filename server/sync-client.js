@@ -337,8 +337,13 @@ export async function syncFromInternet() {
     await dbUpdate({ _id: song._id }, song);
     if (song.file?.filename) await downloadFile(song.file.filename);
     const title = song.title || song.name || song._id;
-    if (existing) changeUpdated.push({ title, type: "song" });
-    else changeAdded.push({ title, type: "song" });
+    // Та же метка времени — значит запись пришла повторно, а содержимое
+    // прежнее. В журнал такое писать нельзя: человек видит «изменились
+    // песни», которых никто не трогал, и перестаёт журналу верить.
+    // Повторы случаются, когда отметка последней синхронизации сбилась
+    // назад, и мастер заново присылает всё, что менялось с той поры
+    if (!existing) changeAdded.push({ title, type: "song" });
+    else if (existing.updatedAt !== song.updatedAt) changeUpdated.push({ title, type: "song" });
   }
 
   // Upsert stacks
@@ -346,8 +351,8 @@ export async function syncFromInternet() {
     const existing = await dbFindOne({ _id: stack._id });
     await dbUpdate({ _id: stack._id }, stack);
     const title = stack.title || stack.name || stack._id;
-    if (existing) changeUpdated.push({ title, type: "stack" });
-    else changeAdded.push({ title, type: "stack" });
+    if (!existing) changeAdded.push({ title, type: "stack" });
+    else if (existing.updatedAt !== stack.updatedAt) changeUpdated.push({ title, type: "stack" });
   }
 
   // Категории — один документ на всю библиотеку, просто перезаписываем
