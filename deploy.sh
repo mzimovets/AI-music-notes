@@ -10,20 +10,29 @@
 # сборка не прошла: лучше остаться на старой версии, чем на сломанной.
 #
 # Запуск:
-#   на сервере            — bash deploy.sh
-#   на плате              — bash deploy.sh board
-#   на плате без интернета — bash deploy.sh board-offline
+#   на сервере                — bash deploy.sh
+#   на сервере, без сборки    — bash deploy.sh server-nobuild
+#   на плате                  — bash deploy.sh board
+#   на плате без интернета    — bash deploy.sh board-offline
 #
 # Режим board-offline нужен, когда файлы принесли на плату вручную (tar/scp):
 # получать код и зависимости неоткуда, но собрать, перезапустить и — главное —
 # показать айди сборки надо так же. Без этой проверки легко решить, что
 # обновление приехало, хотя на плате осталась прежняя версия.
+#
+# Режим server-nobuild нужен, когда на сервере не хватает памяти на сам
+# "next build" (ENOMEM) — код и зависимости всё равно тянутся и ставятся
+# здесь как обычно, а готовую .next заливают отдельно, до запуска этого
+# скрипта (см. deploy-server-prebuilt.sh — собирает в другом месте и
+# заливает результат сюда). .next в .gitignore, поэтому git reset --hard
+# её не тронет.
 
 set -e
 
 MODE="${1:-server}"
 
 FETCH=1
+SHOULD_BUILD=1
 
 case "$MODE" in
   board|board-offline)
@@ -31,6 +40,12 @@ case "$MODE" in
     RESTART='sudo systemctl restart music-backend && sudo systemctl restart music-frontend'
     HEALTH_URL="http://localhost:3000/api/build-id"
     [ "$MODE" = "board-offline" ] && FETCH=0
+    ;;
+  server-nobuild)
+    APP_DIR="/home/AI-music-notes"
+    RESTART='pm2 restart ai-music-back ai-music-front'
+    HEALTH_URL="http://127.0.0.1:3000/api/build-id"
+    SHOULD_BUILD=0
     ;;
   *)
     APP_DIR="/home/AI-music-notes"
@@ -64,8 +79,16 @@ else
   echo "=== Код принесён вручную, получение пропускаю"
 fi
 
-echo "=== Собираю"
-npm run build
+if [ "$SHOULD_BUILD" = "1" ]; then
+  echo "=== Собираю"
+  npm run build
+else
+  echo "=== Сборка сделана в другом месте, здесь только запускаю"
+  if [ ! -d ".next" ]; then
+    echo "ОШИБКА: .next не найдена. Сначала залейте готовую сборку (deploy-server-prebuilt.sh)."
+    exit 1
+  fi
+fi
 
 echo "=== Перезапускаю"
 eval "$RESTART"
