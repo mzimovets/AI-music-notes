@@ -459,18 +459,53 @@ export default function Page() {
     const node = bookViewportRef.current;
     if (!node) return;
 
+    /**
+     * Высоту применяем не сразу, а когда она перестала меняться.
+     *
+     * При возврате из свёрнутого состояния на iPad ResizeObserver может
+     * подряд отдать несколько разных значений — сначала то, что было в
+     * момент сворачивания (уменьшенная карточка в переключателе задач),
+     * затем настоящее. Без задержки каждое значение перестраивало
+     * страницу заново — видимый скачок и внезапное уменьшение нот прямо
+     * во время пения, чего быть не должно. Держим только устоявшееся
+     * хотя бы 120мс
+     */
+    let settleTimer: number | null = null;
+    let lastHeight = 0;
+    const commit = (height: number) => {
+      if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
+      lastHeight = height;
+      if (settleTimer) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => setViewerHeight(height), 120);
+    };
+
     const update = () => {
       const height = node.getBoundingClientRect().height;
       // Ноль приходит, когда контейнер скрыт — прежнее значение вернее
-      if (height > 0) setViewerHeight(height);
+      commit(height);
     };
     update();
+
+    // Отдельно перемеряем при возврате видимости: тот самый случай, когда
+    // ResizeObserver один раз промахивается мимо настоящего размера и
+    // застревает на неверном до следующего изменения, которого может и не
+    // случиться
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requestAnimationFrame(update);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", update);
+    window.addEventListener("focus", update);
 
     const observer = new ResizeObserver(update);
     observer.observe(node);
     window.addEventListener("resize", update);
     window.visualViewport?.addEventListener("resize", update);
     return () => {
+      if (settleTimer) window.clearTimeout(settleTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", update);
+      window.removeEventListener("focus", update);
       observer.disconnect();
       window.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("resize", update);
