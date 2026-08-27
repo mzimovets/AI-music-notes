@@ -474,15 +474,31 @@ export default function Page() {
      */
     let settleTimer: number | null = null;
     let lastHeight = 0;
+    // Применённое значение — отдельно от lastHeight (последнее УВИДЕННОЕ):
+    // по нему решаем, растёт высота или падает
+    let applied = 0;
     const commit = (height: number) => {
-      logDiag("viewport:measure", { height, lastHeight });
+      logDiag("viewport:measure", { height, lastHeight, applied });
       if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
       lastHeight = height;
       if (settleTimer) window.clearTimeout(settleTimer);
+      /**
+       * Уменьшение ждёт дольше, чем увеличение.
+       *
+       * Подтверждено телеметрией: жест "подсмотреть" Dock/переключатель
+       * приложений на iPad на мгновение реально сжимает окно — но
+       * visibilitychange при этом не срабатывает. Провал держался 578мс,
+       * чего хватало пройти прежний порог в 120мс. Даём подозрительному
+       * уменьшению больше времени на то, чтобы само себя отменить —
+       * настоящее изменение не потеряется, применится на три четверти
+       * секунды позже. Увеличение неопасно показать сразу
+       */
+      const delay = height < applied ? 900 : 120;
       settleTimer = window.setTimeout(() => {
-        logDiag("viewport:commit", { height });
+        applied = height;
+        logDiag("viewport:commit", { height, delay });
         setViewerHeight(height);
-      }, 120);
+      }, delay);
     };
 
     const update = () => {

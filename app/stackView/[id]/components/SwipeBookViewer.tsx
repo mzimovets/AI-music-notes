@@ -335,15 +335,31 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
        */
       let settleTimer: number | null = null;
       let lastHeight = 0;
+      // Применённое значение — отдельно от lastHeight (последнее УВИДЕННОЕ):
+      // по нему решаем, растёт высота или падает
+      let applied = 0;
       const commit = (height: number) => {
-        logDiag("book:measure", { height, lastHeight });
+        logDiag("book:measure", { height, lastHeight, applied });
         if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
         lastHeight = height;
         if (settleTimer) window.clearTimeout(settleTimer);
+        /**
+         * Уменьшение ждёт дольше, чем увеличение.
+         *
+         * Подтверждено телеметрией: жест "подсмотреть" Dock/переключатель
+         * приложений на iPad на мгновение реально сжимает окно — но
+         * visibilitychange при этом не срабатывает. Провал держался 578мс,
+         * чего хватало пройти прежний порог в 120мс. Даём подозрительному
+         * уменьшению больше времени на то, чтобы само себя отменить —
+         * настоящее изменение (поворот экрана) не потеряется, применится
+         * на три четверти секунды позже. Увеличение неопасно сразу
+         */
+        const delay = height < applied ? 900 : 120;
         settleTimer = window.setTimeout(() => {
-          logDiag("book:commit", { height });
+          applied = height;
+          logDiag("book:commit", { height, delay });
           setMeasuredHeight(height);
-        }, 120);
+        }, delay);
       };
 
       const update = () => commit(node.getBoundingClientRect().height);

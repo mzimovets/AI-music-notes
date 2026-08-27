@@ -91,15 +91,33 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
      */
     let settleTimer: number | null = null;
     let lastWidth = 0;
+    // Применённое значение — отдельно от lastWidth (последнее УВИДЕННОЕ):
+    // по нему решаем, растёт ширина или падает
+    let applied = 0;
     const commit = (w: number) => {
-      logDiag("song:measure", { w, lastWidth });
+      logDiag("song:measure", { w, lastWidth, applied });
       if (w <= 0 || Math.abs(w - lastWidth) < 1) return;
       lastWidth = w;
       if (settleTimer) window.clearTimeout(settleTimer);
+      /**
+       * Уменьшение ждёт дольше, чем увеличение.
+       *
+       * Подтверждено телеметрией: жест "подсмотреть" Dock/переключатель
+       * приложений на iPad на мгновение реально сжимает окно — но
+       * visibilitychange при этом не срабатывает, приложение всё это время
+       * считается видимым. Провал держался 578мс, чего хватало, чтобы
+       * пройти прежний порог в 120мс и попасть на экран. Даём подозрительному
+       * уменьшению больше времени на то, чтобы само себя отменить —
+       * настоящее изменение (поворот экрана, реальный сплит-вью) от этого
+       * не потеряется, просто применится на три четверти секунды позже.
+       * Увеличение неопасно показать сразу: мелким от него ничего не станет
+       */
+      const delay = w < applied ? 900 : 120;
       settleTimer = window.setTimeout(() => {
-        logDiag("song:commit", { w });
+        applied = w;
+        logDiag("song:commit", { w, delay });
         setContainerWidth(w);
-      }, 120);
+      }, delay);
     };
 
     const ro = new ResizeObserver((entries) => {
