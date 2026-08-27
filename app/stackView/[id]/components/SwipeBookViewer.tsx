@@ -11,6 +11,7 @@ import {
 import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
+import { watchResume } from "@/lib/measure-on-resume";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -334,16 +335,10 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       const update = () => commit(node.getBoundingClientRect().height);
       update();
 
-      // Кроме самого ResizeObserver, перемеряем и напрямую при возврате
-      // видимости: тот самый случай, когда ResizeObserver один раз
-      // промахивается мимо настоящего размера и застревает на неверном до
-      // следующего изменения, которого может и не случиться
-      const onVisible = () => {
-        if (document.visibilityState === "visible") requestAnimationFrame(update);
-      };
-      document.addEventListener("visibilitychange", onVisible);
-      window.addEventListener("pageshow", update);
-      window.addEventListener("focus", update);
+      // Один замер после возврата не гарантирует настоящую раскладку —
+      // редко, но промахивается. watchResume повторяет его ещё несколько
+      // раз в течение секунды, а не один
+      const stopWatching = watchResume(update);
 
       const observer = new ResizeObserver(update);
       observer.observe(node);
@@ -351,9 +346,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       window.visualViewport?.addEventListener("resize", update);
       return () => {
         if (settleTimer) window.clearTimeout(settleTimer);
-        document.removeEventListener("visibilitychange", onVisible);
-        window.removeEventListener("pageshow", update);
-        window.removeEventListener("focus", update);
+        stopWatching();
         observer.disconnect();
         window.removeEventListener("resize", update);
         window.visualViewport?.removeEventListener("resize", update);

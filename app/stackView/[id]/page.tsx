@@ -24,6 +24,7 @@ import { useLocalServer } from "@/hooks/useLocalServer";
 import { SPLASH_FORCE_KEY } from "@/components/SplashScreen";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { markStackFromRemote } from "@/lib/stack-sync-echo";
+import { watchResume } from "@/lib/measure-on-resume";
 import {
   buildStackPagePlan,
   collectPlanUrls,
@@ -486,16 +487,10 @@ export default function Page() {
     };
     update();
 
-    // Отдельно перемеряем при возврате видимости: тот самый случай, когда
-    // ResizeObserver один раз промахивается мимо настоящего размера и
-    // застревает на неверном до следующего изменения, которого может и не
-    // случиться
-    const onVisible = () => {
-      if (document.visibilityState === "visible") requestAnimationFrame(update);
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("pageshow", update);
-    window.addEventListener("focus", update);
+    // Один замер после возврата не гарантирует настоящую раскладку — редко,
+    // но промахивается. watchResume повторяет его ещё несколько раз в
+    // течение секунды, а не один
+    const stopWatching = watchResume(update);
 
     const observer = new ResizeObserver(update);
     observer.observe(node);
@@ -503,9 +498,7 @@ export default function Page() {
     window.visualViewport?.addEventListener("resize", update);
     return () => {
       if (settleTimer) window.clearTimeout(settleTimer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("pageshow", update);
-      window.removeEventListener("focus", update);
+      stopWatching();
       observer.disconnect();
       window.removeEventListener("resize", update);
       window.visualViewport?.removeEventListener("resize", update);

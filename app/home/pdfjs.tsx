@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
+import { watchResume } from "@/lib/measure-on-resume";
 
 
 interface PdfViewerProps {
@@ -103,19 +104,15 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     ro.observe(el);
 
     const remeasure = () => commit(el.getBoundingClientRect().width);
-    const onVisible = () => {
-      if (document.visibilityState === "visible") requestAnimationFrame(remeasure);
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("pageshow", remeasure);
-    window.addEventListener("focus", remeasure);
+    // Один замер после возврата не гарантирует настоящую раскладку — редко,
+    // но промахивается. watchResume повторяет его ещё несколько раз в
+    // течение секунды, а не один
+    const stopWatching = watchResume(remeasure);
 
     return () => {
       ro.disconnect();
       if (settleTimer) window.clearTimeout(settleTimer);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("pageshow", remeasure);
-      window.removeEventListener("focus", remeasure);
+      stopWatching();
     };
   }, []);
 
