@@ -372,15 +372,44 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     }, []);
 
     // Detect mobile / resize
+    //
+    // Настоящая причина "маленьких нот" (подтверждено скриншотом с числами
+    // под нотой): это состояние обновлялось из window.innerWidth напрямую
+    // по событию resize, без единой защиты — тот же провал от "подсмотра"
+    // Dock/переключателя приложений на iPad, что чинили для высоты, только
+    // по ширине. Высота на скриншоте была верной (задано те же 1307,
+    // что и на нормальной странице) — а вот ширина, которую здесь вообще
+    // не отслеживали и не логировали, схлопывалась и оставалась
+    // маленькой. pageMaxWidth из неё передаётся в PdfPage как maxWidth и
+    // может пересилить высоту в Math.min(scaleByHeight, scaleByWidth)
     useEffect(() => {
+      let settleTimer: number | null = null;
+      let lastWidth = 0;
+      let applied = typeof window !== "undefined" ? window.innerWidth : 0;
       const check = () => {
-        const m = window.innerWidth < 1024;
-        isMobileRef.current = m;
-        setIsMobile(m);
-        setViewportWidth(window.innerWidth);
+        const w = window.innerWidth;
+        if (w <= 0 || Math.abs(w - lastWidth) < 1) return;
+        lastWidth = w;
+        if (settleTimer) window.clearTimeout(settleTimer);
+        // Уменьшение ждёт дольше увеличения — см. commit() чуть выше по
+        // тексту файла, для measuredHeight, тот же приём
+        const delay = w < applied ? 900 : 120;
+        settleTimer = window.setTimeout(() => {
+          applied = w;
+          const m = w < 1024;
+          isMobileRef.current = m;
+          setIsMobile(m);
+          setViewportWidth(w);
+        }, delay);
       };
+      check();
+      const stopWatching = watchResume(check);
       window.addEventListener("resize", check);
-      return () => window.removeEventListener("resize", check);
+      return () => {
+        if (settleTimer) window.clearTimeout(settleTimer);
+        stopWatching();
+        window.removeEventListener("resize", check);
+      };
     }, []);
 
     // Длина книги — это длина плана. Ни загрузки, ни разбора здесь больше нет:
@@ -589,12 +618,12 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         const vv = window.visualViewport;
         setDebugLine(
           [
-            `окно ${window.innerHeight}`,
-            vv ? `видимое ${Math.round(vv.height)}` : "",
-            box ? `коробка ${Math.round(box.height)}` : "коробка —",
+            `окно ${window.innerWidth}×${window.innerHeight}`,
+            vv ? `видимое ${Math.round(vv.width)}×${Math.round(vv.height)}` : "",
+            box ? `коробка ${Math.round(box.width)}×${Math.round(box.height)}` : "коробка —",
             `measuredHeight ${measuredHeight || "—"}`,
-            `height-prop ${height}`,
-            `задано ${pageHeight}`,
+            `viewportWidth ${viewportWidth || "—"}`,
+            `задано H${pageHeight} W${pageMaxWidth ?? "—"}`,
             `dpr ${window.devicePixelRatio}`,
           ]
             .filter(Boolean)
@@ -604,7 +633,7 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       tick();
       const timer = setInterval(tick, 500);
       return () => clearInterval(timer);
-    }, [measuredHeight, height, pageHeight]);
+    }, [measuredHeight, viewportWidth, pageHeight, pageMaxWidth]);
 
     return (
       <div
