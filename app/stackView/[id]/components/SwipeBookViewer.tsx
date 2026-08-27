@@ -602,39 +602,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       ? Math.floor((viewportWidth - 12) / pagesToShow.length)
       : undefined;
 
-    /**
-     * ВРЕМЕННО: строка с настоящими размерами для разбора "маленьких нот".
-     * Убрать, когда причина будет окончательно подтверждена на практике.
-     *
-     * Смотрим одновременно на окно, коробку просмотрщика и заданную высоту
-     * страницы: если ноты снова станут маленькими, числа сразу покажут, где
-     * расхождение — коробка не с экран, задано меньше коробки, или дело в
-     * чём-то за пределами этой цепочки измерений
-     */
-    const [debugLine, setDebugLine] = useState("");
-    useEffect(() => {
-      const tick = () => {
-        const box = containerRef.current?.getBoundingClientRect();
-        const vv = window.visualViewport;
-        setDebugLine(
-          [
-            `окно ${window.innerWidth}×${window.innerHeight}`,
-            vv ? `видимое ${Math.round(vv.width)}×${Math.round(vv.height)}` : "",
-            box ? `коробка ${Math.round(box.width)}×${Math.round(box.height)}` : "коробка —",
-            `measuredHeight ${measuredHeight || "—"}`,
-            `viewportWidth ${viewportWidth || "—"}`,
-            `задано H${pageHeight} W${pageMaxWidth ?? "—"}`,
-            `dpr ${window.devicePixelRatio}`,
-          ]
-            .filter(Boolean)
-            .join(" · "),
-        );
-      };
-      tick();
-      const timer = setInterval(tick, 500);
-      return () => clearInterval(timer);
-    }, [measuredHeight, viewportWidth, pageHeight, pageMaxWidth]);
-
     return (
       <div
         ref={containerRef}
@@ -655,25 +622,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           justifyContent: "center",
         }}
       >
-        {/* ВРЕМЕННО: числа для разбора "маленьких нот", убрать после проверки */}
-        <div
-          style={{
-            position: "absolute",
-            left: 4,
-            bottom: 4,
-            zIndex: 5,
-            font: "11px ui-monospace, monospace",
-            color: "#111",
-            background: "rgba(255,255,255,0.85)",
-            padding: "2px 5px",
-            borderRadius: 4,
-            pointerEvents: "none",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {debugLine}
-        </div>
-
         {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{

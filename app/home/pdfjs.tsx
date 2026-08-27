@@ -222,38 +222,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     };
   }, [containerWidth, pageNum, pdfDoc, scale, docFailed]);
 
-  /**
-   * ВРЕМЕННО: строка с настоящими размерами для разбора "маленьких нот".
-   * Убрать, когда причина будет окончательно подтверждена на практике.
-   *
-   * Смотрим одновременно на окно, коробку и холст: если ноты снова станут
-   * маленькими, числа сразу покажут, где расхождение — коробка не с экран,
-   * задано меньше, чем коробка, или холст не совпадает с заданным
-   */
-  const [debugLine, setDebugLine] = useState("");
-  useEffect(() => {
-    const tick = () => {
-      const box = containerRef.current?.getBoundingClientRect();
-      const canvas = canvasRef.current;
-      const vv = window.visualViewport;
-      setDebugLine(
-        [
-          `окно ${window.innerWidth}`,
-          vv ? `видимое ${Math.round(vv.width)}` : "",
-          box ? `коробка ${Math.round(box.width)}` : "коробка —",
-          canvas ? `холст ${Math.round(canvas.getBoundingClientRect().width)}/${canvas.width}px` : "холст —",
-          `задано ${containerWidth}`,
-          `dpr ${window.devicePixelRatio}`,
-        ]
-          .filter(Boolean)
-          .join(" · "),
-      );
-    };
-    tick();
-    const timer = setInterval(tick, 500);
-    return () => clearInterval(timer);
-  }, [containerWidth]);
-
   return (
     <div
       ref={containerRef}
@@ -287,25 +255,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           {renderError}
         </div>
       )}
-
-      {/* ВРЕМЕННО: числа для разбора "маленьких нот", убрать после проверки */}
-      <div
-        style={{
-          position: "absolute",
-          left: 4,
-          bottom: 4,
-          zIndex: 5,
-          font: "11px ui-monospace, monospace",
-          color: "#111",
-          background: "rgba(255,255,255,0.85)",
-          padding: "2px 5px",
-          borderRadius: 4,
-          pointerEvents: "none",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {debugLine}
-      </div>
     </div>
   );
 }
