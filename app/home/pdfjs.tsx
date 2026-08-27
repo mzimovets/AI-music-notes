@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import { watchResume } from "@/lib/measure-on-resume";
+import { logDiag } from "@/lib/viewer-diag";
 
 
 interface PdfViewerProps {
@@ -91,10 +92,14 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     let settleTimer: number | null = null;
     let lastWidth = 0;
     const commit = (w: number) => {
+      logDiag("song:measure", { w, lastWidth });
       if (w <= 0 || Math.abs(w - lastWidth) < 1) return;
       lastWidth = w;
       if (settleTimer) window.clearTimeout(settleTimer);
-      settleTimer = window.setTimeout(() => setContainerWidth(w), 120);
+      settleTimer = window.setTimeout(() => {
+        logDiag("song:commit", { w });
+        setContainerWidth(w);
+      }, 120);
     };
 
     const ro = new ResizeObserver((entries) => {
@@ -154,6 +159,14 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         canvas.height = Math.floor(base.height * baseScale * outputScale);
         canvas.style.width = "100%";
         canvas.style.height = "auto";
+
+        // Сверяем то, что реально ушло в отрисовку (containerWidth из
+        // состояния), со свежим замером контейнера прямо сейчас. Разошлись —
+        // значит применилось устаревшее значение состояния. Совпали —
+        // контейнер на экране в этот момент действительно такой маленький,
+        // дело не в замере
+        const liveWidth = containerRef.current?.getBoundingClientRect().width ?? 0;
+        logDiag("song:render", { usedWidth: containerWidth, liveWidth, pageNum: num });
 
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.scale(outputScale, outputScale);

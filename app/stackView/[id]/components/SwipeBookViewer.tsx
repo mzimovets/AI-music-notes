@@ -12,6 +12,7 @@ import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import { watchResume } from "@/lib/measure-on-resume";
+import { logDiag } from "@/lib/viewer-diag";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -119,6 +120,15 @@ function PdfPage({
           scale: Math.min(scaleByHeight, scaleByWidth),
         });
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+        // Свежий замер обёртки книги прямо сейчас — сверить с тем, что
+        // реально ушло в targetHeight (см. lib/viewer-diag.ts вверху файла)
+        const bookLive = document.querySelector<HTMLElement>("[data-book-viewport]");
+        logDiag("book:render", {
+          targetHeight,
+          liveHeight: bookLive?.getBoundingClientRect().height ?? null,
+          pageInDoc,
+        });
 
         await queuePageRender(`${docKey}#${pageInDoc}`, async () => {
           if (cancelled) return;
@@ -326,10 +336,14 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       let settleTimer: number | null = null;
       let lastHeight = 0;
       const commit = (height: number) => {
+        logDiag("book:measure", { height, lastHeight });
         if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
         lastHeight = height;
         if (settleTimer) window.clearTimeout(settleTimer);
-        settleTimer = window.setTimeout(() => setMeasuredHeight(height), 120);
+        settleTimer = window.setTimeout(() => {
+          logDiag("book:commit", { height });
+          setMeasuredHeight(height);
+        }, 120);
       };
 
       const update = () => commit(node.getBoundingClientRect().height);
