@@ -324,9 +324,11 @@ export async function repairReadiness(
   let fixed = 0;
   let done = 0;
   onProgress?.(0, urls.length);
-  // По шесть за раз: по одному это складывалось в минуты на сотнях адресов,
-  // а без ограничения планшет захлёбывается
-  const CONCURRENCY = 6;
+  // По одному это складывалось в минуты на сотнях адресов, а без
+  // ограничения планшет захлёбывается. Оставляем запас соединений к хосту
+  // свободным — иначе своя же нота, которую в это время открывают руками,
+  // встаёт в очередь за докачкой и ждёт
+  const CONCURRENCY = 3;
   let index = 0;
 
   await Promise.all(
@@ -352,7 +354,7 @@ export async function repairReadiness(
           }
           // cache: "reload" — берём с сервера, а не из кеша браузера, иначе
           // устаревшая страница так и осталась бы устаревшей
-          const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) });
+          const res = await fetch(url, { credentials: "same-origin", cache: "reload", priority: "low", signal: AbortSignal.timeout(6000) });
           if (res.ok) {
             fixed++;
             // Запоминаем, какая версия записи теперь лежит в кеше

@@ -99,7 +99,7 @@ async function fetchAndCache(url: string, cacheName: string) {
       const cache = await caches.open(cacheName);
       await cache.delete(url, { ignoreVary: true, ignoreSearch: true });
     } catch {}
-    const res = await fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(30_000) });
+    const res = await fetch(url, { credentials: "same-origin", cache: "reload", priority: "low", signal: AbortSignal.timeout(30_000) });
     if (res.ok) {
       const cache = await caches.open(cacheName);
       await cache.put(url, res);
@@ -289,7 +289,12 @@ async function syncCache(onProgress: (p: Progress) => void) {
   // сотнях запросов строго по одному это складывалось в единицы минут.
   // Ограниченный параллелизм переносит эту задержку на всю пачку разом,
   // вместо того чтобы платить её за каждый файл отдельно.
-  const CONCURRENCY = 6;
+  //
+  // Но не битком: у каждой страницы ещё и по два запроса разом (html+RSC
+  // ниже), так что впритык к лимиту браузера на соединения к одному хосту
+  // не остаётся места на то, что человек в это время сам открывает ноту —
+  // его запрос вставал в очередь за фоновой докачкой и ждал
+  const CONCURRENCY = 3;
 
   async function runBatched<T>(items: T[], worker: (item: T) => Promise<void>) {
     let index = 0;
@@ -306,12 +311,12 @@ async function syncCache(onProgress: (p: Progress) => void) {
   // страницы независимы, поэтому идут вместе
   await runBatched(pageUrls, async (url) => {
     await Promise.all([
-      fetch(url, { credentials: "same-origin", cache: "reload", signal: AbortSignal.timeout(6000) })
+      fetch(url, { credentials: "same-origin", cache: "reload", priority: "low", signal: AbortSignal.timeout(6000) })
         .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} html ${url}`))
         .catch((e) => console.warn(`[Sync] ✗ html ${url}`, e))
         .finally(tick),
       // RSC payload — для клиентской навигации Next.js App Router
-      fetch(url, { credentials: "same-origin", cache: "reload", headers: { "RSC": "1" }, signal: AbortSignal.timeout(6000) })
+      fetch(url, { credentials: "same-origin", cache: "reload", priority: "low", headers: { "RSC": "1" }, signal: AbortSignal.timeout(6000) })
         .then((res) => console.log(`[Sync] ${res.ok ? "✓" : "✗"} rsc  ${url}`))
         .catch((e) => console.warn(`[Sync] ✗ rsc ${url}`, e))
         .finally(tick),
@@ -508,6 +513,14 @@ export function ServiceWorkerManager() {
       await syncCache((p) => {
         started = true;
         clearTimeout(stallGuard);
+
+        // Кружок готовности на главной узнавал о докачке только по своему
+        // расписанию (раз в 2 минуты) — можно было закачать всё до конца, а
+        // кружок ещё какое-то время показывал бы старый процент, пока
+        // человек сам не откроет его и не увидит настоящую цифру. Событие
+        // шлём на каждый шаг без разбора: сама проверка готовности не
+        // дешёвая, но её частоту ограничивает уже кружок у себя
+        window.dispatchEvent(new CustomEvent("sw-recache-done"));
 
         // Качать было нечего, и показать мы ещё ничего не успели — значит и
         // мигать незачем

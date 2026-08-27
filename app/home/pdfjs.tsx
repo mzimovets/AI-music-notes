@@ -71,12 +71,52 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    /**
+     * Ширину применяем не сразу, а когда она перестала меняться.
+     *
+     * При возврате из свёрнутого состояния на iPad подряд может прилететь
+     * несколько разных значений: сначала то, что было в момент сворачивания
+     * (уменьшенная карточка в переключателе задач), затем настоящее. Без
+     * задержки каждое такое значение перерисовывало canvas — на глаз это
+     * видно как дёрганье страницы, для нот на пульте недопустимое.
+     *
+     * Отдельно — та же причина, по которой размер иногда застревал неверным
+     * до следующего реального изменения (и чинилось только повторным
+     * сворачиванием): ResizeObserver один раз промахивался мимо настоящего
+     * значения, и обновить было уже нечем. Слушаем ещё и возврат видимости
+     * напрямую через layout — не полагаясь только на ResizeObserver.
+     */
+    let settleTimer: number | null = null;
+    let lastWidth = 0;
+    const commit = (w: number) => {
+      if (w <= 0 || Math.abs(w - lastWidth) < 1) return;
+      lastWidth = w;
+      if (settleTimer) window.clearTimeout(settleTimer);
+      settleTimer = window.setTimeout(() => setContainerWidth(w), 120);
+    };
+
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect?.width;
-      if (w && w > 0) setContainerWidth(w);
+      if (w) commit(w);
     });
     ro.observe(el);
-    return () => ro.disconnect();
+
+    const remeasure = () => commit(el.getBoundingClientRect().width);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") requestAnimationFrame(remeasure);
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("pageshow", remeasure);
+    window.addEventListener("focus", remeasure);
+
+    return () => {
+      ro.disconnect();
+      if (settleTimer) window.clearTimeout(settleTimer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", remeasure);
+      window.removeEventListener("focus", remeasure);
+    };
   }, []);
 
   useEffect(() => {
