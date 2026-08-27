@@ -4,7 +4,6 @@ import React, { useEffect, useRef, useState } from "react";
 import { getPdfDocument, getPdfDocumentFromData } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import { watchResume } from "@/lib/measure-on-resume";
-import { logDiag } from "@/lib/viewer-diag";
 
 
 interface PdfViewerProps {
@@ -95,7 +94,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     // по нему решаем, растёт ширина или падает
     let applied = 0;
     const commit = (w: number) => {
-      logDiag("song:measure", { w, lastWidth, applied });
       if (w <= 0 || Math.abs(w - lastWidth) < 1) return;
       lastWidth = w;
       if (settleTimer) window.clearTimeout(settleTimer);
@@ -115,7 +113,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
       const delay = w < applied ? 900 : 120;
       settleTimer = window.setTimeout(() => {
         applied = w;
-        logDiag("song:commit", { w, delay });
         setContainerWidth(w);
       }, delay);
     };
@@ -178,14 +175,6 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
         canvas.style.width = "100%";
         canvas.style.height = "auto";
 
-        // Сверяем то, что реально ушло в отрисовку (containerWidth из
-        // состояния), со свежим замером контейнера прямо сейчас. Разошлись —
-        // значит применилось устаревшее значение состояния. Совпали —
-        // контейнер на экране в этот момент действительно такой маленький,
-        // дело не в замере
-        const liveWidth = containerRef.current?.getBoundingClientRect().width ?? 0;
-        logDiag("song:render", { usedWidth: containerWidth, liveWidth, pageNum: num });
-
         context.setTransform(1, 0, 0, 1, 0, 0);
         context.scale(outputScale, outputScale);
 
@@ -233,6 +222,38 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
     };
   }, [containerWidth, pageNum, pdfDoc, scale, docFailed]);
 
+  /**
+   * ВРЕМЕННО: строка с настоящими размерами для разбора "маленьких нот".
+   * Убрать, когда причина будет окончательно подтверждена на практике.
+   *
+   * Смотрим одновременно на окно, коробку и холст: если ноты снова станут
+   * маленькими, числа сразу покажут, где расхождение — коробка не с экран,
+   * задано меньше, чем коробка, или холст не совпадает с заданным
+   */
+  const [debugLine, setDebugLine] = useState("");
+  useEffect(() => {
+    const tick = () => {
+      const box = containerRef.current?.getBoundingClientRect();
+      const canvas = canvasRef.current;
+      const vv = window.visualViewport;
+      setDebugLine(
+        [
+          `окно ${window.innerWidth}`,
+          vv ? `видимое ${Math.round(vv.width)}` : "",
+          box ? `коробка ${Math.round(box.width)}` : "коробка —",
+          canvas ? `холст ${Math.round(canvas.getBoundingClientRect().width)}/${canvas.width}px` : "холст —",
+          `задано ${containerWidth}`,
+          `dpr ${window.devicePixelRatio}`,
+        ]
+          .filter(Boolean)
+          .join(" · "),
+      );
+    };
+    tick();
+    const timer = setInterval(tick, 500);
+    return () => clearInterval(timer);
+  }, [containerWidth]);
+
   return (
     <div
       ref={containerRef}
@@ -266,6 +287,25 @@ export default function Pdfjs({ fileUrl, pageNum, setPdfDoc, onLoadStart, onLoad
           {renderError}
         </div>
       )}
+
+      {/* ВРЕМЕННО: числа для разбора "маленьких нот", убрать после проверки */}
+      <div
+        style={{
+          position: "absolute",
+          left: 4,
+          bottom: 4,
+          zIndex: 5,
+          font: "11px ui-monospace, monospace",
+          color: "#111",
+          background: "rgba(255,255,255,0.85)",
+          padding: "2px 5px",
+          borderRadius: 4,
+          pointerEvents: "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {debugLine}
+      </div>
     </div>
   );
 }

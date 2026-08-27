@@ -12,7 +12,6 @@ import { Skeleton } from "@heroui/react";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { queuePageRender, isBottomDrawn } from "@/lib/pdf-render-queue";
 import { watchResume } from "@/lib/measure-on-resume";
-import { logDiag } from "@/lib/viewer-diag";
 import type { PlanPage } from "@/lib/stack-page-plan";
 
 
@@ -120,15 +119,6 @@ function PdfPage({
           scale: Math.min(scaleByHeight, scaleByWidth),
         });
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-        // Свежий замер обёртки книги прямо сейчас — сверить с тем, что
-        // реально ушло в targetHeight (см. lib/viewer-diag.ts вверху файла)
-        const bookLive = document.querySelector<HTMLElement>("[data-book-viewport]");
-        logDiag("book:render", {
-          targetHeight,
-          liveHeight: bookLive?.getBoundingClientRect().height ?? null,
-          pageInDoc,
-        });
 
         await queuePageRender(`${docKey}#${pageInDoc}`, async () => {
           if (cancelled) return;
@@ -339,7 +329,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       // по нему решаем, растёт высота или падает
       let applied = 0;
       const commit = (height: number) => {
-        logDiag("book:measure", { height, lastHeight, applied });
         if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
         lastHeight = height;
         if (settleTimer) window.clearTimeout(settleTimer);
@@ -357,7 +346,6 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
         const delay = height < applied ? 900 : 120;
         settleTimer = window.setTimeout(() => {
           applied = height;
-          logDiag("book:commit", { height, delay });
           setMeasuredHeight(height);
         }, delay);
       };
@@ -585,6 +573,39 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
       ? Math.floor((viewportWidth - 12) / pagesToShow.length)
       : undefined;
 
+    /**
+     * ВРЕМЕННО: строка с настоящими размерами для разбора "маленьких нот".
+     * Убрать, когда причина будет окончательно подтверждена на практике.
+     *
+     * Смотрим одновременно на окно, коробку просмотрщика и заданную высоту
+     * страницы: если ноты снова станут маленькими, числа сразу покажут, где
+     * расхождение — коробка не с экран, задано меньше коробки, или дело в
+     * чём-то за пределами этой цепочки измерений
+     */
+    const [debugLine, setDebugLine] = useState("");
+    useEffect(() => {
+      const tick = () => {
+        const box = containerRef.current?.getBoundingClientRect();
+        const vv = window.visualViewport;
+        setDebugLine(
+          [
+            `окно ${window.innerHeight}`,
+            vv ? `видимое ${Math.round(vv.height)}` : "",
+            box ? `коробка ${Math.round(box.height)}` : "коробка —",
+            `measuredHeight ${measuredHeight || "—"}`,
+            `height-prop ${height}`,
+            `задано ${pageHeight}`,
+            `dpr ${window.devicePixelRatio}`,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+        );
+      };
+      tick();
+      const timer = setInterval(tick, 500);
+      return () => clearInterval(timer);
+    }, [measuredHeight, height, pageHeight]);
+
     return (
       <div
         ref={containerRef}
@@ -605,6 +626,25 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
           justifyContent: "center",
         }}
       >
+        {/* ВРЕМЕННО: числа для разбора "маленьких нот", убрать после проверки */}
+        <div
+          style={{
+            position: "absolute",
+            left: 4,
+            bottom: 4,
+            zIndex: 5,
+            font: "11px ui-monospace, monospace",
+            color: "#111",
+            background: "rgba(255,255,255,0.85)",
+            padding: "2px 5px",
+            borderRadius: 4,
+            pointerEvents: "none",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {debugLine}
+        </div>
+
         {/* Spread wrapper — pointer-events:none чтобы касания шли к контейнеру */}
         <div
           style={{

@@ -27,7 +27,6 @@ import { syncRoutes } from "./routes/sync.js";
 import { recommendRoutes } from "./routes/recommend.js";
 import { analyzeRoutes } from "./routes/analyze.js";
 import { categoriesRoutes } from "./routes/categories.js";
-import { viewerDiagRoutes } from "./routes/viewer-diag.js";
 import { startSyncScheduler } from "./sync-client.js";
 import dotenv from "dotenv";
 import { Server as SocketIOServer } from "socket.io";
@@ -489,8 +488,6 @@ syncRoutes(app, upload);
 recommendRoutes(app);
 analyzeRoutes(app);
 categoriesRoutes(app);
-// Временно — диагностика бага "маленькие ноты", см. routes/viewer-diag.js
-viewerDiagRoutes(app);
 
 // Запускаем планировщик только на локальном сервере (IS_LOCAL_SERVER=true)
 startSyncScheduler();

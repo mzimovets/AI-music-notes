@@ -64,4 +64,3 @@ server/push-outbox.json
 server/sync-state.json
 server/sync-history.json
 server/clock-offset.json
-server/viewer_diag.db*

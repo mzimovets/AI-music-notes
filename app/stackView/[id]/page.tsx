@@ -25,7 +25,6 @@ import { SPLASH_FORCE_KEY } from "@/components/SplashScreen";
 import { getPdfDocument } from "@/lib/pdf-doc-cache";
 import { markStackFromRemote } from "@/lib/stack-sync-echo";
 import { watchResume } from "@/lib/measure-on-resume";
-import { logDiag } from "@/lib/viewer-diag";
 import {
   buildStackPagePlan,
   collectPlanUrls,
@@ -478,7 +477,6 @@ export default function Page() {
     // по нему решаем, растёт высота или падает
     let applied = 0;
     const commit = (height: number) => {
-      logDiag("viewport:measure", { height, lastHeight, applied });
       if (height <= 0 || Math.abs(height - lastHeight) < 1) return;
       lastHeight = height;
       if (settleTimer) window.clearTimeout(settleTimer);
@@ -496,7 +494,6 @@ export default function Page() {
       const delay = height < applied ? 900 : 120;
       settleTimer = window.setTimeout(() => {
         applied = height;
-        logDiag("viewport:commit", { height, delay });
         setViewerHeight(height);
       }, delay);
     };
@@ -598,7 +595,7 @@ export default function Page() {
       {/* Book mode overlay */}
       {viewMode === "book" && (
         <div className="fixed inset-0 z-20 bg-[#F7F4F1] flex flex-col">
-          <div ref={bookViewportRef} data-book-viewport className="flex-1 overflow-hidden">
+          <div ref={bookViewportRef} className="flex-1 overflow-hidden">
             <SwipeBookViewer
               ref={flipViewerRef}
               plan={plan}
