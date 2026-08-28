@@ -422,6 +422,43 @@ export default function Page() {
     if (direction === "up") scrollToPageByStep(-1);
   }, [scrollToPageByStep]));
 
+  /**
+   * Клавиатура — для Bluetooth-кликера регента.
+   *
+   * useClicker выше обслуживает только проводной кликер на плате (сигнал
+   * идёт через WebSocket-реле). Bluetooth-пульт подключается напрямую к
+   * планшету и работает как обычная беспроводная клавиатура — его нажатия
+   * приходят как настоящие keydown/keyup, а слушателя на них в этой
+   * странице не было вовсе, поэтому нажатия не давали ничего (см.
+   * songRead/[id]/page.tsx — там та же пара обработчиков уже есть)
+   */
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      if (!(target instanceof HTMLElement)) return false;
+      const tag = target.tagName.toLowerCase();
+      return tag === "input" || tag === "textarea" || target.isContentEditable;
+    };
+    const isPageDown = (e: KeyboardEvent) =>
+      e.key === "PageDown" || e.code === "PageDown" || e.key === "ArrowDown";
+    const isPageUp = (e: KeyboardEvent) =>
+      e.key === "PageUp" || e.code === "PageUp" || e.key === "ArrowUp";
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      if (isPageDown(e) || isPageUp(e)) e.preventDefault();
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (isEditableTarget(e.target)) return;
+      if (isPageDown(e)) scrollToPageByStep(1);
+      else if (isPageUp(e)) scrollToPageByStep(-1);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, [scrollToPageByStep]);
+
   // Режим прокрутки убран в резерв — остался только книжный.
   // Чтобы вернуть, раскомментируйте чтение сохранённого режима ниже,
   // разметку списка страниц в конце файла и кнопку переключения в SideBarStack.
