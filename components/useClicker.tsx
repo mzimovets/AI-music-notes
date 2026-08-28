@@ -13,10 +13,9 @@ export function useClicker(onPress: (direction: Direction) => void): { isConnect
     ws.onclose   = () => { console.log("[clicker] WebSocket отключён"); setIsConnected(false); };
     ws.onerror   = (e) => { console.warn("[clicker] WebSocket ошибка:", e); setIsConnected(false); };
 
-    ws.onmessage = (event) => {
+    const handle = (raw: string) => {
       try {
-        console.log("[clicker] получено сообщение:", event.data);
-        const data = JSON.parse(event.data);
+        const data = JSON.parse(raw);
         if (data.type === "clicker-connected") {
           console.log("[clicker] статус устройства:", data.connected);
           setIsConnected(data.connected);
@@ -28,6 +27,19 @@ export function useClicker(onPress: (direction: Direction) => void): { isConnect
           }
         }
       } catch (e) {}
+    };
+
+    ws.onmessage = (event) => {
+      // На проде между сервером и браузером что-то заворачивает текстовые
+      // кадры в бинарные (Blob) — сам сервер шлёт обычный текст
+      // (ws.send(JSON.stringify(...))), но до браузера долетает Blob.
+      // Doступа поправить это на уровне инфраструктуры сейчас нет, поэтому
+      // принимаем оба варианта здесь
+      if (event.data instanceof Blob) {
+        event.data.text().then(handle);
+      } else {
+        handle(event.data);
+      }
     };
 
     return () => { ws.close(); setIsConnected(false); };
