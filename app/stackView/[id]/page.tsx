@@ -432,6 +432,20 @@ export default function Page() {
    * странице не было вовсе, поэтому нажатия не давали ничего (см.
    * songRead/[id]/page.tsx — там та же пара обработчиков уже есть)
    */
+  // Индикатор кликера не может узнать, подключён ли Bluetooth-пульт к
+  // планшету — браузер такое не умеет спрашивать у ОС, в отличие от
+  // проводного кликера на плате, о котором честно сообщает сервер. Поэтому
+  // для Bluetooth индикатор светится по факту недавнего нажатия: секунд
+  // десять после кнопки — "подключён", тише — как есть, не обманываем
+  const [keyboardClickerActiveUntil, setKeyboardClickerActiveUntil] = useState(0);
+  const [keyboardClickerActive, setKeyboardClickerActive] = useState(false);
+  useEffect(() => {
+    if (!keyboardClickerActiveUntil) return;
+    setKeyboardClickerActive(true);
+    const timer = setTimeout(() => setKeyboardClickerActive(false), keyboardClickerActiveUntil - Date.now());
+    return () => clearTimeout(timer);
+  }, [keyboardClickerActiveUntil]);
+
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
@@ -450,6 +464,8 @@ export default function Page() {
       if (isEditableTarget(e.target)) return;
       if (isPageDown(e)) scrollToPageByStep(1);
       else if (isPageUp(e)) scrollToPageByStep(-1);
+      else return;
+      setKeyboardClickerActiveUntil(Date.now() + 10_000);
     };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
@@ -647,7 +663,7 @@ export default function Page() {
 
       {viewMode === "scroll" && <ScrollToTop />}
       {!isSinger && (
-        <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
+        <ClickerIndicator isConnected={clickerConnected || keyboardClickerActive} hidden={!showButton} />
       )}
 
       {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера */}
