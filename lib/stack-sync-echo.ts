@@ -13,13 +13,13 @@
  */
 let lastRemote: string | null = null;
 
-const serialize = (songs: unknown, mealType: unknown) =>
-  JSON.stringify({ songs, mealType });
+const serialize = (songs: unknown, mealType: unknown, programSelected: unknown) =>
+  JSON.stringify({ songs, mealType, programSelected });
 
-export function markStackFromRemote(songs: unknown, mealType: unknown) {
-  lastRemote = serialize(songs, mealType);
+export function markStackFromRemote(songs: unknown, mealType: unknown, programSelected: unknown = []) {
+  lastRemote = serialize(songs, mealType, programSelected);
 }
 
-export function isStackEcho(songs: unknown, mealType: unknown) {
-  return lastRemote !== null && lastRemote === serialize(songs, mealType);
+export function isStackEcho(songs: unknown, mealType: unknown, programSelected: unknown = []) {
+  return lastRemote !== null && lastRemote === serialize(songs, mealType, programSelected);
 }

@@ -124,7 +124,7 @@ export default function Page() {
       if (!payload || payload.stackId !== stackId) return;
       // Помечаем состояние как пришедшее по сети, чтобы боковая панель не
       // отправила его обратно: двое регентов на этом зацикливались
-      markStackFromRemote(payload.songs || [], payload.mealType || null);
+      markStackFromRemote(payload.songs || [], payload.mealType || null, payload.programSelected || []);
       setStackSongs(payload.songs || []);
       setMealType(payload.mealType || null);
       if (payload.programSelected) setProgramSelected(payload.programSelected);

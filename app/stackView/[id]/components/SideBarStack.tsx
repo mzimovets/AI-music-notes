@@ -213,14 +213,15 @@ export const SideBarStack = ({
     // Состояние, только что пришедшее по сети, обратно не отправляем: для
     // собеседника это ничего не меняет, а двух регентов вгоняет в бесконечный
     // обмен одинаковыми событиями (см. lib/stack-sync-echo.ts)
-    if (isStackEcho(stackSongs, mealType)) return;
+    if (isStackEcho(stackSongs, mealType, programSelected)) return;
 
     socket.emit("stack-updated", {
       stackId,
       songs: stackSongs,
       mealType,
+      programSelected,
     });
-  }, [isRegent, mealType, stackId, stackSongs]);
+  }, [isRegent, mealType, programSelected, stackId, stackSongs]);
 
   const searchRef = useRef(null);
   const sensors = useSensors(
