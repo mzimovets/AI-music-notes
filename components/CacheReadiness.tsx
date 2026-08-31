@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, ModalContent } from "@heroui/modal";
 import { socket } from "@/lib/socket";
+import { watchResume } from "@/lib/measure-on-resume";
 import {
   checkReadiness,
   repairReadiness,
@@ -79,9 +80,12 @@ export function CacheReadiness() {
     refresh(true);
 
     const timer = setInterval(refreshOnEvent, RECHECK_MS);
-    const onVisible = () => { if (document.visibilityState === "visible") refreshOnEvent(); };
-
-    document.addEventListener("visibilitychange", onVisible);
+    // Голый visibilitychange на iPad после долгого сворачивания срабатывает
+    // не всегда (тот же случай, что и с размером нот — см. watchResume): без
+    // него индикатор застревал на старой картинке, пока не откроешь панель
+    // руками. watchResume добивает повтором на pageshow/focus и несколькими
+    // попытками подряд
+    const stopWatchingResume = watchResume(refreshOnEvent);
     window.addEventListener("online", refreshOnEvent);
     window.addEventListener("sw-recache-done", refreshOnEvent);
     window.addEventListener("db-sync-complete", refreshOnEvent);
@@ -90,7 +94,7 @@ export function CacheReadiness() {
 
     return () => {
       clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      stopWatchingResume();
       window.removeEventListener("online", refreshOnEvent);
       window.removeEventListener("sw-recache-done", refreshOnEvent);
       window.removeEventListener("db-sync-complete", refreshOnEvent);
