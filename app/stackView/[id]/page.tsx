@@ -497,6 +497,28 @@ export default function Page() {
     };
   }, [scrollToPageByStep]);
 
+  /**
+   * ВРЕМЕННО: какой именно key/code браузер планшета видит от Bluetooth-
+   * кликера при прямом подключении (не через реле на Маке). Раньше уже
+   * гадали на PageDown/PageUp/стрелки — не подтверждено, что это точно то,
+   * что шлёт именно это устройство. Убрать после проверки
+   */
+  const [rawKeyLog, setRawKeyLog] = useState<string[]>([]);
+  useEffect(() => {
+    const push = (line: string) => {
+      const time = new Date().toISOString().slice(11, 23);
+      setRawKeyLog((prev) => [`${time} ${line}`, ...prev].slice(0, 15));
+    };
+    const onKeyDown = (e: KeyboardEvent) => push(`keydown key=${e.key} code=${e.code} keyCode=${e.keyCode}`);
+    const onKeyUp = (e: KeyboardEvent) => push(`keyup   key=${e.key} code=${e.code} keyCode=${e.keyCode}`);
+    window.addEventListener("keydown", onKeyDown, true);
+    window.addEventListener("keyup", onKeyUp, true);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      window.removeEventListener("keyup", onKeyUp, true);
+    };
+  }, []);
+
   // Режим прокрутки убран в резерв — остался только книжный.
   // Чтобы вернуть, раскомментируйте чтение сохранённого режима ниже,
   // разметку списка страниц в конце файла и кнопку переключения в SideBarStack.
@@ -687,6 +709,21 @@ export default function Page() {
       {!isSinger && (
         <ClickerIndicator isConnected={clickerConnected || keyboardClickerActive} hidden={!showButton} />
       )}
+
+      {/* ВРЕМЕННО: что реально приходит от кликера при прямом Bluetooth-подключении */}
+      <div
+        style={{
+          position: "fixed", left: 4, right: 4, top: 4, zIndex: 100,
+          maxHeight: "30vh", overflowY: "auto",
+          font: "10px ui-monospace, monospace", color: "#0f0",
+          background: "rgba(0,0,0,0.82)", padding: "6px 8px", borderRadius: 8,
+          pointerEvents: "none", whiteSpace: "pre",
+        }}
+      >
+        {rawKeyLog.length === 0
+          ? "ждём нажатия кликера…"
+          : rawKeyLog.join("\n")}
+      </div>
 
       {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера.
           Подсветка — кнопка сама чуть дышит масштабом и тенью, и по ней пробегает блик:

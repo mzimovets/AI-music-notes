@@ -167,8 +167,13 @@ const connectDevice = () => {
 connectDevice();
 setInterval(connectDevice, 2000);
 
-// Рассылаем актуальный статус браузерам каждую секунду
-setInterval(() => broadcastToReceivers({ type: "clicker-connected", connected: !!device || !!remoteSender }), 1000);
+// Рассылаем актуальный статус каждую секунду — не только локальным браузерам,
+// но и на VPS (через broadcastStatus, не голый broadcastToReceivers). Раньше
+// на VPS статус уходил только по событию подключения/отключения устройства;
+// если при этом само соединение Мак↔VPS как раз переустанавливалось, разовое
+// сообщение терялось, и сайт годами показывал "подключено", хотя физически
+// кликер уже отвалился. Теперь любая потеря самолечится в течение секунды
+setInterval(() => broadcastStatus(!!device || !!remoteSender), 1000);
 
 // Если задан CLICKER_VPS_URL — подключаемся к VPS как sender (RPi5 → VPS)
 const startVpsSender = () => {
