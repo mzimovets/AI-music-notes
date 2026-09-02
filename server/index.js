@@ -166,12 +166,20 @@ const startVpsSender = () => {
   if (!VPS_URL || !CLICKER_SECRET) return;
   if (vpsSender) return;
 
+  // Заголовок x-clicker-sender при апгрейде до VPS не доезжает (проверено
+  // напрямую: соединение открывается, но сервер отправителя не узнаёт),
+  // а секрет в строке запроса на этом пути прокси вообще превращает в 502
+  // (тоже проверено — без query соединение открывается нормально). Поэтому
+  // подтверждаемся уже ПОСЛЕ открытия — обычным сообщением по тому же
+  // каналу, что и так работает для нажатий. Заголовок оставлен на всякий
+  // случай — вдруг где-то всё-таки доедет (например, с другой сети)
   vpsSender = new WebSocket(VPS_URL, {
     headers: { "x-clicker-sender": CLICKER_SECRET },
   });
 
   vpsSender.on("open", () => {
     console.log("[clicker] Sender подключился к VPS:", VPS_URL);
+    vpsSender.send(JSON.stringify({ type: "sender-auth", secret: CLICKER_SECRET }));
     vpsSender.send(JSON.stringify({ type: "clicker-connected", connected: !!device }));
   });
 
@@ -310,30 +318,56 @@ try {
   console.log("[clicker] WebSocket подключён к httpServer по пути /ws-clicker");
 
   wss.on("connection", (ws, req) => {
-    const isSender = CLICKER_SECRET && req.headers["x-clicker-sender"] === CLICKER_SECRET;
+    // Заголовок x-clicker-sender при апгрейде до этого VPS не доезжает
+    // (проверено напрямую: соединение открывается, а сервер отправителя не
+    // узнаёт), поэтому основной путь — подтверждение уже после открытия,
+    // обычным сообщением {type:"sender-auth", secret} по каналу, который и
+    // так работает (см. startVpsSender). Заголовок оставлен как быстрый
+    // путь на случай, если где-то всё-таки доедет
+    let confirmedSender = !!CLICKER_SECRET && req.headers["x-clicker-sender"] === CLICKER_SECRET;
 
-    if (isSender) {
+    if (confirmedSender) {
       remoteSender = ws;
       console.log("[clicker] Sender (RPi5) подключился");
       broadcastToReceivers({ type: "clicker-connected", connected: true });
-
-      ws.on("message", (rawData) => {
-        try { broadcastToReceivers(JSON.parse(rawData.toString())); } catch {}
-      });
-
-      ws.on("close", () => {
-        remoteSender = null;
-        console.log("[clicker] Sender (RPi5) отключился");
-        broadcastToReceivers({ type: "clicker-connected", connected: !!device });
-      });
-
-      ws.on("error", () => { remoteSender = null; });
     } else {
       receiverClients.add(ws);
       ws.send(JSON.stringify({ type: "clicker-connected", connected: !!device || !!remoteSender }));
-      ws.on("close", () => receiverClients.delete(ws));
-      ws.on("error", () => receiverClients.delete(ws));
     }
+
+    ws.on("message", (rawData) => {
+      let msg;
+      try { msg = JSON.parse(rawData.toString()); } catch { return; }
+
+      if (!confirmedSender) {
+        if (msg.type === "sender-auth" && CLICKER_SECRET && msg.secret === CLICKER_SECRET) {
+          confirmedSender = true;
+          receiverClients.delete(ws);
+          remoteSender = ws;
+          console.log("[clicker] Sender (RPi5) подключился");
+          broadcastToReceivers({ type: "clicker-connected", connected: true });
+        }
+        // Обычные зрители ничего больше не присылают — остальное молча игнорируем
+        return;
+      }
+
+      broadcastToReceivers(msg);
+    });
+
+    ws.on("close", () => {
+      if (confirmedSender) {
+        remoteSender = null;
+        console.log("[clicker] Sender (RPi5) отключился");
+        broadcastToReceivers({ type: "clicker-connected", connected: !!device });
+      } else {
+        receiverClients.delete(ws);
+      }
+    });
+
+    ws.on("error", () => {
+      if (confirmedSender) remoteSender = null;
+      else receiverClients.delete(ws);
+    });
   });
 } catch (err) {
   console.warn("[clicker] WebSocket не удалось запустить:", err);
