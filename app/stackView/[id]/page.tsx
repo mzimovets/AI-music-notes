@@ -497,81 +497,6 @@ export default function Page() {
     };
   }, [scrollToPageByStep]);
 
-  /**
-   * ВРЕМЕННО: диагностика реального ввода от Bluetooth-кликера (D01 Pro).
-   * Убрать, когда станет известно, какое событие он реально шлёт.
-   *
-   * Устройство — обычный Bluetooth page-turner: iPadOS видит его как
-   * системное устройство ввода, а не как что-то, к чему подключается сам
-   * сайт. Раньше предполагалось, что это клавиатура (keydown U/D), но
-   * оказалось, что кнопки могут приходить как что-то похожее на свайп —
-   * поэтому обработчик на keydown/keyup выше мог просто не получать ни
-   * одного события. Гадать дальше нельзя — нужно посмотреть, что реально
-   * приходит в браузер на настоящем iPad с настоящим кликером.
-   *
-   * Ловим все правдоподобные типы событий разом (keydown, touch, pointer,
-   * wheel, жесты) и показываем последние на экране — движения пальцем
-   * (move) намеренно не пишем, иначе лог захлёбывается при обычном свайпе
-   * пальцем; для этого хватает start/end
-   */
-  const [inputLog, setInputLog] = useState<string[]>([]);
-  useEffect(() => {
-    const push = (line: string) => {
-      const time = new Date().toISOString().slice(11, 23);
-      setInputLog((prev) => [`${time} ${line}`, ...prev].slice(0, 25));
-    };
-
-    const onKeyDown = (e: KeyboardEvent) =>
-      push(`keydown key=${e.key} code=${e.code} keyCode=${e.keyCode}`);
-    const onKeyUp = (e: KeyboardEvent) =>
-      push(`keyup   key=${e.key} code=${e.code} keyCode=${e.keyCode}`);
-    const onTouchStart = (e: TouchEvent) =>
-      push(`touchstart n=${e.touches.length} x=${Math.round(e.touches[0]?.clientX ?? -1)} y=${Math.round(e.touches[0]?.clientY ?? -1)}`);
-    const onTouchEnd = (e: TouchEvent) =>
-      push(`touchend   n=${e.touches.length} changed=${e.changedTouches.length}`);
-    const onTouchCancel = () => push("touchcancel");
-    const onPointerDown = (e: PointerEvent) =>
-      push(`pointerdown type=${e.pointerType} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
-    const onPointerUp = (e: PointerEvent) =>
-      push(`pointerup   type=${e.pointerType} x=${Math.round(e.clientX)} y=${Math.round(e.clientY)}`);
-    const onPointerCancel = () => push("pointercancel");
-    let lastWheel = 0;
-    const onWheel = (e: WheelEvent) => {
-      const now = Date.now();
-      if (now - lastWheel < 150) return; // иначе один жест — десятки строк
-      lastWheel = now;
-      push(`wheel dx=${Math.round(e.deltaX)} dy=${Math.round(e.deltaY)}`);
-    };
-    const onGesture = (name: string) => () => push(name);
-
-    window.addEventListener("keydown", onKeyDown, true);
-    window.addEventListener("keyup", onKeyUp, true);
-    window.addEventListener("touchstart", onTouchStart, true);
-    window.addEventListener("touchend", onTouchEnd, true);
-    window.addEventListener("touchcancel", onTouchCancel, true);
-    window.addEventListener("pointerdown", onPointerDown, true);
-    window.addEventListener("pointerup", onPointerUp, true);
-    window.addEventListener("pointercancel", onPointerCancel, true);
-    window.addEventListener("wheel", onWheel, true);
-    // gesturestart/gestureend — нестандартные события, есть только в WebKit
-    window.addEventListener("gesturestart", onGesture("gesturestart") as any, true);
-    window.addEventListener("gestureend", onGesture("gestureend") as any, true);
-
-    return () => {
-      window.removeEventListener("keydown", onKeyDown, true);
-      window.removeEventListener("keyup", onKeyUp, true);
-      window.removeEventListener("touchstart", onTouchStart, true);
-      window.removeEventListener("touchend", onTouchEnd, true);
-      window.removeEventListener("touchcancel", onTouchCancel, true);
-      window.removeEventListener("pointerdown", onPointerDown, true);
-      window.removeEventListener("pointerup", onPointerUp, true);
-      window.removeEventListener("pointercancel", onPointerCancel, true);
-      window.removeEventListener("wheel", onWheel, true);
-      window.removeEventListener("gesturestart", onGesture("gesturestart") as any, true);
-      window.removeEventListener("gestureend", onGesture("gestureend") as any, true);
-    };
-  }, []);
-
   // Режим прокрутки убран в резерв — остался только книжный.
   // Чтобы вернуть, раскомментируйте чтение сохранённого режима ниже,
   // разметку списка страниц в конце файла и кнопку переключения в SideBarStack.
@@ -763,28 +688,19 @@ export default function Page() {
         <ClickerIndicator isConnected={clickerConnected || keyboardClickerActive} hidden={!showButton} />
       )}
 
-      {/* ВРЕМЕННО: что реально приходит от кликера — убрать, когда станет известно */}
-      <div
-        style={{
-          position: "fixed", left: 4, right: 4, top: 4, zIndex: 100,
-          maxHeight: "38vh", overflowY: "auto",
-          font: "10px ui-monospace, monospace", color: "#0f0",
-          background: "rgba(0,0,0,0.82)", padding: "6px 8px", borderRadius: 8,
-          pointerEvents: "none", whiteSpace: "pre",
-        }}
-      >
-        {inputLog.length === 0
-          ? "ждём событий — нажми кнопку на кликере…"
-          : inputLog.join("\n")}
-      </div>
-
       {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера.
-          Лёгкая подсветка (расходящееся кольцо) — чтобы её вообще замечали, а не искали
-          глазами специально */}
+          Лёгкая подсветка (мягкое дыхание, не резкое кольцо animate-ping) — чтобы её
+          вообще замечали, а не искали глазами специально */}
       {repriseMap.has(currentPage) && (
         <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
           <div className="relative">
-            <span className="absolute inset-0 rounded-full bg-[#7D5E42] opacity-50 animate-ping" />
+            <span className="absolute inset-0 rounded-full bg-[#7D5E42]" style={{ animation: "reprise-glow 2.4s ease-in-out infinite" }} />
+            <style jsx>{`
+              @keyframes reprise-glow {
+                0%, 100% { transform: scale(1); opacity: 0.35; }
+                50% { transform: scale(1.18); opacity: 0; }
+              }
+            `}</style>
             <button
               onClick={() => goToReprisePage(repriseMap.get(currentPage)!.absoluteTo)}
               className="relative flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg active:scale-95 transition-transform"
