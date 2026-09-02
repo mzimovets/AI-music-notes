@@ -65,10 +65,10 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
         bg-white/30
         backdrop-blur-lg
         border border-white/40
-        shadow-[0_4px_12px_rgba(0,0,0,0.18)]
+        shadow-[0_1px_3px_rgba(0,0,0,0.08),0_6px_18px_rgba(0,0,0,0.10)]
         transition-all duration-200
         group-hover:bg-white/40
-        group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+        group-hover:shadow-[0_2px_5px_rgba(0,0,0,0.10),0_10px_24px_rgba(0,0,0,0.14)]
         group-active:scale-95
       "
           >

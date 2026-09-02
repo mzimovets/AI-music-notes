@@ -133,7 +133,7 @@ const connectDevice = () => {
       // надёжно "долгим") — вместо этого считаем нажатия за короткое окно.
       // Первое нажатие откладывается на это окно: если за него придёт
       // второе — считаем как двойное и открываем панель, иначе — реприза
-      const DOUBLE_PRESS_WINDOW_MS = 350;
+      const DOUBLE_PRESS_WINDOW_MS = 600;
       let middleClickTimer = null;
       let middleClickCount = 0;
 
