@@ -980,20 +980,26 @@ export function WiFiManagerModal({ isOpen, onClose, onBoardOfflineChange, onDang
   const reloadWhenBoardIsBack = async () => {
     setUpdateStage("Жду, пока приложение поднимется");
 
-    const buildId = async () => {
+    // Раньше ждали, пока buildId (Date.now() на самой плате) сменится
+    // относительно значения до обновления — до 3 минут. У платы ненадёжные
+    // часы: сбрасываются на каждом включении (нет батарейки RTC, см. память
+    // "часы платы отстают"), и значение иногда не менялось вовсе — ожидание
+    // всегда упиралось в потолок, хотя сервис уже давно поднялся. Здесь не
+    // сравниваем значения, а просто ждём первый успешный ответ: сервис
+    // music-frontend перезапускается через sleep 2 после того, как в журнале
+    // появляется "DONE" — короткая гарантированная пауза с запасом, дальше
+    // обычный health-check
+    await new Promise((r) => setTimeout(r, 3000));
+
+    for (let i = 0; i < 30; i++) {
       try {
-        const res = await fetch(`${rpiBaseUrlRef.current}/api/build-id`, { cache: "no-store" });
-        return res.ok ? (await res.json())?.buildId ?? null : null;
-      } catch { return null; }
-    };
-
-    const before = await buildId();
-
-    for (let i = 0; i < 90; i++) {
+        const res = await fetch(`${rpiBaseUrlRef.current}/api/build-id`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(3000),
+        });
+        if (res.ok) break;
+      } catch {}
       await new Promise((r) => setTimeout(r, 2000));
-      const now = await buildId();
-      // Сборка сменилась — новый сервер уже отвечает, можно перезагружаться
-      if (now && now !== before) break;
     }
 
     setUpdateStage("Готово");
