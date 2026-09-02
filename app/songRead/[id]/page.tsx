@@ -312,22 +312,44 @@ export default function SongReadPage() {
         <ClickerIndicator isConnected={clickerConnected} hidden={!showButton} />
       )}
 
-      {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера */}
+      {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера.
+          Подсветка — кнопка сама чуть дышит масштабом и тенью, и по ней пробегает блик
+          (см. тот же приём в stackView/[id]/page.tsx) */}
       {activeReprise && (
         <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
-          <button
-            onClick={() => goToReprisePage(activeReprise.toPage)}
-            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg active:scale-95 transition-transform"
-            title={`Реприза: перейти на стр. ${activeReprise.toPage}`}
-          >
-            <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
-              <rect x="0" y="0" width="4" height="18" rx="0.5" />
-              <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
-              <circle cx="10.5" cy="6" r="2" />
-              <circle cx="10.5" cy="12" r="2" />
-            </svg>
-            стр. {activeReprise.toPage}
-          </button>
+          <div className="rounded-full" style={{ animation: "reprise-breathe 2.2s ease-in-out infinite" }}>
+            <style jsx>{`
+              @keyframes reprise-breathe {
+                0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(125,94,66,0.35); }
+                50% { transform: scale(1.045); box-shadow: 0 6px 22px rgba(125,94,66,0.55); }
+              }
+              @keyframes reprise-sweep {
+                0% { transform: translateX(-120%) skewX(-20deg); }
+                100% { transform: translateX(220%) skewX(-20deg); }
+              }
+            `}</style>
+            <button
+              onClick={() => goToReprisePage(activeReprise.toPage)}
+              className="relative overflow-hidden flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full active:scale-95 transition-transform"
+              title={`Реприза: перейти на стр. ${activeReprise.toPage}`}
+            >
+              <span
+                aria-hidden
+                className="absolute -inset-y-2 left-0 w-2/5 pointer-events-none"
+                style={{
+                  animation: "reprise-sweep 2.8s ease-in-out infinite",
+                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)",
+                }}
+              />
+              <svg className="relative" width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
+                <rect x="0" y="0" width="4" height="18" rx="0.5" />
+                <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
+                <circle cx="10.5" cy="6" r="2" />
+                <circle cx="10.5" cy="12" r="2" />
+              </svg>
+              <span className="relative">стр. {activeReprise.toPage}</span>
+            </button>
+          </div>
         </div>
       )}
 
