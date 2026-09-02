@@ -197,7 +197,18 @@ export async function syncCertificate() {
   const url = process.env.SYNC_MASTER_URL;
   const key = process.env.CERT_API_KEY;
 
-  if (!url || !key) return; // не настроено — молча пропускаем
+  if (!url || !key) {
+    // Раньше молча выходили — а кнопка «Обновить» в окне платы при этом
+    // мигала «Проверяю…» и ничего не происходило: запись в файле состояния
+    // не трогалась, старое (возможно, совсем другое по смыслу) сообщение об
+    // ошибке так и висело, будто повторная проверка ничего не сделала. Явная
+    // запись превращает это в понятную причину, а не в подвисшую кнопку
+    writeState({
+      lastCheckAt: Date.now(),
+      error: `На плате не заданы ${!url ? "SYNC_MASTER_URL" : "CERT_API_KEY"} — проверить сертификат нечем`,
+    });
+    return;
+  }
 
   try {
     const res = await fetch(`${url}/api/sync/cert`, {
