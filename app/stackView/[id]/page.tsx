@@ -468,6 +468,19 @@ export default function Page() {
     return () => clearTimeout(timer);
   }, [keyboardClickerActiveUntil]);
 
+  /**
+   * Клавиши от Bluetooth-пульта, подключённого прямо к планшету.
+   *
+   * Раньше ждали ровно PageDown/PageUp и стрелки вниз/вверх. Но такие пульты
+   * шлют что угодно из привычного набора «листалок»: кто-то стрелки вбок,
+   * кто-то пробел (самый частый вариант у презентеров), кто-то Enter. Гадать
+   * по одному коду за подход — долго, поэтому принимаем весь набор сразу.
+   *
+   * Ввод текста не задет: если фокус в поле, обработчик выходит сразу.
+   */
+  const [unknownKey, setUnknownKey] = useState<string | null>(null);
+  const unknownKeyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const isEditableTarget = (target: EventTarget | null) => {
       if (!(target instanceof HTMLElement)) return false;
@@ -475,18 +488,39 @@ export default function Page() {
       return tag === "input" || tag === "textarea" || target.isContentEditable;
     };
     const isPageDown = (e: KeyboardEvent) =>
-      e.key === "PageDown" || e.code === "PageDown" || e.key === "ArrowDown";
+      e.key === "PageDown" || e.code === "PageDown" ||
+      e.key === "ArrowDown" || e.key === "ArrowRight" ||
+      e.key === " " || e.code === "Space" ||
+      e.key === "Enter" || e.code === "Enter" ||
+      e.key === "MediaTrackNext" || e.key === "AudioVolumeUp";
     const isPageUp = (e: KeyboardEvent) =>
-      e.key === "PageUp" || e.code === "PageUp" || e.key === "ArrowUp";
+      e.key === "PageUp" || e.code === "PageUp" ||
+      e.key === "ArrowUp" || e.key === "ArrowLeft" ||
+      e.key === "Backspace" || e.code === "Backspace" ||
+      e.key === "MediaTrackPrevious" || e.key === "AudioVolumeDown";
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return;
+      // Пробел и стрелки иначе прокрутят страницу под нами
       if (isPageDown(e) || isPageUp(e)) e.preventDefault();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return;
-      if (isPageDown(e)) scrollToPageByStep(1);
+      // Шифт с пробелом у презентеров обычно «назад», а не «вперёд»
+      if (e.shiftKey && (e.key === " " || e.code === "Space")) scrollToPageByStep(-1);
+      else if (isPageDown(e)) scrollToPageByStep(1);
       else if (isPageUp(e)) scrollToPageByStep(-1);
-      else return;
+      else {
+        /**
+         * Клавиша пришла, но мы её не знаем. Показываем, что именно пришло:
+         * так не нужно подключать планшет к компьютеру ради веб-инспектора,
+         * чтобы узнать код конкретного пульта — он виден прямо на экране
+         */
+        if (unknownKeyTimer.current) clearTimeout(unknownKeyTimer.current);
+        setUnknownKey(`${e.key} · ${e.code || "—"}`);
+        unknownKeyTimer.current = setTimeout(() => setUnknownKey(null), 4000);
+        return;
+      }
       setKeyboardClickerActiveUntil(Date.now() + 10_000);
     };
     window.addEventListener("keydown", handleKeyDown);
@@ -686,6 +720,23 @@ export default function Page() {
       {viewMode === "scroll" && <ScrollToTop />}
       {!isSinger && (
         <ClickerIndicator isConnected={clickerConnected || keyboardClickerActive} hidden={!showButton} />
+      )}
+
+      {/* Пришла клавиша, которую мы не знаем — показываем её код. Нужно, чтобы
+          подобрать нужную кнопку у конкретного пульта, не подключая планшет к
+          компьютеру. Само гаснет через несколько секунд */}
+      {!isSinger && unknownKey && (
+        <div
+          className="input-header"
+          style={{
+            position: "fixed", left: "50%", bottom: 84, transform: "translateX(-50%)",
+            zIndex: 60, maxWidth: "90vw", padding: "8px 14px", borderRadius: 12,
+            background: "rgba(0,0,0,0.78)", color: "#fff", fontSize: 12,
+            pointerEvents: "none", whiteSpace: "nowrap",
+          }}
+        >
+          Кнопка пульта: {unknownKey}
+        </div>
       )}
 
       {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера.

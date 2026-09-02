@@ -247,17 +247,27 @@ export default function SongReadPage() {
       const tag = target.tagName.toLowerCase();
       return tag === "input" || tag === "textarea" || target.isContentEditable;
     };
+    // Набор клавиш тот же, что в stackView/[id]/page.tsx — пульты шлют кто
+    // стрелки, кто пробел, кто Enter, и гадать по одному коду за подход долго
     const isPageDown = (e: KeyboardEvent) =>
-      e.key === "PageDown" || e.code === "PageDown" || e.key === "ArrowDown";
+      e.key === "PageDown" || e.code === "PageDown" ||
+      e.key === "ArrowDown" || e.key === "ArrowRight" ||
+      e.key === " " || e.code === "Space" ||
+      e.key === "Enter" || e.code === "Enter" ||
+      e.key === "MediaTrackNext" || e.key === "AudioVolumeUp";
     const isPageUp = (e: KeyboardEvent) =>
-      e.key === "PageUp" || e.code === "PageUp" || e.key === "ArrowUp";
+      e.key === "PageUp" || e.code === "PageUp" ||
+      e.key === "ArrowUp" || e.key === "ArrowLeft" ||
+      e.key === "Backspace" || e.code === "Backspace" ||
+      e.key === "MediaTrackPrevious" || e.key === "AudioVolumeDown";
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return;
       if (isPageDown(e) || isPageUp(e)) e.preventDefault();
     };
     const handleKeyUp = (e: KeyboardEvent) => {
       if (isEditableTarget(e.target)) return;
-      if (isPageDown(e)) scrollToPageByStep(1);
+      if (e.shiftKey && (e.key === " " || e.code === "Space")) scrollToPageByStep(-1);
+      else if (isPageDown(e)) scrollToPageByStep(1);
       else if (isPageUp(e)) scrollToPageByStep(-1);
     };
     window.addEventListener("keydown", handleKeyDown);
