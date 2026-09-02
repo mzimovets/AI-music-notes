@@ -127,16 +127,42 @@ const connectDevice = () => {
       console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
       broadcastStatus(true);
 
+      // Средняя кнопка: короткое нажатие — реприза (если она сейчас есть на
+      // странице), долгое — открыть боковую панель, как и раньше. Устройство
+      // само их не различает — шлёт только "нажата"/"отпущена", без адреса
+      // конкретной кнопки на отпускании (кадр отпускания у всех кнопок
+      // одинаковый, все байты нулевые). Поэтому решение откладывается: на
+      // нажатии средней запоминаем время, а действие рассылаем только когда
+      // придёт кадр отпускания — по факту того, сколько кнопка была зажата
+      const MIDDLE_LONG_PRESS_MS = 400;
+      let middlePressedAt = null;
+
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
 
         const btn = data[2];
         const extra = data[1];
-        let action = null;
 
+        if (extra === 0x04 && btn === 0x00) {
+          middlePressedAt = Date.now();
+          return;
+        }
+
+        if (middlePressedAt !== null) {
+          const held = Date.now() - middlePressedAt;
+          middlePressedAt = null;
+          if (btn === 0x00 && extra === 0x00) {
+            broadcast(held < MIDDLE_LONG_PRESS_MS ? "reprise" : "middle");
+            return;
+          }
+          // Кадр отпускания не пришёл, а пришло сразу другое нажатие —
+          // забываем повисшее состояние средней и обрабатываем это нажатие
+          // обычным образом ниже
+        }
+
+        let action = null;
         if (btn === 0x01) action = "up";
         else if (btn === 0x02) action = "down";
-        else if (extra === 0x04 && btn === 0x00) action = "middle";
 
         if (!action) return;
         broadcast(action);

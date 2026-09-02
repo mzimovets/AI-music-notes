@@ -423,6 +423,28 @@ export default function Page() {
   }, [scrollToPageByStep]));
 
   /**
+   * Средняя кнопка кликера: короткое нажатие — реприза (если она сейчас
+   * есть на странице), долгое — открыть боковую панель (как раньше, см.
+   * SideBarStack). Само устройство их не различает — сервер меряет, сколько
+   * кнопка была зажата, и шлёт "reprise" или "middle" по факту отпускания
+   * (см. server/index.js). Рефы вместо стейта в зависимостях — событие
+   * приходит от глобального слушателя, а не React-обработчика, и должно
+   * видеть самую свежую страницу/карту репризов без пересоздания подписки
+   */
+  const repriseMapRef = useRef(repriseMap);
+  repriseMapRef.current = repriseMap;
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
+  useEffect(() => {
+    const handleReprise = () => {
+      const entry = repriseMapRef.current.get(currentPageRef.current);
+      if (entry) goToReprisePage(entry.absoluteTo);
+    };
+    window.addEventListener("clicker:reprise", handleReprise);
+    return () => window.removeEventListener("clicker:reprise", handleReprise);
+  }, [goToReprisePage]);
+
+  /**
    * Клавиатура — для Bluetooth-кликера регента.
    *
    * useClicker выше обслуживает только проводной кликер на плате (сигнал
