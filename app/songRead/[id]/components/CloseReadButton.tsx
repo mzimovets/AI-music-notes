@@ -32,7 +32,11 @@ export const CloseReadButton = () => {
         variant="light"
         radius="full"
         disableAnimation
-        className="group w-14 h-14 min-w-0 p-0 !bg-transparent !shadow-none border-0 data-[hover=true]:!bg-transparent data-[pressed=true]:!bg-transparent flex items-center justify-center"
+        // !overflow-visible — у Button из HeroUI overflow-hidden зашит в базовые
+        // стили (для риппла), и он обрезал тень кружка ровно по границе кнопки:
+        // выглядело как резко обрывающееся кольцо вместо плавного затухания
+        // (см. также stackView/components/CloseButton.tsx)
+        className="group w-14 h-14 min-w-0 p-0 !bg-transparent !shadow-none !overflow-visible border-0 data-[hover=true]:!bg-transparent data-[pressed=true]:!bg-transparent flex items-center justify-center"
       >
         <span
           className="
@@ -41,8 +45,8 @@ export const CloseReadButton = () => {
   rounded-full
   bg-red-50 text-red-400
   border border-red-200
-shadow-[0_4px_12px_rgba(0,0,0,0.18)]
-  group-hover:shadow-[0_6px_16px_rgba(0,0,0,0.22)]
+  shadow-[0_1px_3px_rgba(0,0,0,0.08),0_6px_18px_rgba(0,0,0,0.10)]
+  group-hover:shadow-[0_2px_5px_rgba(0,0,0,0.10),0_10px_24px_rgba(0,0,0,0.14)]
   transition-all duration-200
   group-hover:bg-red-100 group-hover:border-red-300
   group-active:scale-95

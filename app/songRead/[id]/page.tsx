@@ -168,6 +168,28 @@ export default function SongReadPage() {
     }
   }, []);
 
+  /**
+   * Средняя кнопка кликера — реприза, если она сейчас есть на странице (см.
+   * stackView/[id]/page.tsx — тот же приём). Рефы вместо стейта в
+   * зависимостях: событие приходит от глобального слушателя, а не из React,
+   * и должно видеть самую свежую страницу без пересоздания подписки
+   */
+  const currentPageRef = useRef(currentPage);
+  currentPageRef.current = currentPage;
+  const songResponseRef = useRef(songResponse);
+  songResponseRef.current = songResponse;
+  useEffect(() => {
+    const handleReprise = () => {
+      const reprises = (songResponseRef.current?.doc as any)?.reprises as
+        | Array<{ fromPage: number; toPage: number }>
+        | undefined;
+      const entry = reprises?.find((r) => r.fromPage === currentPageRef.current);
+      if (entry) goToReprisePage(entry.toPage);
+    };
+    window.addEventListener("clicker:reprise", handleReprise);
+    return () => window.removeEventListener("clicker:reprise", handleReprise);
+  }, [goToReprisePage]);
+
   // Скролл — показываем кнопки только в режиме пролистывания
   useEffect(() => {
     const onScroll = () => {
