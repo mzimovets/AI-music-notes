@@ -136,7 +136,12 @@ const connectDevice = () => {
       const DOUBLE_PRESS_WINDOW_MS = 600;
       let middleClickTimer = null;
       let middleClickCount = 0;
+      let lastMiddleClickAt = 0;
 
+      // ВРЕМЕННО: подробный лог сырых кадров средней кнопки — чтобы увидеть
+      // по факту (не вживую по чату, а потом в логе), с каким реальным
+      // интервалом прилетают два нажатия и какое решение из-за этого
+      // принимается. Убрать, когда двойное нажатие подтвердится вживую
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
 
@@ -144,14 +149,21 @@ const connectDevice = () => {
         const extra = data[1];
 
         if (extra === 0x04 && btn === 0x00) {
+          const now = Date.now();
+          const gap = lastMiddleClickAt ? now - lastMiddleClickAt : null;
+          lastMiddleClickAt = now;
           middleClickCount++;
+          console.log(`[clicker-diag] средняя нажата #${middleClickCount}${gap !== null ? `, с прошлой ${gap}мс` : ""}`);
+
           if (middleClickCount === 1) {
             middleClickTimer = setTimeout(() => {
+              console.log("[clicker-diag] окно истекло без второго нажатия -> reprise");
               middleClickTimer = null;
               middleClickCount = 0;
               broadcast("reprise");
             }, DOUBLE_PRESS_WINDOW_MS);
           } else {
+            console.log("[clicker-diag] второе нажатие успело в окно -> middle (панель)");
             clearTimeout(middleClickTimer);
             middleClickTimer = null;
             middleClickCount = 0;
