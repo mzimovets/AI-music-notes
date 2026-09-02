@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getClickerWebSocketUrl } from "@/lib/client-url";
 
-type Direction = "up" | "down" | "middle" | "reprise";
+type Direction = "up" | "down" | "reprise";
 
 export function useClicker(onPress: (direction: Direction) => void): { isConnected: boolean } {
   const [isConnected, setIsConnected] = useState(false);
@@ -20,9 +20,7 @@ export function useClicker(onPress: (direction: Direction) => void): { isConnect
           console.log("[clicker] статус устройства:", data.connected);
           setIsConnected(data.connected);
         } else if (data.type === "clicker") {
-          if (data.direction === "middle") {
-            window.dispatchEvent(new CustomEvent("clicker:middle"));
-          } else if (data.direction === "reprise") {
+          if (data.direction === "reprise") {
             window.dispatchEvent(new CustomEvent("clicker:reprise"));
           } else {
             onPress(data.direction);

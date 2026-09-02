@@ -127,54 +127,26 @@ const connectDevice = () => {
       console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
       broadcastStatus(true);
 
-      // Средняя кнопка: одно нажатие — реприза (если она сейчас есть на
-      // странице), два быстрых подряд — открыть боковую панель. Мерить, как
-      // долго кнопка зажата, оказалось неудобно для человека (не считается
-      // надёжно "долгим") — вместо этого считаем нажатия за короткое окно.
-      // Первое нажатие откладывается на это окно: если за него придёт
-      // второе — считаем как двойное и открываем панель, иначе — реприза
-      const DOUBLE_PRESS_WINDOW_MS = 600;
-      let middleClickTimer = null;
-      let middleClickCount = 0;
-      let lastMiddleClickAt = 0;
-
-      // ВРЕМЕННО: подробный лог сырых кадров средней кнопки — чтобы увидеть
-      // по факту (не вживую по чату, а потом в логе), с каким реальным
-      // интервалом прилетают два нажатия и какое решение из-за этого
-      // принимается. Убрать, когда двойное нажатие подтвердится вживую
+      // Средняя кнопка — реприза, сразу по нажатию, без ожидания.
+      //
+      // Раньше здесь пробовали различать долгое/двойное нажатие для второго
+      // действия (открыть панель), но диагностика дважды подряд показала:
+      // на быстрый повторный клик той же кнопки устройство физически не
+      // выдаёт второй сигнал вообще — судя по всему, аппаратное подавление
+      // повтора в самой прошивке пульта. Программным таймером это не
+      // обойти: события просто нет, а не просто есть с задержкой. Поэтому
+      // средняя — только реприза, панель открывается тапом по экрану
+      // (кнопка есть и подсвечена)
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
 
         const btn = data[2];
         const extra = data[1];
 
-        if (extra === 0x04 && btn === 0x00) {
-          const now = Date.now();
-          const gap = lastMiddleClickAt ? now - lastMiddleClickAt : null;
-          lastMiddleClickAt = now;
-          middleClickCount++;
-          console.log(`[clicker-diag] средняя нажата #${middleClickCount}${gap !== null ? `, с прошлой ${gap}мс` : ""}`);
-
-          if (middleClickCount === 1) {
-            middleClickTimer = setTimeout(() => {
-              console.log("[clicker-diag] окно истекло без второго нажатия -> reprise");
-              middleClickTimer = null;
-              middleClickCount = 0;
-              broadcast("reprise");
-            }, DOUBLE_PRESS_WINDOW_MS);
-          } else {
-            console.log("[clicker-diag] второе нажатие успело в окно -> middle (панель)");
-            clearTimeout(middleClickTimer);
-            middleClickTimer = null;
-            middleClickCount = 0;
-            broadcast("middle");
-          }
-          return;
-        }
-
         let action = null;
         if (btn === 0x01) action = "up";
         else if (btn === 0x02) action = "down";
+        else if (extra === 0x04 && btn === 0x00) action = "reprise";
 
         if (!action) return;
         broadcast(action);

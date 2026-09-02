@@ -55,7 +55,10 @@ export const CloseButton = ({ forceVisible = true }: { forceVisible?: boolean })
           variant="light"
           radius="full"
           disableAnimation
-          className="group w-14 h-14 min-w-0 p-0 !bg-transparent !shadow-none border-0 data-[hover=true]:!bg-transparent data-[pressed=true]:!bg-transparent flex items-center justify-center"
+          // !overflow-visible — у Button из HeroUI overflow-hidden зашит в базовые
+          // стили (для риппла), и он обрезал тень кружка ровно по границе кнопки:
+          // выглядело как резко обрывающееся кольцо вместо плавного затухания
+          className="group w-14 h-14 min-w-0 p-0 !bg-transparent !shadow-none !overflow-visible border-0 data-[hover=true]:!bg-transparent data-[pressed=true]:!bg-transparent flex items-center justify-center"
         >
           <span
             className="
