@@ -778,23 +778,28 @@ export default function Page() {
           : inputLog.join("\n")}
       </div>
 
-      {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера */}
+      {/* Кнопка репризы — левый нижний угол; у регента поднимается над индикатором кликера.
+          Лёгкая подсветка (расходящееся кольцо) — чтобы её вообще замечали, а не искали
+          глазами специально */}
       {repriseMap.has(currentPage) && (
         <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
-          <button
-            onClick={() => goToReprisePage(repriseMap.get(currentPage)!.absoluteTo)}
-            className="flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg active:scale-95 transition-transform"
-            title={`Реприза: перейти на стр. ${repriseMap.get(currentPage)?.relativeTo}`}
-          >
-            {/* Знак репризы: две вертикальные черты + две точки */}
-            <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
-              <rect x="0" y="0" width="4" height="18" rx="0.5" />
-              <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
-              <circle cx="10.5" cy="6" r="2" />
-              <circle cx="10.5" cy="12" r="2" />
-            </svg>
-            стр. {repriseMap.get(currentPage)?.relativeTo}
-          </button>
+          <div className="relative">
+            <span className="absolute inset-0 rounded-full bg-[#7D5E42] opacity-50 animate-ping" />
+            <button
+              onClick={() => goToReprisePage(repriseMap.get(currentPage)!.absoluteTo)}
+              className="relative flex items-center gap-1.5 bg-[#7D5E42] text-white text-sm font-medium px-4 py-2 rounded-full shadow-lg active:scale-95 transition-transform"
+              title={`Реприза: перейти на стр. ${repriseMap.get(currentPage)?.relativeTo}`}
+            >
+              {/* Знак репризы: две вертикальные черты + две точки */}
+              <svg width="13" height="18" viewBox="0 0 13 18" fill="currentColor">
+                <rect x="0" y="0" width="4" height="18" rx="0.5" />
+                <rect x="5.5" y="0" width="2" height="18" rx="0.5" />
+                <circle cx="10.5" cy="6" r="2" />
+                <circle cx="10.5" cy="12" r="2" />
+              </svg>
+              стр. {repriseMap.get(currentPage)?.relativeTo}
+            </button>
+          </div>
         </div>
       )}
 

@@ -127,15 +127,15 @@ const connectDevice = () => {
       console.log(`[clicker] Устройство подключено: usage=${d.usage}`);
       broadcastStatus(true);
 
-      // Средняя кнопка: короткое нажатие — реприза (если она сейчас есть на
-      // странице), долгое — открыть боковую панель, как и раньше. Устройство
-      // само их не различает — шлёт только "нажата"/"отпущена", без адреса
-      // конкретной кнопки на отпускании (кадр отпускания у всех кнопок
-      // одинаковый, все байты нулевые). Поэтому решение откладывается: на
-      // нажатии средней запоминаем время, а действие рассылаем только когда
-      // придёт кадр отпускания — по факту того, сколько кнопка была зажата
-      const MIDDLE_LONG_PRESS_MS = 400;
-      let middlePressedAt = null;
+      // Средняя кнопка: одно нажатие — реприза (если она сейчас есть на
+      // странице), два быстрых подряд — открыть боковую панель. Мерить, как
+      // долго кнопка зажата, оказалось неудобно для человека (не считается
+      // надёжно "долгим") — вместо этого считаем нажатия за короткое окно.
+      // Первое нажатие откладывается на это окно: если за него придёт
+      // второе — считаем как двойное и открываем панель, иначе — реприза
+      const DOUBLE_PRESS_WINDOW_MS = 350;
+      let middleClickTimer = null;
+      let middleClickCount = 0;
 
       device.on("data", (data) => {
         if (data[0] !== 0x03) return;
@@ -144,20 +144,20 @@ const connectDevice = () => {
         const extra = data[1];
 
         if (extra === 0x04 && btn === 0x00) {
-          middlePressedAt = Date.now();
-          return;
-        }
-
-        if (middlePressedAt !== null) {
-          const held = Date.now() - middlePressedAt;
-          middlePressedAt = null;
-          if (btn === 0x00 && extra === 0x00) {
-            broadcast(held < MIDDLE_LONG_PRESS_MS ? "reprise" : "middle");
-            return;
+          middleClickCount++;
+          if (middleClickCount === 1) {
+            middleClickTimer = setTimeout(() => {
+              middleClickTimer = null;
+              middleClickCount = 0;
+              broadcast("reprise");
+            }, DOUBLE_PRESS_WINDOW_MS);
+          } else {
+            clearTimeout(middleClickTimer);
+            middleClickTimer = null;
+            middleClickCount = 0;
+            broadcast("middle");
           }
-          // Кадр отпускания не пришёл, а пришло сразу другое нажатие —
-          // забываем повисшее состояние средней и обрабатываем это нажатие
-          // обычным образом ниже
+          return;
         }
 
         let action = null;
