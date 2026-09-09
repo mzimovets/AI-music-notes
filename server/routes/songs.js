@@ -24,6 +24,52 @@ function optimizeUploadedScanInBackground(songId, filePath) {
   });
 }
 
+/**
+ * Приводит копию песни во всех стопках к её нынешнему виду.
+ *
+ * Стопка хранит не ссылку на песню, а её копию целиком — вместе с именем
+ * файла. Поэтому после замены скана стопка продолжала показывать прежнюю
+ * ноту: у нового файла другое имя (старое занято, сервер добавляет к имени
+ * счётчик), запись песни указывает уже на него, а в стопке остаётся старое.
+ * Сам старый файл при этом с диска удаляется — и на планшете стопка
+ * показывала его же из кеша, будто ничего не менялось.
+ *
+ * Поля, которые относятся к месту песни в программе (instanceId, isReserve),
+ * не трогаем — они про стопку, а не про песню.
+ */
+function syncSongIntoStacks(songId) {
+  database.findOne({ _id: songId }, (findErr, song) => {
+    if (findErr || !song) return;
+
+    database.find({ docType: "stack", deletedAt: { $exists: false } }, (stacksErr, stacks) => {
+      if (stacksErr || !stacks?.length) return;
+
+      for (const stack of stacks) {
+        if (!stack.songs?.some((entry) => entry?._id === songId)) continue;
+
+        const songs = stack.songs.map((entry) =>
+          entry?._id === songId
+            ? { ...entry, ...song, instanceId: entry.instanceId, isReserve: entry.isReserve }
+            : entry,
+        );
+
+        database.update(
+          { _id: stack._id },
+          { $set: { songs, updatedAt: Date.now() } },
+          {},
+          (updErr) => {
+            if (updErr) return console.log("err", updErr);
+            console.log(`Обновлена песня ${songId} в стопке ${stack._id}`);
+            database.findOne({ _id: stack._id }, (err, doc) => {
+              if (!err && doc) pushLocalChangeToRemote(doc);
+            });
+          },
+        );
+      }
+    });
+  });
+}
+
 export const songsRoutes = (app, urlencodedParser, upload) => {
   app.get("/song/:songId", (req, res) => {
     database.findOne({ _id: req.params.songId, deletedAt: { $exists: false } }, (err, doc) => {
@@ -106,6 +152,9 @@ export const songsRoutes = (app, urlencodedParser, upload) => {
                 if (!findErr && doc) pushLocalChangeToRemote(doc);
               });
             }
+            // Стопки хранят копию песни — обновляем и их, иначе там останется
+            // прежняя нота (см. syncSongIntoStacks)
+            if (!err) syncSongIntoStacks(req.params.songId);
             if (!err) optimizeUploadedScanInBackground(req.params.songId, req.file?.path);
 
             if (!err && req.file && oldFilename && oldFilename !== req.file.filename) {

@@ -22,10 +22,11 @@ import { PenIcon } from "@/components/icons/PenIcon";
 import { Input } from "@heroui/input";
 import { useSession } from "next-auth/react";
 import { recacheSong } from "@/lib/recache-song";
+import { recacheStack } from "@/lib/recache";
 import { useParams } from "next/navigation";
 import { evictPdfDocument, getPdfDocument } from "@/lib/pdf-doc-cache";
 
-import { getUploadPath } from "@/lib/client-url";
+import { getBackendBaseUrl, getUploadPath } from "@/lib/client-url";
 
 export const InfoCard = () => {
   const { data: session } = useSession();
@@ -133,6 +134,29 @@ export const InfoCard = () => {
 
     await editSong(song.doc._id, data);
     await recacheSong(params.id);
+
+    /**
+     * Стопки хранят копию песни целиком, вместе с именем файла. Сервер их
+     * поправит сам (см. syncSongIntoStacks в server/routes/songs.js), но на
+     * устройстве остаётся прежняя стопка в кеше — и на службе без интернета
+     * она отдала бы старую ноту. Поэтому обновляем кеш тех стопок, где эта
+     * песня есть. Если список не забрать (нет связи) — не беда: без сети
+     * замена файла всё равно уходит в очередь
+     */
+    if (data.file) {
+      try {
+        const res = await fetch(`${getBackendBaseUrl()}/stacks`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(5000),
+        });
+        const stacks = (await res.json())?.docs ?? [];
+        const affected = stacks.filter((stack: any) =>
+          stack?.songs?.some((entry: any) => entry?._id === song.doc._id),
+        );
+        for (const stack of affected) await recacheStack(stack._id);
+      } catch {}
+    }
+
     setIsEdit(false);
   };
 
