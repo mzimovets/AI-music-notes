@@ -5,7 +5,7 @@ import { CloseReadButton } from "./components/CloseReadButton";
 import { StackViewer } from "@/app/stackView/[id]/components/StackViewer";
 import { ScrollToTop } from "@/app/stack/[id]/components/ScrollToTopButton";
 import { useClicker } from "@/components/useClicker";
-import { ClickerIndicator } from "@/components/ClickerIndicator";
+import { ClickerIndicator, CLICKER_INDICATOR_ENABLED } from "@/components/ClickerIndicator";
 import { useSongContext } from "@/app/song/[id]/SongContextProvider";
 import { getUploadPath } from "@/lib/client-url";
 import { smoothScrollTo } from "@/lib/smooth-scroll";
@@ -326,7 +326,7 @@ export default function SongReadPage() {
           Подсветка — кнопка сама чуть дышит масштабом и тенью, и по ней пробегает блик
           (см. тот же приём в stackView/[id]/page.tsx) */}
       {activeReprise && (
-        <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
+        <div className={`fixed left-3 z-50 transition-all duration-200 ${CLICKER_INDICATOR_ENABLED && !isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
           <div className="rounded-full" style={{ animation: "reprise-breathe 2.2s ease-in-out infinite" }}>
             <style jsx>{`
               @keyframes reprise-breathe {

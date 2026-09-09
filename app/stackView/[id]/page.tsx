@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useCallback, useState, useEffect } from "react";
 import { useClicker } from "@/components/useClicker";
-import { ClickerIndicator } from "@/components/ClickerIndicator";
+import { ClickerIndicator, CLICKER_INDICATOR_ENABLED } from "@/components/ClickerIndicator";
 
 import { SideBarStack } from "./components/SideBarStack";
 
@@ -743,7 +743,7 @@ export default function Page() {
           Подсветка — кнопка сама чуть дышит масштабом и тенью, и по ней пробегает блик:
           чтобы замечали, но не выглядело как дешёвый мигающий значок */}
       {repriseMap.has(currentPage) && (
-        <div className={`fixed left-3 z-50 transition-all duration-200 ${!isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
+        <div className={`fixed left-3 z-50 transition-all duration-200 ${CLICKER_INDICATOR_ENABLED && !isSinger && showButton ? "bottom-14" : "bottom-3"}`}>
           <div className="rounded-full" style={{ animation: "reprise-breathe 2.2s ease-in-out infinite" }}>
             <style jsx>{`
               @keyframes reprise-breathe {

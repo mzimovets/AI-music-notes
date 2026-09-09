@@ -3,7 +3,22 @@
 import { Chip } from "@heroui/react";
 import { ClickerIcon } from "./ClickerIcon";
 
+/**
+ * Индикатор кликера временно убран с экрана.
+ *
+ * Показывать его сейчас нечестно: про Bluetooth-пульт, подключённый прямо к
+ * планшету, браузер знать ничего не может, а про пульт через реле индикатор
+ * говорит лишь то, что жива связь с сервером, — и то и другое вводило в
+ * заблуждение. Вернуть: поставить здесь true, больше ничего менять не надо.
+ *
+ * От этого же значения зависит положение кнопки репризы: она поднимается
+ * над индикатором только когда он виден (см. stackView и songRead).
+ */
+export const CLICKER_INDICATOR_ENABLED = false;
+
 export function ClickerIndicator({ isConnected, hidden }: { isConnected: boolean; hidden?: boolean }) {
+  if (!CLICKER_INDICATOR_ENABLED) return null;
+
   return (
     <div className={`fixed bottom-3 left-3 z-50 transition-all duration-200 ${hidden ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
       <Chip
