@@ -1125,10 +1125,14 @@ export const SideBarStack = ({
                                 >
                                   <div id="reserve-drop">
                                     {/* Точка, на которой прокрутка встаёт
-                                        (см. scrollSnapType у ScrollShadow) */}
+                                        (см. scrollSnapType у ScrollShadow).
+                                        scrollSnapStop: always — чтобы сильный
+                                        мах не проносил список мимо резерва:
+                                        одно притяжение этого не держит, оно
+                                        лишь доводит, если жест кончился рядом */}
                                     <div
                                       className="flex items-center my-3 select-none"
-                                      style={{ scrollSnapAlign: "start" }}
+                                      style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
                                     >
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                       <button
