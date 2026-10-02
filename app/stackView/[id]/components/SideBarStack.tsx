@@ -215,8 +215,15 @@ export const SideBarStack = ({
       if (page) anchors.push({ kind: "reserve", index, page });
     });
 
+    if (anchors.length === 0) return null;
+
     const started = anchors.filter((a) => a.page <= currentPage);
-    if (started.length === 0) return null;
+    // Текущая страница раньше первого блока — это страница-разделитель в
+    // самом начале (перед тропарём план ставит её всегда). Открыт при этом
+    // всё равно первый блок, его и подсвечиваем
+    if (started.length === 0) {
+      return anchors.reduce((first, a) => (a.page < first.page ? a : first));
+    }
     return started.reduce((best, a) => (a.page > best.page ? a : best));
   })();
 

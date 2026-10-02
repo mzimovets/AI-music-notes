@@ -441,6 +441,19 @@ export const SwipeBookViewer = forwardRef<SwipeBookViewerHandle, SwipeBookViewer
     const mobileIndexRef = useRef(0);
     useEffect(() => { mobileIndexRef.current = mobileIndex; }, [mobileIndex]);
 
+    /**
+     * Сообщаем наружу текущую страницу всегда, а не только при листании.
+     *
+     * Раньше о странице узнавали лишь из обработчиков жеста и перехода, и
+     * при открытии стопки снаружи оставалась единица, хотя на экране уже
+     * могла быть другая страница. Из-за этого список в боковой панели не
+     * знал, какая нота открыта, и ничего не подсвечивал
+     */
+    useEffect(() => {
+      const page = mobilePages[mobileIndex];
+      if (typeof page === "number") onPageChangeRef.current?.(page);
+    }, [mobilePages, mobileIndex]);
+
     // Документы соседних страниц открываем заранее — это дёшево и безопасно.
     // Предварительной отрисовки здесь намеренно нет: она занимала главный
     // поток ровно в момент касания, из-за чего iOS гасил жесты
