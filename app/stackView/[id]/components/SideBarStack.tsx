@@ -224,20 +224,34 @@ export const SideBarStack = ({
     activeEntry?.kind === kind && activeEntry.index === index;
 
   /**
-   * Открытую песню подкручиваем в видимую часть списка: в программе их
-   * бывает под два десятка, и искать подсвеченную строку вручную, пролистывая
-   * весь список, — ровно та морока, ради избавления от которой подсветка и
-   * делалась. Небольшая задержка — чтобы панель успела доехать до края
-   * экрана, иначе прокручивать ещё нечего
+   * Список открывается сразу на открытой песне.
+   *
+   * В программе их бывает под два десятка, и искать подсвеченную строку,
+   * пролистывая весь список, — ровно та морока, ради избавления от которой
+   * подсветка и делалась.
+   *
+   * Ставим на место без анимации и как можно раньше — пока панель ещё
+   * выезжает. Плавная прокрутка здесь только мешала: человек каждый раз
+   * видел, как список долистывается у него на глазах. Пробуем несколько
+   * раз подряд, потому что в первый кадр строки в разметке ещё нет.
    */
   const drawerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!isDrawerOpen || !activeEntry) return;
-    const timer = setTimeout(() => {
-      drawerRef.current
-        ?.querySelector("[data-active-row]")
-        ?.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, 350);
+
+    let tries = 0;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const place = () => {
+      const row = drawerRef.current?.querySelector("[data-active-row]");
+      if (row) {
+        row.scrollIntoView({ block: "center", behavior: "instant" as ScrollBehavior });
+        return;
+      }
+      if (++tries < 20) timer = setTimeout(place, 50);
+    };
+
+    timer = setTimeout(place, 0);
     return () => clearTimeout(timer);
   }, [isDrawerOpen, activeEntry?.kind, activeEntry?.index]);
 
