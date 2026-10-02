@@ -76,7 +76,7 @@ import {
 import { Select, SelectItem } from "@heroui/react";
 import { Input } from "@heroui/input";
 import { SearchIcon } from "@/components/icons";
-import { SortableSong } from "@/app/stack/[id]/components/SortableSong";
+import { SortableSong, ACTIVE_ROW_CARD, ACTIVE_ROW_TEXT } from "@/app/stack/[id]/components/SortableSong";
 
 // DND Kit
 import {
@@ -134,6 +134,7 @@ export const SideBarStack = ({
   reserveSongPages,
   trapezaStartPage,
   trapezaEndPage,
+  currentPage,
   forceVisible,
 }: {
   onPreview: (song: any) => void;
@@ -144,6 +145,8 @@ export const SideBarStack = ({
   reserveSongPages?: number[];
   trapezaStartPage?: number;
   trapezaEndPage?: number;
+  /** Открытая сейчас страница — по ней подсвечиваем строку в списке */
+  currentPage?: number;
   /** В режиме книги видимость управляется снаружи (тап по экрану) */
   forceVisible?: boolean;
 }) => {
@@ -190,6 +193,53 @@ export const SideBarStack = ({
   } = useStackContext();
   const stackId = stackResponse?.doc?._id;
   const isInitialSyncSkippedRef = useRef(false);
+
+  /**
+   * Какая строка списка открыта прямо сейчас.
+   *
+   * Страницы идут подряд, и для каждой строки известен номер её первой
+   * страницы. Значит открытой считается та, чьё начало ближе всего позади
+   * текущей страницы — так не нужно знать, сколько страниц в каждой ноте,
+   * и порядок строк в списке тоже не важен.
+   */
+  const activeEntry = (() => {
+    if (!currentPage) return null;
+
+    const anchors: { kind: string; index: number; page: number }[] = [];
+    if (trapezaStartPage) anchors.push({ kind: "trapeza-start", index: -1, page: trapezaStartPage });
+    if (trapezaEndPage) anchors.push({ kind: "trapeza-end", index: -1, page: trapezaEndPage });
+    mainSongPages?.forEach((page, index) => {
+      if (page) anchors.push({ kind: "main", index, page });
+    });
+    reserveSongPages?.forEach((page, index) => {
+      if (page) anchors.push({ kind: "reserve", index, page });
+    });
+
+    const started = anchors.filter((a) => a.page <= currentPage);
+    if (started.length === 0) return null;
+    return started.reduce((best, a) => (a.page > best.page ? a : best));
+  })();
+
+  const isActiveRow = (kind: string, index = -1) =>
+    activeEntry?.kind === kind && activeEntry.index === index;
+
+  /**
+   * Открытую песню подкручиваем в видимую часть списка: в программе их
+   * бывает под два десятка, и искать подсвеченную строку вручную, пролистывая
+   * весь список, — ровно та морока, ради избавления от которой подсветка и
+   * делалась. Небольшая задержка — чтобы панель успела доехать до края
+   * экрана, иначе прокручивать ещё нечего
+   */
+  const drawerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isDrawerOpen || !activeEntry) return;
+    const timer = setTimeout(() => {
+      drawerRef.current
+        ?.querySelector("[data-active-row]")
+        ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [isDrawerOpen, activeEntry?.kind, activeEntry?.index]);
 
   useEffect(() => {
     isInitialSyncSkippedRef.current = false;
@@ -526,11 +576,13 @@ export const SideBarStack = ({
           <SidebarButton onPress={() => handleOpen()} />
         </div>
       </div>
+      {/* isDismissable: нажатие мимо панели закрывает её — иначе из открытого
+          списка приходилось целиться в крестик, хотя ноты уже видны рядом */}
       <Drawer
         isOpen={isDrawerOpen}
         placement="left"
         onOpenChange={setIsDrawerOpen}
-        isDismissable={false}
+        isDismissable={true}
         isKeyboardDismissDisabled={true}
         hideCloseButton
         classNames={{
@@ -721,7 +773,7 @@ export const SideBarStack = ({
                   </Button>
                 </div>
               </DrawerHeader>
-              <DrawerBody className="flex flex-col h-[calc(100vh-60px)] overflow-hidden">
+              <DrawerBody ref={drawerRef} className="flex flex-col h-[calc(100vh-60px)] overflow-hidden">
                 {/* Табы */}
                 {activeTab === "stack" && (
                   <div
@@ -955,7 +1007,8 @@ export const SideBarStack = ({
                                 <div id="main-drop" className="mb-4">
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className={`touch-none select-none w-[85%] ml-auto p-3 shadow-sm bg-white border border-default-200 rounded-xl mt-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${session?.user?.role === "регент" ? "flex flex-col gap-2 mb-3 min-h-[100px] items-start" : "mb-2"}`}
+                                      {...(isActiveRow("trapeza-start") ? { "data-active-row": true } : {})}
+                                      className={`touch-none select-none w-[85%] ml-auto p-3 shadow-sm rounded-xl mt-1 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${isActiveRow("trapeza-start") ? ACTIVE_ROW_CARD : "bg-white border border-default-200"} ${session?.user?.role === "регент" ? "flex flex-col gap-2 mb-3 min-h-[100px] items-start" : "mb-2"}`}
                                       onClick={() =>
                                         handleSongClick(
                                           `meal_start`,
@@ -963,7 +1016,7 @@ export const SideBarStack = ({
                                         )
                                       }
                                     >
-                                      <p className="text-sm lg:text-base input-header m-0 text-left">
+                                      <p className={`text-sm lg:text-base input-header m-0 text-left ${isActiveRow("trapeza-start") ? ACTIVE_ROW_TEXT : ""}`}>
                                         Трапеза (начало)
                                       </p>
                                       {session?.user?.role === "регент" && (
@@ -1003,6 +1056,7 @@ export const SideBarStack = ({
                                           );
                                         }}
                                         onPreview={onPreview}
+                                        isActive={isActiveRow("main", index)}
                                         onRemove={(id) =>
                                           setStackSongs((prev) =>
                                             prev.filter(
@@ -1014,7 +1068,8 @@ export const SideBarStack = ({
                                     ))}
                                   {programSelected.includes("Трапеза") && (
                                     <div
-                                      className="touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm bg-white border border-default-200 rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02]"
+                                      {...(isActiveRow("trapeza-end") ? { "data-active-row": true } : {})}
+                                      className={`touch-none select-none w-[85%] ml-auto p-3 mt-1 mb-1 shadow-sm rounded-xl items-start cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] ${isActiveRow("trapeza-end") ? ACTIVE_ROW_CARD : "bg-white border border-default-200"}`}
                                       onClick={() =>
                                         handleSongClick(
                                           `meal_end`,
@@ -1022,7 +1077,7 @@ export const SideBarStack = ({
                                         )
                                       }
                                     >
-                                      <p className="text-sm lg:text-base input-header m-0">
+                                      <p className={`text-sm lg:text-base input-header m-0 ${isActiveRow("trapeza-end") ? ACTIVE_ROW_TEXT : ""}`}>
                                         Трапеза (конец)
                                       </p>
                                     </div>
@@ -1058,6 +1113,7 @@ export const SideBarStack = ({
                                           song={song}
                                           index={index}
                                           onPreview={onPreview}
+                                          isActive={isActiveRow("reserve", index)}
                                           onClick={() =>
                                             handleSongClick(
                                               `${song._id}_${index}_reserved`,

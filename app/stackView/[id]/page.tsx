@@ -790,6 +790,7 @@ export default function Page() {
         reserveSongPages={reserveSongPages}
         trapezaStartPage={trapezaStartPage}
         trapezaEndPage={trapezaEndPage}
+        currentPage={currentPage}
         forceVisible={showButton}
       />
       <div
