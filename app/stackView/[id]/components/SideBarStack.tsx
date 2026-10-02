@@ -976,6 +976,16 @@ export const SideBarStack = ({
                             hideScrollBar
                             className="absolute inset-0 px-1"
                             size={40}
+                            /**
+                             * Притяжение к границе резерва: список листается
+                             * свободно, но если жест закончился рядом с
+                             * заголовком «Резерв», прокрутка встаёт ровно на
+                             * него — сразу видно, где кончилась программа.
+                             * Именно proximity, а не mandatory: mandatory
+                             * тянул бы к этой точке откуда угодно, и мимо
+                             * резерва стало бы не пролистать
+                             */
+                            style={{ scrollSnapType: "y proximity", scrollPaddingTop: 8 }}
                           >
                             <div className="flex items-center my-3 select-none">
                               <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
@@ -1093,7 +1103,12 @@ export const SideBarStack = ({
                                   strategy={verticalListSortingStrategy}
                                 >
                                   <div id="reserve-drop">
-                                    <div className="flex items-center my-3 select-none">
+                                    {/* Точка, на которой прокрутка встаёт
+                                        (см. scrollSnapType у ScrollShadow) */}
+                                    <div
+                                      className="flex items-center my-3 select-none"
+                                      style={{ scrollSnapAlign: "start" }}
+                                    >
                                       <div className="flex-1 h-px bg-gradient-to-l from-[#7D5E42]/50 to-transparent" />
                                       <button
                                         onClick={() =>
